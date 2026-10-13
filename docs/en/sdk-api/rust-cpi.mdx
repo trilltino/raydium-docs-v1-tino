@@ -21,22 +21,31 @@ If you're integrating CPMM, CLMM, or LaunchLab, read [the general pattern](#the-
 
 ## Cargo dependencies
 
+The Anchor CPI examples below use Anchor `1.0.2` and target mainnet-beta unless noted otherwise. They were last verified on 2026-10-05 against the CPMM and CLMM `master` branches. Program IDs are listed in [reference/program-addresses](/docs/en/reference/program-addresses).
+
 ```toml icon="file-code"
-# Both public Raydium CPI crates pin Anchor =1.0.2 on their upgrade branches,
-# so one program can depend on either or both — see the table below.
+# Both crates' current master branches pin anchor-lang and anchor-spl to =1.0.2.
 [dependencies]
 anchor-lang     = "=1.0.2"
 anchor-spl      = "=1.0.2"
-raydium-cp-swap = { git = "https://github.com/raydium-io/raydium-cp-swap", branch = "chore/upgrade-anchor", features = ["cpi"] }
-raydium-clmm    = { git = "https://github.com/raydium-io/raydium-clmm",    branch = "chore/upgrade-anchor", features = ["cpi"] }
-# NOTE: both repos' `master` branches still pin anchor-lang 0.32.1. The `=1.0.2` pins
-# above only resolve against the upgrade branches; if you target `master`, use =0.32.1
-# and the 0.3x CpiContext API — and then only one of the two crates at a time.
+raydium-cp-swap = { git = "https://github.com/raydium-io/raydium-cp-swap", branch = "master", features = ["cpi"] }
+raydium-clmm    = { git = "https://github.com/raydium-io/raydium-clmm",    branch = "master", features = ["cpi"] }
+# Pin each git dependency to a reviewed `rev = "<commit>"` for reproducible builds.
 # LaunchLab: program source is not publicly available (see reference/program-addresses).
 # There is no git dependency to point at. Generate CPI bindings from the published IDL
 # instead. See "Applying the pattern: LaunchLab" below.
 # AMM v4 has no published Anchor CPI crate; see its own section.
 ```
+
+For a devnet build, add a `devnet` feature to your calling program and enable it when building:
+
+```toml icon="file-code"
+[features]
+default = []
+devnet = ["raydium-cp-swap/devnet", "raydium-clmm/devnet"]
+```
+
+Build with `--features devnet`. This caller feature both enables the Raydium crates' devnet program IDs and selects the devnet LaunchLab ID in the example below. Keep the cluster, crate features, and supplied program accounts on the same network.
 
 <Warning>
   **The dependency key must match the target repo's `[package] name` exactly, hyphens included.** Cargo does not treat `raydium_cp_swap` as equivalent to `raydium-cp-swap` when resolving a *git* dependency.
@@ -44,19 +53,17 @@ raydium-clmm    = { git = "https://github.com/raydium-io/raydium-clmm",    branc
 
 `branch = "master"` tracks the latest published source; pin to a specific `rev = "<commit>"` if you need a reproducible build. This is recommended once you're past prototyping, since an upstream account-layout change on `master` will break your build with no warning otherwise.
 
-The `cpi` feature flag makes the crates compile to just the CPI surface (account structs + invokers) rather than the full program, so your binary stays small.
+The `cpi` feature enables the crate's `no-entrypoint` feature, so it can be used as a CPI dependency without including the callee program's entrypoint. It does not by itself guarantee that only CPI wrappers are compiled or that your binary will be smaller.
 
 **`anchor-lang` / `anchor-spl` must match what the target crate pins**:
 
-| Crate | Pins `anchor-lang` / `anchor-spl` |
+| Crate / branch | `anchor-lang` / `anchor-spl` pins |
 |---|---|
-| `raydium-cp-swap` (`chore/upgrade-anchor`) | `=1.0.2`, from the [2026-09-09 upgrade](/docs/en/reference/changelog/2026-09-09-cpmm-anchor-1-and-excess-lamports) |
-| `raydium-clmm` (`chore/upgrade-anchor`) | `=1.0.2`, from the [2026-09-30 upgrade](/docs/en/reference/changelog/2026-09-30-clmm-anchor-1-and-excess-lamports) |
-| `raydium-cp-swap` (`master`) | `0.32.1`, caret-pinned. The upgrade has not landed on `master` |
-| `raydium-clmm` (`master`) | `=0.32.1`. The upgrade has not landed on `master` |
+| [`raydium-cp-swap` `master`](https://github.com/raydium-io/raydium-cp-swap/blob/master/programs/cp-swap/Cargo.toml) | `=1.0.2` / `=1.0.2` |
+| [`raydium-clmm` `master`](https://github.com/raydium-io/raydium-clmm/blob/master/programs/amm/Cargo.toml) | `=1.0.2` / `=1.0.2` |
 
 <Warning>
-  **Take both crates from the same Anchor line.** Both upgrade branches pin `=1.0.2`, so one program can CPI into CPMM and CLMM from a single crate. Mixing lines breaks the build: for example, `raydium-cp-swap` on `chore/upgrade-anchor` with `raydium-clmm` on `master`. Cargo would have to link two incompatible copies of Anchor's traits into one binary. If you are stuck on a mixed pair, split the program in two, or drop the typed CPI crate for one side and hand-encode that instruction (the pattern shown for [AMM v4](#amm-v4-manual-instruction-construction) works for any program). Re-check both `Cargo.toml` files before starting, since the branches will move to `master` eventually.
+  **Keep the Raydium crates and your direct Anchor dependencies on compatible versions.** The current `master` manifests for both crates pin `anchor-lang` and `anchor-spl` to `=1.0.2`. If either repository changes those pins, update your direct dependencies to match and verify the resolved dependency graph before building.
 </Warning>
 
 <Warning>
@@ -263,10 +270,20 @@ Generate bindings from the published IDL using Anchor's `declare_program!` macro
 
 The CPI shape follows [the general pattern](#the-general-anchor-cpi-pattern). The account list and arguments below come from the on-chain IDL's `buy_exact_in` instruction, not from `products/launchlab/instructions.mdx`:
 
+The `devnet` feature below belongs to your calling program. Declare it in that program's `Cargo.toml` and enable it for devnet builds; without it, the example constrains the account to the mainnet-beta LaunchLab ID.
+
 ```rust icon="rust"
 use anchor_lang::prelude::*;
 use anchor_spl::token::{Token, TokenAccount, Mint};
 use raydium_launchpad::cpi::{self, accounts::BuyExactIn};
+
+#[cfg(feature = "devnet")]
+const LAUNCHLAB_PROGRAM_ID: Pubkey =
+    pubkey!("DRay6fNdQ5J82H7xV6uq2aV3mNrUZ1J4PgSKsWgptcm6"); // see reference/program-addresses
+
+#[cfg(not(feature = "devnet"))]
+const LAUNCHLAB_PROGRAM_ID: Pubkey =
+    pubkey!("LanMV9sAd7wArD4vJFi2qDdfnVhFxYSUg6eADduJ3uj"); // see reference/program-addresses
 
 #[derive(Accounts)]
 pub struct MyProxyBuy<'info> {
@@ -306,7 +323,8 @@ pub struct MyProxyBuy<'info> {
 
     /// CHECK: PDA, seeds = [b"__event_authority"], required by the program's emit_cpi! pattern
     pub event_authority: UncheckedAccount<'info>,
-    /// CHECK: the program's own account, required alongside event_authority
+    /// CHECK: constrained to the LaunchLab program ID for this cluster
+    #[account(address = LAUNCHLAB_PROGRAM_ID)]
     pub program: UncheckedAccount<'info>,
 }
 
@@ -333,9 +351,8 @@ pub fn my_proxy_buy(
         event_authority:     ctx.accounts.event_authority.to_account_info(),
         program:             ctx.accounts.program.to_account_info(),
     };
-    // `program` doubles as the CPI target here: LaunchLab's own account is both one of
-    // its instruction's required accounts (for its emit_cpi! pattern) and the program
-    // CpiContext::new invokes.
+    // `program` is required by LaunchLab's emit_cpi! pattern and is constrained above
+    // to the cluster's LaunchLab program ID before it is used as the CPI target.
     let cpi_ctx = CpiContext::new(
         *ctx.accounts.program.key,
         cpi_accounts,
@@ -350,11 +367,9 @@ Post-graduation, the target program is CPMM or AMM v4 depending on `pool_state.m
 
 ## Error propagation
 
-Each Anchor-based Raydium program returns its own error enum; Anchor wraps them, so your calling program sees them as `Err(ProgramError::Custom(code))`. To handle specific errors:
+If you only need to log a failed CPMM CPI and propagate its error unchanged:
 
 ```rust icon="rust"
-use raydium_cp_swap::error::ErrorCode as CpmmErr;
-
 match cpi::swap_base_input(cpi_ctx, amount_in, minimum_amount_out) {
     Ok(_) => Ok(()),
     Err(e) => {
@@ -365,11 +380,11 @@ match cpi::swap_base_input(cpi_ctx, amount_in, minimum_amount_out) {
 }
 ```
 
-Swap in the relevant error type for the program you're calling (`raydium_clmm::error::ErrorCode` for CLMM, and so on). Error code numbers are stable per the IDL policy ([`sdk-api/anchor-idl`](/docs/en/sdk-api/anchor-idl#idl-change-policy)), so you can test against specific codes by comparing against the numeric value. Full error tables: [CPMM](/docs/en/reference/error-codes#cpmm-standard-amm-errors), [CLMM](/docs/en/reference/error-codes#clmm-errors), [AMM v4, Farm v6, and LaunchLab](/docs/en/reference/error-codes#amm-v4-farm-v3-/-v5-/-v6-launchlab-errors).
+Full error tables: [CPMM](/docs/en/reference/error-codes#cpmm-standard-amm-errors), [CLMM](/docs/en/reference/error-codes#clmm-errors), [AMM v4, Farm v6, and LaunchLab](/docs/en/reference/error-codes#amm-v4-farm-v3-/-v5-/-v6-launchlab-errors).
 
 ## Compute budget in composed CPIs
 
-Each CPI frame has overhead, and the callee's own CU consumption stacks on top of yours, so a transaction that calls into Raydium from inside your program needs an explicit compute budget rather than relying on the 200k CU default.
+The caller and every CPI share the transaction's compute-unit budget. Whether you need an explicit limit depends on the complete transaction's expected usage. Add any compute-budget instruction when building the transaction; the caller program cannot set the transaction limit by invoking it as a CPI.
 
 <Note>
   **Measured, not estimated.** A CPMM `swap_base_input` on mainnet consumes **~23,000 CU** in the CPMM program itself — sampled 2026-09-09 across eight live swaps on a high-volume pool (22,721–23,052), read from the `Program CPMMoo8… consumed N of M compute units` log line. For comparison: AMM v4 swap ~26,000; CLMM `swap` ~41,000; CLMM `swap_v2` ~48,000 (43,838–52,887), rising with each tick crossing.
@@ -377,7 +392,7 @@ Each CPI frame has overhead, and the callee's own CU consumption stacks on top o
   An earlier revision of this page reported ~47,700 CU for a proxy-swap CPI. That figure was the *whole transaction* (`computeUnitsConsumed`), which includes the caller's own program, the CPI frame and any ATA setup — not the callee's cost. Both are useful, but they are not the same number, so compare like with like. Measure your own transaction rather than budgeting off either.
 </Note>
 
-CLMM and LaunchLab CPIs cost more (CLMM in particular walks additional tick arrays via `remaining_accounts`, adding CU per array), but only the CPMM figure above is a measured value. Always set an explicit `ComputeBudgetProgram::set_compute_unit_limit(...)` instruction sized from your own measurement, not a number copied from documentation, since the default 200k CU limit will silently exhaust and per-instruction costs shift as programs are upgraded.
+CLMM and LaunchLab CPIs cost more (CLMM in particular walks additional tick arrays via `remaining_accounts`, adding CU per array), but only the CPMM figure above is a measured value. Measure the composed transaction on the target cluster and set an explicit transaction compute-unit limit when needed. If execution exceeds the limit, the transaction fails. Compute usage can change as pool state and program versions change.
 
 ## AMM v4: manual Instruction construction
 
@@ -388,7 +403,8 @@ use anchor_lang::prelude::*;
 use anchor_lang::solana_program::program::invoke_signed;
 use anchor_lang::solana_program::instruction::{Instruction, AccountMeta};
 
-const AMM_V4_PROGRAM_ID: Pubkey = pubkey!("675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8");
+const AMM_V4_PROGRAM_ID: Pubkey =
+    pubkey!("675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8"); // see reference/program-addresses
 
 // SwapBaseIn discriminator is 9.
 let mut data = vec![9u8];
