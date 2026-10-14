@@ -2,6 +2,7 @@
 
 Tooling for the Raydium docs repo. Currently:
 
+- [`generate-upstream-diff.py`](./generate-upstream-diff.py) compares tracked documentation and project setup with upstream, records path moves, and writes a normalized review patch under `public/tino-changes`. Run `py scripts/generate-upstream-diff.py --upstream-ref upstream/main --working-tree` after updating the [Tino changes page](../docs/en/resources/tino-changes.mdx).
 - [`translate.py`](./translate.py) — batch translator that turns the English source tree into locale-specific MDX, page by page, via the Anthropic API.
 
 ## `translate.py` — batch translator

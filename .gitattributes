@@ -1,3 +1,6 @@
+# Unified diff artifacts contain a single space on blank context lines.
+public/tino-changes/*.patch whitespace=-blank-at-eol,-blank-at-eof
+
 zh/**         linguist-generated=true
 zh-Hant/**    linguist-generated=true
 ja/**         linguist-generated=true

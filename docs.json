@@ -45,6 +45,71 @@
     {
       "source": "/raydium/protocol/ray-token/raydium-protocol-ray-token-white-paper",
       "destination": "/docs/en/ray/ray-token-white-paper"
+    },
+    {
+      "source": "/docs/i18n/ar/resources/tino-changes",
+      "destination": "/docs/en/resources/tino-changes",
+      "permanent": false
+    },
+    {
+      "source": "/docs/i18n/de/resources/tino-changes",
+      "destination": "/docs/en/resources/tino-changes",
+      "permanent": false
+    },
+    {
+      "source": "/docs/i18n/es/resources/tino-changes",
+      "destination": "/docs/en/resources/tino-changes",
+      "permanent": false
+    },
+    {
+      "source": "/docs/i18n/fr/resources/tino-changes",
+      "destination": "/docs/en/resources/tino-changes",
+      "permanent": false
+    },
+    {
+      "source": "/docs/i18n/id/resources/tino-changes",
+      "destination": "/docs/en/resources/tino-changes",
+      "permanent": false
+    },
+    {
+      "source": "/docs/i18n/ja/resources/tino-changes",
+      "destination": "/docs/en/resources/tino-changes",
+      "permanent": false
+    },
+    {
+      "source": "/docs/i18n/ko/resources/tino-changes",
+      "destination": "/docs/en/resources/tino-changes",
+      "permanent": false
+    },
+    {
+      "source": "/docs/i18n/pt/resources/tino-changes",
+      "destination": "/docs/en/resources/tino-changes",
+      "permanent": false
+    },
+    {
+      "source": "/docs/i18n/ru/resources/tino-changes",
+      "destination": "/docs/en/resources/tino-changes",
+      "permanent": false
+    },
+    {
+      "source": "/docs/i18n/tr/resources/tino-changes",
+      "destination": "/docs/en/resources/tino-changes",
+      "permanent": false
+    },
+    {
+      "source": "/docs/i18n/vi/resources/tino-changes",
+      "destination": "/docs/en/resources/tino-changes",
+      "permanent": false
+    },
+    {
+      "source": "/docs/i18n/zh-Hant/resources/tino-changes",
+      "destination": "/docs/en/resources/tino-changes",
+      "permanent": false
+    },
+    {
+      "source": "/docs/i18n/zh/resources/tino-changes",
+      "destination": "/docs/en/resources/tino-changes",
+      "permanent": false
     }
   ],
   "navigation": {
@@ -535,7 +600,8 @@
                   "docs/en/resources/index",
                   "docs/en/resources/brand-kit",
                   "docs/en/resources/community-tools",
-                  "docs/en/resources/license"
+                  "docs/en/resources/license",
+                  "docs/en/resources/tino-changes"
                 ]
               }
             ]
