@@ -1,87 +1,29 @@
 ---
 title: "Tino changes"
-description: "Changes in this documentation checkout compared with Raydium's upstream docs, with the original claims, corrections, evidence, and PR status."
+description: "Dated changes to this documentation checkout and their Raydium documentation PR and issue status."
 ---
 
-You can use this page to review how this checkout differs from [Raydium's upstream documentation](https://github.com/raydium-io/raydium-docs-v1). Each entry explains what changed and why. The comparison uses upstream commit [`3699439`](https://github.com/raydium-io/raydium-docs-v1/commit/3699439bcad7ebdb7d65ba62cb896e93ecd3a204), checked on 2026-10-14.
+## 28 October 2026
 
-## Review the diff
+- **Change tracking:** Added this page as its own **Tino changes** tab in the navigation. Each locale redirects to this English page, and the page is linked from the [Resources](/docs/en/resources) index.
+- **Upstream comparison:** Added `scripts/generate-upstream-diff.py`, which compares this checkout with Raydium's upstream docs and writes the results to `public/tino-changes`. You can download the [content diff](https://raw.githubusercontent.com/trilltino/raydium-docs-v1-tino/main/public/tino-changes/upstream-content.patch), the [path inventory](https://raw.githubusercontent.com/trilltino/raydium-docs-v1-tino/main/public/tino-changes/upstream-diff.json), and the [Owner API PR patch](https://raw.githubusercontent.com/trilltino/raydium-docs-v1-tino/main/public/tino-changes/owner-api-farm-rewards.patch).
+- **Repository links:** Pointed change and diff links at the renamed Tino repository.
+- **Locale sync:** Ran `scripts/sync-locales.py` so locale navigation and fallback redirects match the English tree.
 
-- [Content and project-setup diff](https://raw.githubusercontent.com/trilltino/raydium-docs-v1-tino/docs/owner-api-rewards-and-tino-changes/public/tino-changes/upstream-content.patch). The comparison removes the local `docs/en/` and `docs/i18n/` prefixes from paths and text so you can read substantive edits without thousands of moved-page hunks.
-- [Full path inventory and snapshot metadata](https://raw.githubusercontent.com/trilltino/raydium-docs-v1-tino/docs/owner-api-rewards-and-tino-changes/public/tino-changes/upstream-diff.json). This records path-only moves, content edits, additions, and removals, along with the compared commit hashes.
-- [Owner API PR patch](https://raw.githubusercontent.com/trilltino/raydium-docs-v1-tino/docs/owner-api-rewards-and-tino-changes/public/tino-changes/owner-api-farm-rewards.patch). This uses upstream's actual paths and contains only the farm-rewards documentation fix.
+## 17 October 2026
 
-The normalized diff is a review artifact. Use the Owner API PR patch when you need the upstream paths. The inventory excludes this page, its generator, generated reports, and untracked personal files. It includes the earlier committed changes and the tracked edits for the current correction.
+- **Owner API farm rewards:** Corrected the docs to match the SDK response and reward calculation. Added a field-level OpenAPI schema and updated the wallet integration example.
+- [PR #18](https://github.com/raydium-io/raydium-docs-v1/pull/18), opened 14 October, is open for review.
+- **Architecture diagram:** Opened [issue #19](https://github.com/raydium-io/raydium-docs-v1/issues/19) on 14 October to request a more readable diagram. It remains open.
 
-## Owner API farm rewards
+## 5 October 2026
 
-### What the integrator tried and found
+- **Shared infrastructure:** Corrected descriptions of vault authorities, config accounts, fee accounting, observations, and oracle limits. The changes remain in this checkout.
+- [PR #15](https://github.com/raydium-io/raydium-docs-v1/pull/15) closed on 12 October without merging.
+- **Rust CPI guide:** Updated dependency instructions, cluster feature wiring, program ID checks, and compute-budget guidance. These changes remain in this checkout and are outside PR #18.
+- **Architecture diagram:** Submitted [PR #14](https://github.com/raydium-io/raydium-docs-v1/pull/14), which closed on 12 October without merging. The diagram change was not retained.
 
-An integrator was adding Raydium farm stakes to a Solana wallet and portfolio product. They needed unclaimed reward amounts and reward mints. The stake endpoint documentation promised rewards, but their successful mainnet responses contained only cached stake fields. The SDK type matched those responses. The OpenAPI response was a generic object, so it gave them no field-level contract to check.
+## 14 September 2026
 
-### What was wrong and what the code does
-
-| Upstream documentation | What the SDK code supports | Change in this checkout |
-|---|---|---|
-| The stake endpoint says it returns amounts and rewards. | `fetchFarmPositions()` returns the Owner API data payload directly. Its `FarmPositionData` type has no pending-reward fields. | Correct the description and define the SDK-compatible response schema in the [Owner API specification](/docs/en/api-reference/owner-api-v1-endpoints/position/get-stake-positions-for-a-wallet). |
-| The Owner API overview and service catalogues advertise claimable rewards. | The stake response provides cached stake data. Reward calculation belongs to a separate SDK method. | Correct the [Owner API overview](/docs/en/api-reference/owner-api-v1/overview), [API catalogue](/docs/en/api-reference), and [REST API overview](/docs/en/sdk-api/rest-api). |
-| The wallet guide uses an API v3 staking example and says the API already includes pending rewards. | `raydium.farm.fetchFarmBalances()` discovers stakes through the Owner API, reads farm and user-ledger accounts through RPC, and calculates rewards from stored account state. | Replace the incorrect examples with the [verified wallet example](/docs/en/integration-guides/wallet-integration#farm-stake). |
-
-The reward example targets `@raydium-io/raydium-sdk-v2@0.2.64-alpha` on mainnet-beta. It explains smallest-unit amounts and token metadata. It also states that this method does not advance stored reward-per-share values for elapsed time. Cached discovery can delay newly created stakes.
-
-The correction covers English and all 13 existing locales. Localized wallet sections link to the verified English SDK example. You can check the implementation in the [pinned farm source](https://unpkg.com/@raydium-io/raydium-sdk-v2@0.2.64-alpha/src/raydium/farm/farm.ts), [pinned API source](https://unpkg.com/@raydium-io/raydium-sdk-v2@0.2.64-alpha/src/api/api.ts), and [pinned API types](https://unpkg.com/@raydium-io/raydium-sdk-v2@0.2.64-alpha/src/api/type.ts). The [official SDK demo](https://github.com/raydium-io/raydium-sdk-V2-demo/blob/master/src/account/fetchAllPositionsV2.ts) also calls this method.
-
-This establishes a documentation mismatch with the SDK and the integrator's reported responses. It does not establish whether the backend team plans to add reward fields. Verification here used source inspection, rather than a new successful response from a supplied wallet.
-
-### Upstream status
-
-The correction is submitted as [upstream PR #18](https://github.com/raydium-io/raydium-docs-v1/pull/18), targeting `main` from `docs/owner-api-farm-rewards`. It is open for review as of 2026-10-14. This checkout already contains the correction.
-
-## Earlier changes retained in this checkout
-
-### Content tree and contributor tooling
-
-[Commit `1e33204`](https://github.com/trilltino/raydium-docs-v1-tino/commit/1e3320495b9358ebb9e44974e30114ec13fa7e6e) moves English pages from the repository root to `docs/en` and locales from their root directories to `docs/i18n`. Navigation, cross-references, OpenAPI sources, and translation scripts use those roots. Contributor documentation describes the new layout. `UNSLOP.md` adds the prose rules referenced by `AGENTS.md`.
-
-The change keeps the documentation corpus under one directory and makes the English source tree explicit. The underlying pages mostly retain upstream's content; the inventory records their moved paths separately from substantive edits.
-
-[Commit `08beeea`](https://github.com/trilltino/raydium-docs-v1-tino/commit/08beeead0156165f265938a736184db067d62ff2) adds research-directory exclusions. The ignore rules keep local research checkouts out of Git and Mintlify's document scan.
-
-### Shared infrastructure
-
-[Commit `62d875e`](https://github.com/trilltino/raydium-docs-v1-tino/commit/62d875e6b1b29e13175e9278d26a42a34bbe8f3d) corrects the [shared infrastructure page](/docs/en/protocol-overview/shared-infrastructure).
-
-| Earlier claim | Correction retained here | Why |
-|---|---|---|
-| Every program has one vault-authority PDA, while CLMM has none. | Authorities can be global or per pool or farm. Each CLMM pool's `pool_state` PDA authorizes its vault transfers. | The original wording confuses a program-wide authority with a per-pool PDA. |
-| CPMM and CLMM have similar config layouts, and the text contradicts itself about config updates. | Separate the layouts, identify CPMM-specific fields, and state that pools use the config they reference. | Readers need the correct account fields and update behavior for each program. |
-| Programs share one fee split and creator fees are limited to LaunchLab-graduated pools. | Describe CPMM and CLMM accounting separately, including CPMM's optional creator fee and CLMM's position fee-growth accounting. | Pool reserves and CLMM position fees use different accounting. |
-| CPMM and CLMM observations contain the same samples and guarantee manipulation resistance. | Distinguish cumulative token-price observations from cumulative ticks, and describe bounded history and update conditions. | Observation accounts do not establish a universal oracle-safety guarantee. |
-| API prices imply a safe observation-based oracle alternative. | Limit the claim to display or analysis data and require an assessment of history and cadence for the intended use. | Documentation should not promise guarantees the referenced interface does not provide. |
-
-The earlier [shared-infrastructure PR #15](https://github.com/raydium-io/raydium-docs-v1/pull/15) closed without merging. Its proposed edits and this checkout's retained edits are not identical. The normalized diff shows the changes actually present here.
-
-### Rust CPI examples
-
-The same [commit `62d875e`](https://github.com/trilltino/raydium-docs-v1-tino/commit/62d875e6b1b29e13175e9278d26a42a34bbe8f3d) updates the [Rust CPI guide](/docs/en/sdk-api/rust-cpi).
-
-| Earlier wording or example | Correction retained here | Why |
-|---|---|---|
-| Anchor `1.0.2` requires upgrade branches; `master` still uses `0.32.1`. | Use the CPMM and CLMM `master` branches, explain reviewed commit pins, and document their Anchor `1.0.2` dependencies. | The dependency instructions had fallen behind the published branches. |
-| Devnet selection lacks caller-feature wiring. | Add a caller `devnet` feature that forwards to both CPI crates and selects the matching LaunchLab program. | The crate features and supplied program accounts must use the same cluster. |
-| The `cpi` feature guarantees only wrappers compile and the binary stays small. | Explain that it enables `no-entrypoint`. | That feature does not guarantee a particular binary size. |
-| The LaunchLab CPI target is unconstrained. | Constrain the executable program account to the selected cluster's program ID and annotate literal IDs with their canonical reference. | The calling example should validate its CPI target. |
-| Every CPI needs an explicit compute limit because a default limit silently exhausts. | Explain the transaction's shared budget and set a limit when measurements require it. Exceeding the limit fails the transaction. | Readers need to measure the composed transaction, including the caller and setup instructions. |
-
-These Rust edits remain local to this documentation version. They are outside the Owner API PR. The earlier [diagram-readability PR #14](https://github.com/raydium-io/raydium-docs-v1/pull/14) also closed without merging; the compared checkout contains no replacement diagram.
-
-## Keep the comparison current
-
-Run these commands after making another documentation correction:
-
-```bash
-git fetch upstream
-py scripts/generate-upstream-diff.py --upstream-ref upstream/main --working-tree
-```
-
-The generator reads tracked files, maps local paths to their upstream equivalents, and writes the patch and JSON inventory under `public/tino-changes`. Stage new files before running it if they should appear in the comparison. Update this page with the original claim, corrected behavior, evidence, and upstream PR status for each substantive change.
+- **Documentation layout:** Moved English pages under `docs/en` and locale pages under `docs/i18n`. Updated navigation, links, OpenAPI paths, and translation scripts.
+- **Contributor setup:** Added research-directory exclusions and documented the repository layout and writing conventions.

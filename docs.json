@@ -600,7 +600,17 @@
                   "docs/en/resources/index",
                   "docs/en/resources/brand-kit",
                   "docs/en/resources/community-tools",
-                  "docs/en/resources/license",
+                  "docs/en/resources/license"
+                ]
+              }
+            ]
+          },
+          {
+            "tab": "Tino changes",
+            "groups": [
+              {
+                "group": "Tino changes",
+                "pages": [
                   "docs/en/resources/tino-changes"
                 ]
               }
