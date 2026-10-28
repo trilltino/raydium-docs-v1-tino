@@ -1,8 +1,8 @@
 {
   "upstream_repository": "raydium-io/raydium-docs-v1",
   "upstream_commit": "3699439bcad7ebdb7d65ba62cb896e93ecd3a204",
-  "local_base_commit": "62d875e6b1b29e13175e9278d26a42a34bbe8f3d",
-  "includes_tracked_working_tree": true,
+  "local_base_commit": "f69cc9003fb7840d9cf50fc1ee32809eec7b1c69",
+  "includes_tracked_working_tree": false,
   "normalization": "docs/en/ becomes the upstream root; docs/i18n/<locale>/ becomes <locale>/. These prefixes are also removed from text. LF line endings and a final newline are used.",
   "excluded": [
     "docs/en/resources/tino-changes.mdx",
@@ -12,9 +12,9 @@
   ],
   "counts": {
     "unchanged": 23,
-    "moved_or_path_only": 2754,
-    "modified": 84,
-    "added": 1,
+    "moved_or_path_only": 2750,
+    "modified": 88,
+    "added": 2,
     "removed": 0
   },
   "files": [
@@ -3556,7 +3556,7 @@
     {
       "upstream_path": "fr/products/clmm/instructions.mdx",
       "local_path": "docs/i18n/fr/products/clmm/instructions.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "fr/products/clmm/math.mdx",
@@ -3941,7 +3941,7 @@
     {
       "upstream_path": "fr/reference/changelog/2026-08-24-launchlab-token2022-quote-mint.mdx",
       "local_path": "docs/i18n/fr/reference/changelog/2026-08-24-launchlab-token2022-quote-mint.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "fr/reference/changelog/2026-08-26-launchlab-platform-fee-rate-cap.mdx",
@@ -3971,7 +3971,7 @@
     {
       "upstream_path": "fr/reference/changelog/2026-09-09-launchlab-anchor-1-and-excess-lamports.mdx",
       "local_path": "docs/i18n/fr/reference/changelog/2026-09-09-launchlab-anchor-1-and-excess-lamports.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "fr/reference/changelog/2026-09-19-cpmm-creator-fee-protocol-share.mdx",
@@ -10026,7 +10026,7 @@
     {
       "upstream_path": "solana-fundamentals/index.mdx",
       "local_path": "docs/en/solana-fundamentals/index.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "solana-fundamentals/pdas-and-cpis.mdx",
@@ -10057,6 +10057,11 @@
       "upstream_path": "solana-fundamentals/transactions-and-fees.mdx",
       "local_path": "docs/en/solana-fundamentals/transactions-and-fees.mdx",
       "status": "moved_or_path_only"
+    },
+    {
+      "upstream_path": null,
+      "local_path": "docs/en/solana-fundamentals/transfer-hooks.mdx",
+      "status": "added"
     },
     {
       "upstream_path": "tr/ARCHITECTURE.mdx",
