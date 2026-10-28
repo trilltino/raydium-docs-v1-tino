@@ -1,0 +1,173 @@
+---
+title: "Transfer hooks"
+description: "Understand how Token-2022 transfer hooks execute, resolve additional accounts, enforce token-transfer rules, and affect integrations with Raydium programs."
+---
+
+<Info>
+  A transfer hook is a Token-2022 extension that attaches a program to a mint. Every transfer of that mint calls the program, and the program can reject the transfer. This page explains how that call works, which accounts it needs, and why it changes what a Raydium integration can assume. It does not cover the full Transfer Hook interface, which Solana documents separately.
+</Info>
+
+The Token-2022 behaviour on this page was last verified on 2026-10-28 against `solana-program/token-2022` at commit `5bebc4f` (`program/src/processor.rs`) and the Transfer Hook interface at `solana-program/transfer-hook` commit `e121a47`. The Raydium statements were verified against the public `raydium-cp-swap` (`f4b9b26`) and `raydium-clmm` (`6d7a0f8`) `master` branches on the same date. The Rust example compiled and passed its unit tests with `rustc 1.99.0`. It was not run on a cluster. Program IDs are listed in [reference/program-addresses](/docs/en/reference/program-addresses).
+
+## What a transfer hook is
+
+A mint with the `TransferHook` extension stores the address of a hook program. The hook program is an ordinary Solana program that implements the Transfer Hook interface, and its main entry point is an `Execute` instruction. Token-2022 stays in charge of the transfer. The hook only adds a check, and optionally some state changes, on top of it.
+
+The hook belongs to the mint. It is not attached to a wallet, a token account, or a Raydium pool. Every holder of the mint, and every program that moves it, goes through the same hook. The mint's hook authority can change which program the extension points to, and the hook program can itself be upgradeable, so a hook's behaviour can change after tokens are in circulation.
+
+| Who decides | What they decide |
+|---|---|
+| Token-2022 | That the owner or delegate authorized the transfer, the balances, any transfer fee, and when the hook is called |
+| The hook program | Whether this particular transfer is allowed, and any state it keeps |
+| The calling program or client | Which accounts to supply so that Token-2022 can reach the hook |
+
+## How a transfer executes
+
+Token-2022 calls the hook after it has moved the tokens. The accounts the hook reads therefore show the state after the transfer. If the hook returns an error, the whole transaction fails and the balance changes revert.
+
+```
+ caller         Token-2022                    hook program
+   |  TransferChecked  |                             |
+   |  + hook accounts  |                             |
+   |------------------>| 1 check authority           |
+   |                   | 2 move tokens               |
+   |                   | 3 set "transferring"        |
+   |                   | 4 CPI Execute(amount) ----->| 5 validate,
+   |                   |                             |   run policy
+   |                   |<------- Ok or Err ----------|
+   |                   | 6 clear "transferring"      |
+   |<------------------|                             |
+   Ok: balances stay   Err: whole transaction reverts
+```
+
+Four details matter for hook authors.
+
+- Token-2022 sets a `transferring` flag on the source and destination token accounts before it calls the hook, and clears it afterwards. Only Token-2022 writes that flag. A hook that checks it can tell a real transfer from someone calling `Execute` directly.
+- The hook receives the amount, but it does not receive the sender's signature. The five fixed accounts arrive read-only and unsigned, so a hook cannot require the owner or delegate to sign.
+- The fourth fixed account is the owner or delegate that authorized the transfer. It identifies a token-account owner, not a person.
+- A plain `Transfer` instruction fails on an account that has the hook extension, because Token-2022 needs the mint to find the hook. Callers use `TransferChecked`.
+
+Hooks run on transfers only. Minting and burning never call them.
+
+## Additional accounts and the metadata list
+
+`Execute` always receives five accounts, in this order. Any extra accounts follow.
+
+| Position | Account | Notes |
+|---|---|---|
+| 0 | Source token account | Read-only |
+| 1 | Mint | Read-only |
+| 2 | Destination token account | Read-only |
+| 3 | Owner or delegate | Read-only, not a signer for the hook |
+| 4 | Extra account metadata list | PDA of the hook program |
+| 5 and later | Extra accounts | Defined by the list |
+
+The hook declares its extra accounts in an `ExtraAccountMetaList`. This account is a PDA of the hook program, derived from the seeds `["extra-account-metas", mint]`. Each entry describes one extra account in one of these ways.
+
+- A fixed public key.
+- A PDA of the hook program, or of another program in the list, built from seeds.
+- A seed can be literal bytes, the key of an earlier account in the list, or a byte range read from an earlier account's data.
+- Each entry also says whether the account is writable.
+
+For example, a hook that keeps one config account per mint can declare a single entry: a PDA of the hook program with the seeds `["hook-config", mint]`. Position 5 is then that config account.
+
+The caller has to supply the extras. Token-2022 does not look them up. A client reads the list and builds the instruction with a helper such as `createTransferCheckedWithTransferHookInstruction` in `@solana/spl-token` (0.4.15), or `add_extra_account_metas_for_execute` in the Rust `spl-transfer-hook-interface` crate. A program that moves a hook mint through a CPI must forward the hook program, the metadata list and every extra account itself. If any of them is missing, the transfer fails. See [PDAs and CPIs](/docs/en/solana-fundamentals/pdas-and-cpis) for how remaining accounts pass through a CPI.
+
+## Designing a safe hook
+
+A hook program has four layers. Keeping them apart makes each one easier to review and test.
+
+```
+ Execute entry point
+        |
+        v
+ shared validation     is this a real transfer of the right mint?
+        |
+        v
+ policy rule           pure function of amount and accounts
+        |
+        v
+ optional state / CPI  counters, allow-lists, credentials
+```
+
+Shared validation does the work every hook needs, and it comes before any policy logic. A hook should confirm that:
+
+- the mint belongs to Token-2022 and points to this program;
+- both token accounts belong to that mint and have the `transferring` flag set;
+- the metadata list account is the canonical PDA and has the expected contents;
+- the fixed accounts are read-only and unsigned, and each extra account has the privileges the list declares;
+- no unexpected accounts follow the declared extras.
+
+Policy code then decides yes or no using the validated values. Writing the rule as a pure function, with no accounts and no I/O, lets a plain unit test cover every case.
+
+## Worked example with an amount limit
+
+This hook rejects any transfer above a configured maximum. The maximum is stored in a config account that the hook owns.
+
+```rust
+/// Amount limit stored in the hook's own config account, in raw token units.
+pub struct TransferLimit {
+    pub max_amount: u64,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum HookError {
+    AmountAboveLimit,
+}
+
+/// Pure policy: no accounts, no I/O, so a unit test can cover every case.
+pub fn enforce_limit(limit: &TransferLimit, amount: u64) -> Result<(), HookError> {
+    if amount > limit.max_amount {
+        return Err(HookError::AmountAboveLimit);
+    }
+    Ok(())
+}
+```
+
+Amounts are raw token units. With 6 decimals, a limit of 500 allows at most 0.0005 tokens per transfer.
+
+| Transfer amount (raw units) | Limit | Result |
+|---|---|---|
+| 499 | 500 | Accepted |
+| 500 | 500 | Accepted, because the check is `amount > max` |
+| 501 | 500 | Rejected with the hook's custom error |
+
+When the rule returns the error, the `Execute` instruction fails with a custom program error code that the hook program defines. Token-2022 has already moved the tokens at that point, but the failure reverses the transfer. If the transfer is the second instruction in a transaction, the first instruction reverts as well.
+
+<Warning>
+  A hook that enforces an amount limit must handle confidential transfers. When Token-2022 calls a hook for a confidential transfer, it does not know the amount and passes `u64::MAX`. The limit check above would reject every such transfer, or accept every one if the limit is `u64::MAX`. An amount-based hook should handle that value explicitly or refuse to initialize on a mint with a confidential transfer extension.
+</Warning>
+
+## Transfer hooks and Raydium
+
+A Raydium pool holds its tokens in vault token accounts that the pool program controls. A swap, a deposit and a withdrawal are all token transfers into or out of those vaults. When a pool token has a hook, each of those transfers calls the hook, and the pool program has to pass the hook accounts into its own token CPI.
+
+That has practical consequences.
+
+- The hook sees the pool vault and the pool's authority as the source or destination and the owner. It does not see the trader behind the swap, so a rule about who is trading cannot be answered from the transfer alone.
+- Every hook call adds compute and extra accounts to the transaction. Raydium swaps that already use many accounts have less room.
+- A hook that starts rejecting transfers can stop swaps and also liquidity withdrawals, so users can lose the ability to exit a position.
+- A hook can change its rules after liquidity has been added.
+
+<Warning>
+  Token-2022 supports transfer hooks, but that does not mean every Raydium program accepts a hook mint. In the public CPMM and CLMM sources reviewed on 2026-10-28, `is_supported_mint` allows only five extensions (`TransferFeeConfig`, `MetadataPointer`, `TokenMetadata`, `InterestBearingConfig` and `ScaledUiAmount`) and rejects a mint with `TransferHook` unless an admin has registered it. Those programs build their vault transfers as plain `TransferChecked` calls and do not forward any hook accounts. A successful hook transfer between ordinary accounts is not evidence that a Raydium swap, deposit or withdrawal will work. The [Token-2022 support matrix](/docs/en/reference/token-2022-support) is the page to check for current Raydium support.
+</Warning>
+
+## Limits and risks
+
+- Hooks run on transfers. They do not run when tokens are minted or burned.
+- A token-account owner can be reassigned unless the account has the `ImmutableOwner` extension. A hook that keys a rule to the destination's owner needs that extension on the destination.
+- A wallet is not a person. One person can hold many wallets, and a rule that limits a wallet does not limit them.
+- Any extra account is caller-supplied input. The hook must check its address, owner and privileges against the list.
+- A hook program that is upgradeable, or whose hook authority can repoint the extension, can change behaviour after launch. See [oracle and token risks](/docs/en/security/oracle-and-token-risks#transfer-hook) and [attack vectors](/docs/en/security/attack-vectors) for how this affects pools.
+- Transaction size and the compute budget both limit how many extra accounts and how much logic a hook can use.
+- A reward or fee-sharing hook records amounts. It does not create the tokens to pay them, so it needs its own funding source.
+
+## Further reading
+
+- [Transfer hook extension (Solana docs)](https://solana.com/docs/tokens/extensions/transfer-hook)
+- [Transfer hook integration guide (Solana docs)](https://solana.com/docs/tokens/extensions/transfer-hook-integration)
+- [Transfer Hook interface](https://www.solana-program.com/docs/transfer-hook-interface)
+- [SPL Token and Token-2022](/docs/en/solana-fundamentals/spl-token-and-token-2022)
+- [PDAs and CPIs](/docs/en/solana-fundamentals/pdas-and-cpis)
+- [Token-2022 support matrix](/docs/en/reference/token-2022-support)

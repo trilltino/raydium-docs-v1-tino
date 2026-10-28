@@ -52,8 +52,18 @@
       "permanent": false
     },
     {
+      "source": "/docs/i18n/ar/solana-fundamentals/transfer-hooks",
+      "destination": "/docs/en/solana-fundamentals/transfer-hooks",
+      "permanent": false
+    },
+    {
       "source": "/docs/i18n/de/resources/tino-changes",
       "destination": "/docs/en/resources/tino-changes",
+      "permanent": false
+    },
+    {
+      "source": "/docs/i18n/de/solana-fundamentals/transfer-hooks",
+      "destination": "/docs/en/solana-fundamentals/transfer-hooks",
       "permanent": false
     },
     {
@@ -62,8 +72,18 @@
       "permanent": false
     },
     {
+      "source": "/docs/i18n/es/solana-fundamentals/transfer-hooks",
+      "destination": "/docs/en/solana-fundamentals/transfer-hooks",
+      "permanent": false
+    },
+    {
       "source": "/docs/i18n/fr/resources/tino-changes",
       "destination": "/docs/en/resources/tino-changes",
+      "permanent": false
+    },
+    {
+      "source": "/docs/i18n/fr/solana-fundamentals/transfer-hooks",
+      "destination": "/docs/en/solana-fundamentals/transfer-hooks",
       "permanent": false
     },
     {
@@ -72,8 +92,18 @@
       "permanent": false
     },
     {
+      "source": "/docs/i18n/id/solana-fundamentals/transfer-hooks",
+      "destination": "/docs/en/solana-fundamentals/transfer-hooks",
+      "permanent": false
+    },
+    {
       "source": "/docs/i18n/ja/resources/tino-changes",
       "destination": "/docs/en/resources/tino-changes",
+      "permanent": false
+    },
+    {
+      "source": "/docs/i18n/ja/solana-fundamentals/transfer-hooks",
+      "destination": "/docs/en/solana-fundamentals/transfer-hooks",
       "permanent": false
     },
     {
@@ -82,8 +112,18 @@
       "permanent": false
     },
     {
+      "source": "/docs/i18n/ko/solana-fundamentals/transfer-hooks",
+      "destination": "/docs/en/solana-fundamentals/transfer-hooks",
+      "permanent": false
+    },
+    {
       "source": "/docs/i18n/pt/resources/tino-changes",
       "destination": "/docs/en/resources/tino-changes",
+      "permanent": false
+    },
+    {
+      "source": "/docs/i18n/pt/solana-fundamentals/transfer-hooks",
+      "destination": "/docs/en/solana-fundamentals/transfer-hooks",
       "permanent": false
     },
     {
@@ -92,8 +132,18 @@
       "permanent": false
     },
     {
+      "source": "/docs/i18n/ru/solana-fundamentals/transfer-hooks",
+      "destination": "/docs/en/solana-fundamentals/transfer-hooks",
+      "permanent": false
+    },
+    {
       "source": "/docs/i18n/tr/resources/tino-changes",
       "destination": "/docs/en/resources/tino-changes",
+      "permanent": false
+    },
+    {
+      "source": "/docs/i18n/tr/solana-fundamentals/transfer-hooks",
+      "destination": "/docs/en/solana-fundamentals/transfer-hooks",
       "permanent": false
     },
     {
@@ -102,13 +152,28 @@
       "permanent": false
     },
     {
+      "source": "/docs/i18n/vi/solana-fundamentals/transfer-hooks",
+      "destination": "/docs/en/solana-fundamentals/transfer-hooks",
+      "permanent": false
+    },
+    {
       "source": "/docs/i18n/zh-Hant/resources/tino-changes",
       "destination": "/docs/en/resources/tino-changes",
       "permanent": false
     },
     {
+      "source": "/docs/i18n/zh-Hant/solana-fundamentals/transfer-hooks",
+      "destination": "/docs/en/solana-fundamentals/transfer-hooks",
+      "permanent": false
+    },
+    {
       "source": "/docs/i18n/zh/resources/tino-changes",
       "destination": "/docs/en/resources/tino-changes",
+      "permanent": false
+    },
+    {
+      "source": "/docs/i18n/zh/solana-fundamentals/transfer-hooks",
+      "destination": "/docs/en/solana-fundamentals/transfer-hooks",
       "permanent": false
     }
   ],
@@ -379,6 +444,7 @@
                   "docs/en/solana-fundamentals/account-model",
                   "docs/en/solana-fundamentals/rent-and-reclaimable-rent",
                   "docs/en/solana-fundamentals/spl-token-and-token-2022",
+                  "docs/en/solana-fundamentals/transfer-hooks",
                   "docs/en/solana-fundamentals/transactions-and-fees",
                   "docs/en/solana-fundamentals/pdas-and-cpis",
                   "docs/en/solana-fundamentals/programs-and-anchor",

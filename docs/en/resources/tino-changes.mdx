@@ -5,6 +5,7 @@ description: "Dated changes to this documentation checkout and their Raydium doc
 
 ## 28 October 2026
 
+- **Transfer hooks fundamentals:** Added [Transfer hooks](/docs/en/solana-fundamentals/transfer-hooks) to Solana fundamentals, with a sidebar entry, a card on the chapter landing page, and fallback redirects for the 13 locales. The page covers the Token-2022 execution order, the extra-account metadata list, an amount-limit example, and why a hook-enabled mint does not mean Raydium supports it. It was checked with `mint validate`, `sync-locales.py --check`, and a local `mint dev` render at desktop and mobile widths in dark mode. No upstream PR has been opened.
 - **Change tracking:** Added this page as its own **Tino changes** tab in the navigation. Each locale redirects to this English page, and the page is linked from the [Resources](/docs/en/resources) index.
 - **Upstream comparison:** Added `scripts/generate-upstream-diff.py`, which compares this checkout with Raydium's upstream docs and writes the results to `public/tino-changes`. You can download the [content diff](https://raw.githubusercontent.com/trilltino/raydium-docs-v1-tino/main/public/tino-changes/upstream-content.patch), the [path inventory](https://raw.githubusercontent.com/trilltino/raydium-docs-v1-tino/main/public/tino-changes/upstream-diff.json), and the [Owner API PR patch](https://raw.githubusercontent.com/trilltino/raydium-docs-v1-tino/main/public/tino-changes/owner-api-farm-rewards.patch).
 - **Repository links:** Pointed change and diff links at the renamed Tino repository.
