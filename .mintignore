@@ -28,3 +28,6 @@ research/**
 # Local deep-research notes and generated reports are not part of the site.
 /research_notes/
 /reports/
+
+# Contributor guidance, not site content (CONTRIBUTING.md is ignored automatically).
+/CONTRIBUTION_STANDARDS.md
