@@ -24,3 +24,7 @@ research/
 research/**
 **/research/**
 **/tsconfig*.json
+
+# Local deep-research notes and generated reports are not part of the site.
+/research_notes/
+/reports/

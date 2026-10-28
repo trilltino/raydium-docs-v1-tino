@@ -9,6 +9,8 @@ description: "Dated changes to this documentation checkout and their Raydium doc
 - **Upstream comparison:** Added `scripts/generate-upstream-diff.py`, which compares this checkout with Raydium's upstream docs and writes the results to `public/tino-changes`. You can download the [content diff](https://raw.githubusercontent.com/trilltino/raydium-docs-v1-tino/main/public/tino-changes/upstream-content.patch), the [path inventory](https://raw.githubusercontent.com/trilltino/raydium-docs-v1-tino/main/public/tino-changes/upstream-diff.json), and the [Owner API PR patch](https://raw.githubusercontent.com/trilltino/raydium-docs-v1-tino/main/public/tino-changes/owner-api-farm-rewards.patch).
 - **Repository links:** Pointed change and diff links at the renamed Tino repository.
 - **Locale sync:** Ran `scripts/sync-locales.py` so locale navigation and fallback redirects match the English tree.
+- **Build fixes:** Fixed three French pages that stopped `mint validate` from passing. The CLMM instructions page ended mid-sentence inside an open `<Warning>` block, so I finished the sentence and closed the block. The rest of that page remains untranslated. Two French changelog pages used « » as frontmatter quotes, which is invalid YAML, so I replaced them with straight quotes.
+- **Mintlify ignore rules:** Excluded `research_notes/` and `reports/` from the Mintlify scan.
 
 ## 17 October 2026
 
