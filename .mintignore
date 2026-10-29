@@ -31,3 +31,6 @@ research/**
 
 # Contributor guidance, not site content (CONTRIBUTING.md is ignored automatically).
 /CONTRIBUTION_STANDARDS.md
+
+# Prompts and research briefs, not site content.
+/prompts/
