@@ -87,7 +87,7 @@ let extension = TransferFeeConfig {
 
 ### Transfer hook
 
-The mint points to a program that the runtime invokes on every transfer. The hook program can reject the transfer or perform side effects (update a compliance state, log, etc.). Raydium CPMM/CLMM invoke the hook via `SwapV2` — the transaction includes the hook program and any extra accounts it needs.
+The mint selects a hook program that Token-2022 calls during transfers. The hook can reject a transfer or update its own policy state. An integration must both admit the mint and forward the hook's required accounts into each token-transfer CPI. CPMM/CLMM mint admission alone does not establish hook execution. See [Transfer hooks](/docs/en/solana-fundamentals/transfer-hooks#raydium-integration-context) for product use cases and the distinction between public programs and integration forks, and the [support matrix](/docs/en/reference/token-2022-support) for mint admission rules.
 
 ### Interest-bearing
 
