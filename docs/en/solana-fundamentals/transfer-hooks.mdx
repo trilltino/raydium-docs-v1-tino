@@ -9,6 +9,14 @@ description: "Understand how Token-2022 transfer hooks execute, resolve addition
 
 The Token-2022 behavior on this page was last verified on 2026-10-28. The hook implementation and test commands were reviewed against `raydium-transfer-hook` commit `b7d598f287b62d0876e57d1c3947a79c6c20a3d9` (`main` on 2026-10-29). Rust excerpts are unchanged except for marked omissions. The commands below target LiteSVM or Devnet; they were reviewed against source, without rerunning the harness or sending cluster transactions for this documentation update. Program IDs are listed in [reference/program-addresses](/docs/en/reference/program-addresses).
 
+## Scope and change disclaimer
+
+This page is an informative guide to the Token-2022 Transfer Hook interface and to testing patterns. It is not an exhaustive compatibility matrix, an audit, or a guarantee that a particular hook will work with every Raydium product, deployment or transaction path.
+
+The behavior you observe depends on the hook's actual implementation and on the program that calls it. A hook may add state, policy checks, CPIs, writable accounts, authority requirements, amount-dependent metadata or restrictions that this page does not describe. Raydium integrations may also change their account forwarding, Token-2022 extension admission, vault and position flows, fee or reward routing, errors, IDLs, SDKs or program IDs. A program upgrade can change those behaviors without changing its address. Cluster, deployment artifact, upgrade authority and runtime version also matter.
+
+Treat the examples and test results here as starting points for a review. Before relying on a hook, inspect the exact deployed programs and mint extensions, align the client, IDL and compiled artifacts, resolve and approve every extra account, and run the affected operation on the target cluster. Recheck swaps, liquidity, LaunchLab, routing and other CPI paths separately. The upstream kit's [deployment-scope disclaimer](https://github.com/trilltino/raydium-transfer-hook/blob/b7d598f287b62d0876e57d1c3947a79c6c20a3d9/DISCLAIMER.md) records the review triggers and the evidence needed to call a result current.
+
 ## Why transfer hooks exist
 
 Normal token authorization answers one question. May this owner or delegate move these tokens? A transfer hook lets the mint ask a second question about the transfer itself, such as whether the amount is within a limit or whether the receiver is eligible.
