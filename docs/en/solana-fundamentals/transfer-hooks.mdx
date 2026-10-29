@@ -124,7 +124,9 @@ Token-2022 does not fetch missing accounts. A client can use `createTransferChec
 
 ## From transfer accounts to policy checks
 
-The community [`raydium-transfer-hook` kit](https://github.com/trilltino/raydium-transfer-hook/tree/main) separates custom behavior from Token-2022 plumbing. `hook-kit` supplies on-chain validation and account helpers. Each template owns its policy in `rule.rs`. `hook-host` resolves accounts and runs tests off-chain.
+The community [`raydium-transfer-hook` kit](https://github.com/trilltino/raydium-transfer-hook/tree/main) separates custom behavior from Token-2022 plumbing. [`hook-kit`](https://github.com/trilltino/raydium-transfer-hook/tree/main/hook-kit) is an on-chain Rust library compiled into your hook program. It validates the Token-2022 call and builds the `TransferContext` that your policy receives. Each template owns its policy in `rule.rs`.
+
+[`hook-host`](https://github.com/trilltino/raydium-transfer-hook/tree/main/hook-host) runs on your development machine, not on-chain. It is the kit's test harness and CLI: it builds hook artifacts, resolves test accounts, runs transfers in LiteSVM or on Devnet, and checks the resulting logs and state. Your production client or CPI still has to resolve and forward the hook accounts for every real transfer.
 
 ```mermaid
 %%{init: {"themeVariables": {"fontSize": "12px"}, "flowchart": {"nodeSpacing": 12, "rankSpacing": 18, "padding": 8}}}%%
@@ -229,7 +231,7 @@ test-templates build --template starter
 test-templates local --template starter --report starter-local.json
 ```
 
-The native tests check the rule and boundaries. The build compiles the on-chain program into a `.so` artifact. LiteSVM then executes the compiled hook through actual Token-2022 transfers. Inspect the accepted and rejected cases and final balances in the report; a policy unit test alone cannot show that Token-2022 dispatched your hook correctly. Report files refuse overwrites, so choose a new filename when repeating the command.
+`test-templates` is the `hook-host` CLI installed by the third command. The native tests check the rule and boundaries. Its `build` subcommand compiles the on-chain program into a `.so` artifact, and `local` uses LiteSVM to execute that artifact through actual Token-2022 transfers. Inspect the accepted and rejected cases and final balances in the report; a policy unit test alone cannot show that Token-2022 dispatched your hook correctly. Report files refuse overwrites, so choose a new filename when repeating the command.
 
 The typed [`starter.rs` example](https://github.com/trilltino/raydium-transfer-hook/blob/main/hook-host/examples/starter.rs) uses the same policy with a source balance of 5,000, an empty destination and a limit of 500. After creating and initializing the fixture, its `CaseRunner` runs these cases:
 
@@ -327,7 +329,7 @@ test-templates local --scenario tests/my-cases.json `
 
 The generator writes setup, an accepted transfer, a balance assertion and a draft rejected transfer. Neutral defaults do not know your policy: replace every unresolved account, configure valid setup arguments, and choose the exact rejection you expect. The committed [Starter scenario](https://github.com/trilltino/raydium-transfer-hook/blob/main/hook-host/scenarios/starter.json) shows a stored limit, a boundary transfer and a rejected transfer.
 
-Paths inside JSON are relative to the scenario file; command-line paths are relative to your working directory. Write raw token amounts and 64-bit integers as decimal strings. Declare writable policy accounts explicitly in each transfer's `writable` field. The runner resolves accounts but does not grant authority or infer policy intent.
+Paths inside JSON are relative to the scenario file; command-line paths are relative to your working directory. Write raw token amounts and 64-bit integers as decimal strings. Declare writable policy accounts explicitly in each transfer's `writable` field. The `hook-host` runner resolves accounts for its test transaction, but it does not grant authority or infer policy intent. Production callers must still resolve and forward those accounts themselves.
 
 Use the [scenario examples](https://github.com/trilltino/raydium-transfer-hook/tree/main/hook-host/scenarios) for delegates, credentials, time advances, rewards and decoded-state assertions. A native Rust hook can use a hand-written minimal IDL. Use typed Rust cases for relay transfers and custom checks outside the JSON runner's supported vocabulary.
 
