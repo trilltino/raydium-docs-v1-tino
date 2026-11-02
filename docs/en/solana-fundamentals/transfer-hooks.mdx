@@ -9,7 +9,7 @@ A Token-2022 mint can select a custom program to run during transfers. Token-202
 
 This page follows the community kit's real Starter: validate a transfer, apply a 500-unit limit, then test the compiled program. **Follow Starter** from the execution model below, or jump to **[test your own hook](#test-your-own-hook-with-hook-host)** if you already have an implementation. To create a mint and select its hook, use the [official initialization guide](https://solana.com/docs/tokens/extensions/transfer-hook).
 
-Examples were source-reviewed on **2 November 2026** against [`raydium-transfer-hook` at `1f93daa`](https://github.com/trilltino/raydium-transfer-hook/tree/1f93daa7985e85c236d5f4c51be36207a2116c34). They target **local LiteSVM**, with no Raydium TypeScript SDK dependency. The kit is private: its source links and clone command require repository access. See [program addresses](/docs/en/reference/program-addresses) for canonical Raydium deployments.
+The examples come from the community [`raydium-transfer-hook`](https://github.com/trilltino/raydium-transfer-hook) kit and run on **local LiteSVM**, with no Raydium TypeScript SDK dependency. The kit is private: its source links and clone command require repository access, and its files may change after this page was written. See [program addresses](/docs/en/reference/program-addresses) for canonical Raydium deployments.
 
 ## How a transfer reaches the hook
 
@@ -55,13 +55,13 @@ For hooks using an extra-account metadata list, `Execute` receives four transfer
 
 The list's PDA uses `["extra-account-metas", mint]` under the hook program. Its type-length-value (TLV) data describes each extra account's address or derivation and required privileges. Entries can use fixed keys, instruction data, or keys and data from earlier accounts. See the interface's [extra-account configuration](https://www.solana-program.com/docs/transfer-hook-interface/configuring-extra-accounts).
 
-The Starter declares one extra: a read-only, unsigned configuration PDA at position 5, derived from `["hook-config", mint]`. Its [`EXTRA_ACCOUNT_META_LIST`](https://github.com/trilltino/raydium-transfer-hook/blob/1f93daa7985e85c236d5f4c51be36207a2116c34/templates/simple/transfer-hook-starter/src/state/mod.rs) references the mint at index 1. The configuration stores the limit used below.
+The Starter declares one extra: a read-only, unsigned configuration PDA at position 5, derived from `["hook-config", mint]`. Its [`EXTRA_ACCOUNT_META_LIST`](https://github.com/trilltino/raydium-transfer-hook/blob/main/templates/simple/transfer-hook-starter/src/state/mod.rs) references the mint at index 1. The configuration stores the limit used below.
 
 Your client reads the mint and metadata list, resolves the entries, and includes the hook program, list and extras in the checked transfer. An on-chain caller must forward those accounts into its CPI. Token-2022 cannot fetch missing accounts. Use the [official integration helpers](https://solana.com/docs/tokens/extensions/transfer-hook-integration) and [PDA/CPI fundamentals](/docs/en/solana-fundamentals/pdas-and-cpis) for the caller side.
 
 ## From transfer accounts to policy checks
 
-[`hook-kit`](https://github.com/trilltino/raydium-transfer-hook/tree/1f93daa7985e85c236d5f4c51be36207a2116c34/hook-kit) is a Rust library compiled into your hook program. Its validation produces a temporary `TransferContext` for your policy. [`hook-host`](https://github.com/trilltino/raydium-transfer-hook/tree/1f93daa7985e85c236d5f4c51be36207a2116c34/hook-host) runs on your development machine: it builds test transactions, resolves accounts and checks execution outcomes.
+[`hook-kit`](https://github.com/trilltino/raydium-transfer-hook/tree/main/hook-kit) is a Rust library compiled into your hook program. Its validation produces a temporary `TransferContext` for your policy. [`hook-host`](https://github.com/trilltino/raydium-transfer-hook/tree/main/hook-host) runs on your development machine: it builds test transactions, resolves accounts and checks execution outcomes.
 
 ```mermaid
 flowchart TB
@@ -77,7 +77,7 @@ flowchart TB
   F -. exercises .-> A
 ```
 
-The Starter's [`lib.rs`](https://github.com/trilltino/raydium-transfer-hook/blob/1f93daa7985e85c236d5f4c51be36207a2116c34/templates/simple/transfer-hook-starter/src/lib.rs) dispatches the SPL `Execute` discriminator to its handler. Anchor validates the accounts struct first. The handler then calls shared validation before applying the rule. This excerpt is from [`instructions/execute.rs`](https://github.com/trilltino/raydium-transfer-hook/blob/1f93daa7985e85c236d5f4c51be36207a2116c34/templates/simple/transfer-hook-starter/src/instructions/execute.rs); it requires that file's imports, ownership checks, configuration-version check and Anchor account constraints.
+The Starter's [`lib.rs`](https://github.com/trilltino/raydium-transfer-hook/blob/main/templates/simple/transfer-hook-starter/src/lib.rs) dispatches the SPL `Execute` discriminator to its handler. Anchor validates the accounts struct first. The handler then calls shared validation before applying the rule. This excerpt is from [`instructions/execute.rs`](https://github.com/trilltino/raydium-transfer-hook/blob/main/templates/simple/transfer-hook-starter/src/instructions/execute.rs); it requires that file's imports, ownership checks, configuration-version check and Anchor account constraints.
 
 ```rust execute.rs
 let transfer_hook_config = accounts.transfer_hook_config.to_account_info();
@@ -101,17 +101,17 @@ rule::enforce_transfer_limit(
 )?;
 ```
 
-[`ExecuteAccountInfos::validate`](https://github.com/trilltino/raydium-transfer-hook/blob/1f93daa7985e85c236d5f4c51be36207a2116c34/hook-kit/src/execute.rs) checks the Token-2022 mint selects this hook, both token accounts belong to that mint, and both `transferring` flags are set. It checks the exact declared account count, rejects unexpected remaining accounts, and enforces read-only/unsigned fixed accounts and declared extra-account privileges. It also verifies the metadata PDA's address, owner and exact canonical bytes.
+[`ExecuteAccountInfos::validate`](https://github.com/trilltino/raydium-transfer-hook/blob/main/hook-kit/src/execute.rs) checks the Token-2022 mint selects this hook, both token accounts belong to that mint, and both `transferring` flags are set. It checks the exact declared account count, rejects unexpected remaining accounts, and enforces read-only/unsigned fixed accounts and declared extra-account privileges. It also verifies the metadata PDA's address, owner and exact canonical bytes.
 
 The mint and token readers enforce Token-2022 ownership. The Starter also checks accepted token-program owners before shared validation. Its Anchor constraints bind the configuration's address, discriminator, owner and mint. Keep those constraints: the shared validator does not replace each template's extra-account bindings or policy-specific checks.
 
 `TransferContext` contains the amount, involved account addresses and post-transfer balances. It is a Rust value for this invocation, not an on-chain state account. Calling `hook-kit` or `rule.rs` is an ordinary Rust call. A CPI happens when your program invokes another on-chain program.
 
-Each template still owns setup authority, issuer permissions, trusted CPI targets, state writes, operational restrictions and error behavior. [`metas.rs`](https://github.com/trilltino/raydium-transfer-hook/blob/1f93daa7985e85c236d5f4c51be36207a2116c34/hook-kit/src/metas.rs) constructs canonical metadata. [`cpi.rs`](https://github.com/trilltino/raydium-transfer-hook/blob/1f93daa7985e85c236d5f4c51be36207a2116c34/hook-kit/src/cpi.rs) forwards hook extras when another on-chain program transfers hooked tokens; the caller must already supply the needed accounts.
+Each template still owns setup authority, issuer permissions, trusted CPI targets, state writes, operational restrictions and error behavior. [`metas.rs`](https://github.com/trilltino/raydium-transfer-hook/blob/main/hook-kit/src/metas.rs) constructs canonical metadata. [`cpi.rs`](https://github.com/trilltino/raydium-transfer-hook/blob/main/hook-kit/src/cpi.rs) forwards hook extras when another on-chain program transfers hooked tokens; the caller must already supply the needed accounts.
 
 ### Worked example with a transfer limit
 
-The Starter's [`rule.rs`](https://github.com/trilltino/raydium-transfer-hook/blob/1f93daa7985e85c236d5f4c51be36207a2116c34/templates/simple/transfer-hook-starter/src/rule.rs) defines `RuleParams { limit: u64 }`. Setup rejects a zero limit. Its complete transfer rule is:
+The Starter's [`rule.rs`](https://github.com/trilltino/raydium-transfer-hook/blob/main/templates/simple/transfer-hook-starter/src/rule.rs) defines `RuleParams { limit: u64 }`. Setup rejects a zero limit. Its complete transfer rule is:
 
 ```rust rule.rs
 pub fn enforce_transfer_limit(
@@ -133,34 +133,30 @@ pub fn enforce_transfer_limit(
 
 The rule compares validated values. It does not parse accounts, resolve metadata, validate token owners or record a transfer. On a mint with six decimals, 500 raw units are 0.0005 tokens. A per-transfer cap does not prevent splitting a larger transfer into smaller transfers or using multiple wallets.
 
-The Starter's [`initialize.rs`](https://github.com/trilltino/raydium-transfer-hook/blob/1f93daa7985e85c236d5f4c51be36207a2116c34/templates/simple/transfer-hook-starter/src/instructions/initialize.rs) verifies the mint's hook authority and rejects confidential-transfer mint extensions because this policy needs a visible amount. Review a template's setup checks before choosing other extensions.
+The Starter's [`initialize.rs`](https://github.com/trilltino/raydium-transfer-hook/blob/main/templates/simple/transfer-hook-starter/src/instructions/initialize.rs) verifies the mint's hook authority and rejects confidential-transfer mint extensions because this policy needs a visible amount. Review a template's setup checks before choosing other extensions.
 
 ## Build, test and adapt the Starter
 
-You need access to the kit and its [build toolchain](https://github.com/trilltino/raydium-transfer-hook/blob/1f93daa7985e85c236d5f4c51be36207a2116c34/CONTRIBUTING.md#tests): Rust 1.99.1, Anchor 1.2.1, Agave 4.3.2, `cargo-build-sbf` 4.4.0 and platform-tools v1.58 at the reviewed revision. Install those prerequisites separately. The CLI does not install them for you.
+You need access to the kit and the build tools listed in its [contributing guide](https://github.com/trilltino/raydium-transfer-hook/blob/main/CONTRIBUTING.md#tests). Install those separately; the CLI does not install them for you. Builds can download dependencies, but LiteSVM execution needs no funded wallet, SOL or validator.
 
-Run this sequence from the directory where you want the checkout. After `cd`, commands run from the kit root. Checking out the reviewed commit keeps source, IDLs and examples aligned. Installation and builds can download dependencies; LiteSVM execution needs no funded wallet, SOL or validator.
+Run these commands from the directory where you want the checkout:
 
 ```bash
 git clone https://github.com/trilltino/raydium-transfer-hook.git
 cd raydium-transfer-hook
-git checkout 1f93daa7985e85c236d5f4c51be36207a2116c34
 cargo test --locked -p transfer-hook-starter --lib
 cargo install --path hook-host --features cluster --bin test-scenario --locked
-cargo build-sbf --arch v0 --tools-version v1.58 \
-  --manifest-path templates/simple/transfer-hook-starter/Cargo.toml \
-  --sbf-out-dir "$PWD/target/deploy" -- --locked
-test-scenario local --scenario hook-host/examples/starter.json \
-  --program target/deploy/transfer_hook_starter.so --report starter-local.json
+test-scenario check --program-dir templates/simple/transfer-hook-starter \
+  --scenario hook-host/examples/starter.json
 ```
 
-The native tests check policy boundaries and pure Rust behavior. `cargo build-sbf` produces the SBF `.so` program. `local` reads the Starter's JSON scenario and executes the compiled instructions through Token-2022 under LiteSVM. Inspect the exact error, accepted amounts, final balances and state checks. Use a fresh report filename for each run: existing files are not replaced.
+The native tests check policy boundaries and pure Rust behavior. `check` builds a private copy of the Starter with its own program ID, then runs the Starter's JSON scenario through Token-2022 under LiteSVM. Inspect the exact error, accepted amounts, final balances and state checks. Add `--report <file>` to save the result; existing files are not replaced.
 
-To build a private copy with its own program ID and run the same scenario in one command, use `test-scenario check --program-dir templates/simple/transfer-hook-starter --scenario hook-host/examples/starter.json`. Add `--url devnet` to deploy that copy and repeat the cases on Devnet. The template IDs are placeholders nobody holds a key for, so a cluster run always uses such a copy.
+Add `--url devnet` to deploy that copy and repeat the cases on Devnet. The template IDs are placeholders nobody holds a key for, so a cluster run always uses such a copy.
 
-The typed [`starter.rs`](https://github.com/trilltino/raydium-transfer-hook/blob/1f93daa7985e85c236d5f4c51be36207a2116c34/hook-host/examples/starter.rs) fixture starts with 5,000 source units, zero destination units and limit 500. Its transfer helper requires hook invocation in the execution logs and checks both balances. An accepted 500 leaves 4,500 and 500; zero still invokes the hook; rejected 501 leaves those balances unchanged.
+The typed [`starter.rs`](https://github.com/trilltino/raydium-transfer-hook/blob/main/hook-host/examples/starter.rs) fixture starts with 5,000 source units, zero destination units and limit 500. Its transfer helper requires hook invocation in the execution logs and checks both balances. An accepted 500 leaves 4,500 and 500; zero still invokes the hook; rejected 501 leaves those balances unchanged.
 
-The full typed example also checks direct-call rejection, malformed accounts, relay-state rollback and an accepted first instruction followed by a rejected second instruction. These are separate cases from the JSON scenario above. Use the [Rust testing instructions](https://github.com/trilltino/raydium-transfer-hook/blob/1f93daa7985e85c236d5f4c51be36207a2116c34/CONTRIBUTING.md#tests) to build its relay dependency, then run `cargo run --locked -p hook-host --features litesvm --example starter`. The example loads both compiled programs from `target/deploy`, or from `SBF_OUT_DIR` if you set it.
+The full typed example also checks direct-call rejection, malformed accounts, relay-state rollback and an accepted first instruction followed by a rejected second instruction. These are separate cases from the JSON scenario above. Use the [Rust testing instructions](https://github.com/trilltino/raydium-transfer-hook/blob/main/CONTRIBUTING.md#tests) to build its relay dependency, then run `cargo run --locked -p hook-host --features litesvm --example starter`. The example loads both compiled programs from `target/deploy`, or from `SBF_OUT_DIR` if you set it.
 
 Rollback assertions compare writable transaction accounts and explicitly monitored state; add other policy accounts to `monitored_accounts`. The fee payer is excluded from unchanged-account comparisons. Require hook invocation as well as success, and verify promised state changes explicitly. An unasserted account is not evidence of your intended behavior.
 
@@ -170,7 +166,7 @@ Rollback assertions compare writable transaction accounts and explicitly monitor
 2. Update the native tests beside the rule, including zero, the inclusive boundary, one over and arithmetic extremes.
 3. Update the host expectations in the typed example or the JSON scenario you use. Keep account constraints, canonical metadata and authority checks intact.
 4. Rebuild the `.so`. Regenerate the IDL if instructions, accounts or state layouts changed, then rerun compiled cases with matching artifacts.
-5. For an independent program, follow the [registration checklist](https://github.com/trilltino/raydium-transfer-hook/blob/1f93daa7985e85c236d5f4c51be36207a2116c34/AGENTS.md#registering-a-new-program) and use an ID you control before cluster deployment.
+5. For an independent program, follow the [registration checklist](https://github.com/trilltino/raydium-transfer-hook/blob/main/AGENTS.md#registering-a-new-program) and use an ID you control before cluster deployment.
 
 ## Test your own hook with `hook-host`
 
@@ -190,7 +186,7 @@ test-scenario local --scenario tests/my-cases.json --program target/deploy/my_ho
 
 Paths inside JSON are relative to the scenario file; CLI paths are relative to your working directory. Write raw token amounts and 64-bit integers as decimal strings. Explicitly declare writable policy extras in a transfer's `writable` field. An instruction that reads accounts beyond those its IDL lists takes them in `remaining`, appended read-only and unsigned. `test-scenario` needs the `cluster` feature.
 
-The [Starter scenario](https://github.com/trilltino/raydium-transfer-hook/blob/1f93daa7985e85c236d5f4c51be36207a2116c34/hook-host/examples/starter.json) initializes limit 500 and asserts the stored value. These consecutive entries are an exact excerpt from its `steps` array, not a standalone scenario:
+The [Starter scenario](https://github.com/trilltino/raydium-transfer-hook/blob/main/hook-host/examples/starter.json) initializes limit 500 and asserts the stored value. These consecutive entries are an exact excerpt from its `steps` array, not a standalone scenario:
 
 ```json starter.json
     {
@@ -224,7 +220,7 @@ The [Starter scenario](https://github.com/trilltino/raydium-transfer-hook/blob/1
     }
 ```
 
-The IDL describes structure; it cannot infer your issuer, authorization model, intended refusal or expected balances. The current [IDL reader](https://github.com/trilltino/raydium-transfer-hook/blob/1f93daa7985e85c236d5f4c51be36207a2116c34/hook-host/src/cli_workflows/custom/idl.rs) rejects composite account groups: flatten the account list. Native Rust or Pinocchio programs can supply a compatible minimal IDL, but the runner supports a defined type/seed vocabulary. Use typed Rust cases when your setup or assertions exceed it. Consult the [schema and resolver](https://github.com/trilltino/raydium-transfer-hook/tree/1f93daa7985e85c236d5f4c51be36207a2116c34/hook-host/src/cli_workflows/custom) and [scenario collection](https://github.com/trilltino/raydium-transfer-hook/tree/1f93daa7985e85c236d5f4c51be36207a2116c34/hook-host/tests/scenarios).
+The IDL describes structure; it cannot infer your issuer, authorization model, intended refusal or expected balances. The current [IDL reader](https://github.com/trilltino/raydium-transfer-hook/blob/main/hook-host/src/cli_workflows/custom/idl.rs) rejects composite account groups: flatten the account list. Native Rust or Pinocchio programs can supply a compatible minimal IDL, but the runner supports a defined type/seed vocabulary. Use typed Rust cases when your setup or assertions exceed it. Consult the [schema and resolver](https://github.com/trilltino/raydium-transfer-hook/tree/main/hook-host/src/cli_workflows/custom) and [scenario collection](https://github.com/trilltino/raydium-transfer-hook/tree/main/hook-host/tests/scenarios).
 
 Inspect the report and observed state. The host checks configured expectations; it cannot choose your policy, supply missing signer authority, audit your hook or add account forwarding to your production client.
 
@@ -232,11 +228,11 @@ Inspect the report and observed state. The host checks configured expectations; 
 
 ### Other execution environments
 
-The [host guide](https://github.com/trilltino/raydium-transfer-hook/blob/1f93daa7985e85c236d5f4c51be36207a2116c34/hook-host/GUIDE.md) covers these separate paths:
+The [host guide](https://github.com/trilltino/raydium-transfer-hook/blob/main/hook-host/GUIDE.md) covers these separate paths:
 
 - **Existing mint:** `test-scenario inspect` shows who holds a mint's hook and mint authorities. `test-scenario simulate` resolves the hook's extra accounts from the mint's list and dry-runs one transfer. It signs nothing, sends nothing and spends no SOL. It exits non-zero when the transfer would fail, so a script can stop before sending. `new-mint` creates a hooked test mint and runs your program's setup instruction from its IDL.
 - **Authorized cluster:** `test-scenario run --scenario` deploys and executes on Devnet or a local validator, then closes the programs. `check --url devnet` runs LiteSVM first and deploys only if that passes. Both need matching keypairs and Devnet SOL. The CLI creates a Devnet test wallet on first use and prints where to fund it. A closed program ID cannot be deployed again, so each run needs a fresh copy from `prepare-deploy` or `check`. Review the deployment and cleanup behavior before use.
-- **Pool integration fork:** `test-scenario amm --scenario` requires the separate CPMM/CLMM integration workspace, deployment manifest and matching builders. The [Starter pool scenario](https://github.com/trilltino/raydium-transfer-hook/blob/1f93daa7985e85c236d5f4c51be36207a2116c34/hook-host/tests/scenarios/pool/starter.json) includes pool setup, swaps and liquidity cases. It cannot run as a local direct-transfer scenario.
+- **Pool integration fork:** `test-scenario amm --scenario` requires the separate CPMM/CLMM integration workspace, deployment manifest and matching builders. The [Starter pool scenario](https://github.com/trilltino/raydium-transfer-hook/blob/main/hook-host/tests/scenarios/pool/starter.json) includes pool setup, swaps and liquidity cases. It cannot run as a local direct-transfer scenario.
 
 ## Raydium integration context
 
@@ -244,7 +240,7 @@ A hook belongs to a mint. Mint admission and forwarding hook extras are separate
 
 For every operation, resolve extras using the actual mint, authority and amount on each transfer leg. Test swaps, liquidity deposits and withdrawals, and applicable fee/reward transfers. LaunchLab setup and graduation need their own integration tests. A passing direct transfer does not establish any of those paths.
 
-For a concrete policy, Trader Eligibility's [`classify()` and `required()`](https://github.com/trilltino/raydium-transfer-hook/blob/1f93daa7985e85c236d5f4c51be36207a2116c34/templates/trading/trader-eligibility/src/rule.rs) use registered token-account addresses:
+For a concrete policy, Trader Eligibility's [`classify()` and `required()`](https://github.com/trilltino/raydium-transfer-hook/blob/main/templates/trading/trader-eligibility/src/rule.rs) use registered token-account addresses:
 
 | Transfer direction | Classification | Required credentials |
 |---|---|---|
@@ -255,14 +251,14 @@ For a concrete policy, Trader Eligibility's [`classify()` and `required()`](http
 
 `Buy` and `Sell` describe token flow, not proof of a swap. A liquidity withdrawal can look like a buy; a direct deposit can look like a sell. `OpenExit` therefore does not guarantee all LP withdrawals remain possible. A cap or revoked recipient credential can still block an outgoing vault transfer.
 
-The [`Execute` handler](https://github.com/trilltino/raydium-transfer-hook/blob/1f93daa7985e85c236d5f4c51be36207a2116c34/templates/trading/trader-eligibility/src/instructions/execute.rs) binds a recognized vault to its registered authority and checks `ImmutableOwner`. It also requires immutable destination ownership when checking that owner's credential. The credential subject is the token-account owner, not necessarily the transfer authority. Issuers perform identity checks outside the hook; a wallet credential alone does not prove a unique person.
+The [`Execute` handler](https://github.com/trilltino/raydium-transfer-hook/blob/main/templates/trading/trader-eligibility/src/instructions/execute.rs) binds a recognized vault to its registered authority and checks `ImmutableOwner`. It also requires immutable destination ownership when checking that owner's credential. The credential subject is the token-account owner, not necessarily the transfer authority. Issuers perform identity checks outside the hook; a wallet credential alone does not prove a unique person.
 
 Choose an extension point after defining the policy and exits:
 
-- **Compose rules:** [Multi-Policy](https://github.com/trilltino/raydium-transfer-hook/tree/1f93daa7985e85c236d5f4c51be36207a2116c34/templates/intermediate/multi-policy) combines transfer and balance limits with its own built-in credentials. It makes no CPI to another credential program, so its Execute extras are the configuration and the recipient credential.
-- **Gate recipients or trading:** [Credential Gate](https://github.com/trilltino/raydium-transfer-hook/tree/1f93daa7985e85c236d5f4c51be36207a2116c34/templates/trading/credential-gate) offers one registered vault; Trader Eligibility adds venue and sell-policy choices. Each of these hooks, and Multi-Policy, issues, renews, revokes and checks its own credentials. A credential works only under the program, issuer, mint and wallet it was issued for, so you cannot share one between hooks.
-- **Limit a launch window:** [Fair Launch](https://github.com/trilltino/raydium-transfer-hook/blob/1f93daa7985e85c236d5f4c51be36207a2116c34/templates/intermediate/fair-launch/src/rule.rs) uses time, slot, amount, account-balance and wallet-purchase inputs. State which transfers count and test wallet splitting and paths outside the window.
-- **Distribute funding:** [Fee Split Rewards](https://github.com/trilltino/raydium-transfer-hook/blob/1f93daa7985e85c236d5f4c51be36207a2116c34/templates/trading/fee-split-rewards/src/instructions/fund_split.rs) allocates supplied funds to creator, platform and holders. Your integration must collect and supply them. It does not extract CPMM fees, change pool fee configuration, migrate or lock LP, compound liquidity, or implement LaunchLab graduation.
+- **Compose rules:** [Multi-Policy](https://github.com/trilltino/raydium-transfer-hook/tree/main/templates/intermediate/multi-policy) combines transfer and balance limits with its own built-in credentials. It makes no CPI to another credential program, so its Execute extras are the configuration and the recipient credential.
+- **Gate recipients or trading:** [Credential Gate](https://github.com/trilltino/raydium-transfer-hook/tree/main/templates/trading/credential-gate) offers one registered vault; Trader Eligibility adds venue and sell-policy choices. Each of these hooks, and Multi-Policy, issues, renews, revokes and checks its own credentials. A credential works only under the program, issuer, mint and wallet it was issued for, so you cannot share one between hooks.
+- **Limit a launch window:** [Fair Launch](https://github.com/trilltino/raydium-transfer-hook/blob/main/templates/intermediate/fair-launch/src/rule.rs) uses time, slot, amount, account-balance and wallet-purchase inputs. State which transfers count and test wallet splitting and paths outside the window.
+- **Distribute funding:** [Fee Split Rewards](https://github.com/trilltino/raydium-transfer-hook/blob/main/templates/trading/fee-split-rewards/src/instructions/fund_split.rs) allocates supplied funds to creator, platform and holders. Your integration must collect and supply them. It does not extract CPMM fees, change pool fee configuration, migrate or lock LP, compound liquidity, or implement LaunchLab graduation.
 
 ## Design and contribution checklist
 
@@ -275,11 +271,11 @@ Choose an extension point after defining the policy and exits:
 
 ## Scope and change disclaimer
 
-This community example implies no security audit. Behavior depends on the exact deployment, cluster, mint extensions and caller. Recheck each affected Raydium operation when those inputs change. The kit's [scope disclaimer](https://github.com/trilltino/raydium-transfer-hook/blob/1f93daa7985e85c236d5f4c51be36207a2116c34/DISCLAIMER.md) and [contribution guide](https://github.com/trilltino/raydium-transfer-hook/blob/1f93daa7985e85c236d5f4c51be36207a2116c34/CONTRIBUTING.md) describe review and testing responsibilities. Public access to the kit requires a separate maintainer visibility decision.
+This community example implies no security audit. Behavior depends on the exact deployment, cluster, mint extensions and caller. Recheck each affected Raydium operation when those inputs change. The kit's [scope disclaimer](https://github.com/trilltino/raydium-transfer-hook/blob/main/DISCLAIMER.md) and [contribution guide](https://github.com/trilltino/raydium-transfer-hook/blob/main/CONTRIBUTING.md) describe review and testing responsibilities. Public access to the kit requires a separate maintainer visibility decision.
 
 ## Further reading
 
 - [Token-2022 overview](https://www.solana-program.com/docs/token-2022)
 - [Transfer Hook interface](https://www.solana-program.com/docs/transfer-hook-interface)
 - [SPL Token and Token-2022](/docs/en/solana-fundamentals/spl-token-and-token-2022)
-- [Kit README](https://github.com/trilltino/raydium-transfer-hook/blob/1f93daa7985e85c236d5f4c51be36207a2116c34/README.md)
+- [Kit README](https://github.com/trilltino/raydium-transfer-hook/blob/main/README.md)

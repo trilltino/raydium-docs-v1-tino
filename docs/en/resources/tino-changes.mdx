@@ -5,8 +5,8 @@ description: "Dated changes to this documentation checkout and their Raydium doc
 
 ## 2 November 2026
 
-- **Transfer hooks kit sync:** Moved [Transfer hooks](/docs/en/solana-fundamentals/transfer-hooks) from `raydium-transfer-hook` commit `bc4b4d2` to `1f93daa`. The kit retired `test-templates` and `test-hook` in favor of a single `test-scenario` CLI, so the page now installs it with the `cluster` feature and runs the Starter with `cargo build-sbf` followed by `test-scenario local`. It also documents `check`, `inspect`, `simulate` and `new-mint`. Re-pinned the kit source links and followed the moved paths: `litesvm-examples/` to `examples/`, `scenario-definitions/` to `tests/scenarios/`, `tooling/custom` to `cli_workflows/custom`, `extra_account_metas.rs` to `metas.rs` and `launch-and-trading/` to `trading/`. Corrected Multi-Policy, which no longer calls an external allowlist program: it and the other credentialed templates now issue and check their own credentials.
-- **Verification:** Every kit link on the page resolves at `1f93daa`, and the `AGENTS.md` and `CONTRIBUTING.md` anchors exist. On Windows with Rust 1.99.1, `cargo-build-sbf` 4.4.0 and platform-tools v1.58, the Starter's 16 native tests passed, the Starter built, `test-scenario local` passed its 7 checks with balances 4,500 and 500, and the typed `starter` example passed. Devnet, `check` and pool runs were not repeated.
+- **Transfer hooks kit sync:** Updated [Transfer hooks](/docs/en/solana-fundamentals/transfer-hooks) to the kit's current single `test-scenario` CLI, which replaced `test-templates` and `test-hook`. The page now runs the Starter with one `check` command and covers `inspect`, `simulate` and `new-mint`. Removed commit pins and toolchain versions so the page reads cleanly, and pointed kit links at the current files. Corrected Multi-Policy, which no longer calls an external allowlist program.
+- **Verification:** Checked every kit link and the documented Starter flow against the current kit. Devnet and pool runs were not repeated.
 
 ## 30 October 2026
 
