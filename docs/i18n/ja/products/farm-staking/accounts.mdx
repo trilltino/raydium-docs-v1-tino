@@ -29,8 +29,8 @@ SDK は `raydium.api.fetchFarmInfoById({ ids })` で表示レベルのビュー�
 
 v6 は現在のバージョンです。そのアカウント構造が最も汎用的です。
 
-```rust
-// programs/farm_v6/src/state/farm.rs (abridged)
+```rust programs/farm_v6/src/state/farm.rs
+// (abridged)
 pub struct FarmState {
     pub state: u64,                // bitfield: 0 = live, 1 = paused, ...
     pub nonce: u64,                 // bump for farm_authority

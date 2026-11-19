@@ -39,8 +39,8 @@ SDK đọc dữ liệu này bằng `raydium.launchpad.getRpcPoolInfo({ poolId })
 
 Trạng thái gốc trên mỗi lần phát hành. Tên trường dưới đây khớp với struct Rust trên chuỗi (`states/pool.rs`); một số giá trị được đơn giản hóa để dễ đọc — tham khảo nguồn để biết bố cục bộ nhớ chính xác.
 
-```rust
-// states/pool.rs (abridged)
+```rust states/pool.rs
+// (abridged)
 pub struct PoolState {
     pub epoch:                     u64,        // recent_epoch tracker
     pub auth_bump:                 u8,

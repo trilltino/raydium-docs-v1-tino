@@ -37,8 +37,7 @@ description: "ロックされたトークン、クリフと線形アンロック
 
 これら 3 つの値は `PoolState.vesting_schedule`（`VestingSchedule` 構造体）とオンチェーン `start_time` に保持されます。募資が正常に終了する時点（卒業条件が最初に満たされる時点）で、プログラムは `block_time + cliff_period` として記録します。
 
-```rust
-// states/pool.rs
+```rust states/pool.rs
 pub struct VestingSchedule {
     pub total_locked_amount:     u64,
     pub cliff_period:            u64,
@@ -89,8 +88,7 @@ seeds = [
 program = LaunchLab program
 ```
 
-```rust
-// states/vesting.rs
+```rust states/vesting.rs
 #[account]
 pub struct VestingRecord {
     pub epoch:               u64,         // recent_epoch トラッカー

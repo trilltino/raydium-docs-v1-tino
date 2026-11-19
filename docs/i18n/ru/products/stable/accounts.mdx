@@ -41,8 +41,8 @@ description: "AmmInfo, ModelDataInfo, DataElement, Fees и структура х
 
 Корневой счет состояния. Макет почти идентичен AMM v4 — параметры пула, десятичные разряды, комиссии, ссылки на хранилища и минты — с одним дополнением: поле `model_data_key`, указывающее на таблицу поиска.
 
-```rust
-// raydium-stable/program/src/state.rs (abridged)
+```rust raydium-stable/program/src/state.rs
+// (abridged)
 pub struct AmmInfo {
     pub account_type: u64,              // = 0 (AmmAccount)
     pub status: u64,                    // bitmask: swap/deposit/withdraw/crank enabled
@@ -126,8 +126,7 @@ pub struct OutPutData {
 
 Таблица поиска. Большой разреженный массив точек цены и количества.
 
-```rust
-// raydium-stable/program/src/state.rs
+```rust raydium-stable/program/src/state.rs
 pub const ELEMENT_SIZE: usize = 50000;
 
 pub struct DataElement {

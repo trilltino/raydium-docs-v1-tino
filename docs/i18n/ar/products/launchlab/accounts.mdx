@@ -39,8 +39,8 @@ description: "PoolState (جذر كل إطلاق)، والخزائن الأساس
 
 حالة الجذر لكل إطلاق. أسماء الحقول أدناه تطابق بنية Rust على السلسلة (`states/pool.rs`)؛ تم تبسيط بعض القيم لسهولة القراءة — استشر المصدر للحصول على تخطيط الذاكرة الدقيق.
 
-```rust
-// states/pool.rs (abridged)
+```rust states/pool.rs
+// (abridged)
 pub struct PoolState {
     pub epoch:                     u64,        // recent_epoch tracker
     pub auth_bump:                 u8,

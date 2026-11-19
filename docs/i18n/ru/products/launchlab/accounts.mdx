@@ -37,8 +37,8 @@ SDK читает это через `raydium.launchpad.getRpcPoolInfo({ poolId })
 
 Корневое состояние для каждого запуска. Названия полей ниже соответствуют структуре Rust на цепи (`states/pool.rs`); некоторые значения упрощены для читаемости — обратитесь к исходному коду для точного расположения в памяти.
 
-```rust
-// states/pool.rs (abridged)
+```rust states/pool.rs
+// (abridged)
 pub struct PoolState {
     pub epoch:                     u64,        // recent_epoch tracker
     pub auth_bump:                 u8,

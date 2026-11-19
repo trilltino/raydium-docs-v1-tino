@@ -38,8 +38,8 @@ Lưu ý: "serum" được giữ lại như tiền tố trong IDL và tên trư�
 
 Tài khoản trạng thái gốc của pool. Lớn (≈ 752 byte) vì nó mang cả tham chiếu pool và OpenBook nội tuyến.
 
-```rust
-// programs/amm/src/state.rs (rút gọn; thứ tự trường / tên theo IDL)
+```rust programs/amm/src/state.rs
+// (rút gọn; thứ tự trường / tên theo IDL)
 pub struct AmmInfo {
     pub status: u64,           // bitmask: swap/deposit/withdraw/crank enabled
     pub nonce:  u64,           // bump used to derive amm_authority

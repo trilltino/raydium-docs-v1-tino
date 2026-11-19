@@ -33,8 +33,8 @@ The SDK reads this with `raydium.launchpad.getRpcPoolInfo({ poolId })`, which re
 
 The per-launch root state. Field names below match the on-chain Rust struct (`states/pool.rs`); some values are simplified for readability — consult the source for the exact memory layout.
 
-```rust
-// states/pool.rs (abridged)
+```rust states/pool.rs
+// (abridged)
 pub struct PoolState {
     pub epoch:                     u64,        // recent_epoch tracker
     pub auth_bump:                 u8,

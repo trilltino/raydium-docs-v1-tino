@@ -29,8 +29,8 @@ SDK는 `raydium.api.fetchFarmInfoById({ ids })`에서 표시 수준 뷰를, `ray
 
 v6은 현재 버전입니다. 가장 일반적인 계정 구조를 가지고 있습니다.
 
-```rust
-// programs/farm_v6/src/state/farm.rs (abridged)
+```rust programs/farm_v6/src/state/farm.rs
+// (abridged)
 pub struct FarmState {
     pub state: u64,                // bitfield: 0 = live, 1 = paused, ...
     pub nonce: u64,                 // bump for farm_authority

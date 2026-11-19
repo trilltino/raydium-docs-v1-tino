@@ -29,8 +29,8 @@ SDK, görüntüleme düzeyindeki görünümü `raydium.api.fetchFarmInfoById({ i
 
 v6 güncel sürümdür. Hesap yapısı en geneldir.
 
-```rust
-// programs/farm_v6/src/state/farm.rs (kısaltılmış)
+```rust programs/farm_v6/src/state/farm.rs
+// (kısaltılmış)
 pub struct FarmState {
     pub state: u64,                // bitfield: 0 = live, 1 = paused, ...
     pub nonce: u64,                 // farm_authority için bump

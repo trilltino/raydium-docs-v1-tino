@@ -38,8 +38,8 @@ Nota: o prefixo "serum" é mantido no IDL e nomes de campos do AMM v4 para compa
 
 A conta de estado raiz do pool. Grande (≈ 752 bytes) porque carrega referências de pool e OpenBook inline.
 
-```rust
-// programs/amm/src/state.rs (abridged; field order / names follow the IDL)
+```rust programs/amm/src/state.rs
+// (abridged; field order / names follow the IDL)
 pub struct AmmInfo {
     pub status: u64,           // bitmask: swap/deposit/withdraw/crank enabled
     pub nonce:  u64,           // bump used to derive amm_authority

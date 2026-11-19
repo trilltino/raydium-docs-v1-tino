@@ -39,8 +39,8 @@ SDK membaca ini dengan `raydium.launchpad.getRpcPoolInfo({ poolId })`, yang meng
 
 Status akar per-peluncuran. Nama field di bawah cocok dengan struct Rust on-chain (`states/pool.rs`); beberapa nilai disederhanakan untuk keterbacaan — konsultasikan sumber untuk tata letak memori yang tepat.
 
-```rust
-// states/pool.rs (abridged)
+```rust states/pool.rs
+// (abridged)
 pub struct PoolState {
     pub epoch:                     u64,        // recent_epoch tracker
     pub auth_bump:                 u8,

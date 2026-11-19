@@ -38,14 +38,13 @@ Resolução, em ordem de prioridade:
 
 Ambos são `u64` sobre `FEE_RATE_DENOMINATOR_VALUE = 1_000_000` e ambos são verificados contra esse limite. Então, por lado de token:
 
-```rust
-// states/creator_fee_share.rs
+```rust states/creator_fee_share.rs
 shared_amount  = floor(creator_fee * share_rate / 1_000_000);
 creator_amount = creator_fee - shared_amount;
 ```
 
-```rust
-// states/pool.rs — PoolState::settle_creator_fee
+```rust states/pool.rs
+// — PoolState::settle_creator_fee
 self.protocol_fees_token_i = self.protocol_fees_token_i.checked_add(shared_amount_i)?;
 self.creator_fees_token_i  = 0;
 // creator_amount_i é retornado e transferido para o criador

@@ -23,8 +23,8 @@ The SDK returns the display-level view on `raydium.api.fetchFarmInfoById({ ids }
 
 v6 is the current version. Its account structure is the most general.
 
-```rust
-// programs/farm_v6/src/state/farm.rs (abridged)
+```rust programs/farm_v6/src/state/farm.rs
+// (abridged)
 pub struct FarmState {
     pub state: u64,                // bitfield: 0 = live, 1 = paused, ...
     pub nonce: u64,                 // bump for farm_authority

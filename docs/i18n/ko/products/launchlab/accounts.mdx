@@ -39,8 +39,8 @@ SDK는 `raydium.launchpad.getRpcPoolInfo({ poolId })`로 이를 읽으며, 이�
 
 런칭별 루트 상태입니다. 아래 필드 이름은 온체인 Rust 구조체 (`states/pool.rs`)와 일치합니다. 일부 값은 가독성을 위해 단순화되었으므로 정확한 메모리 레이아웃은 소스를 참조하세요.
 
-```rust
-// states/pool.rs (abridged)
+```rust states/pool.rs
+// (abridged)
 pub struct PoolState {
     pub epoch:                     u64,        // recent_epoch tracker
     pub auth_bump:                 u8,

@@ -41,8 +41,8 @@ Aktif envanter artık tamamen havuz tarafıdır:
 
 Kök durum hesabı. Düzen AMM v4'e neredeyse özdeştir — havuz parametreleri, ondalıklar, ücretler, vault/mint referansları — bir ekleme ile: arama tablosuna işaret eden bir `model_data_key` alanı.
 
-```rust
-// raydium-stable/program/src/state.rs (kısaltılmış)
+```rust raydium-stable/program/src/state.rs
+// (kısaltılmış)
 pub struct AmmInfo {
     pub account_type: u64,              // = 0 (AmmAccount)
     pub status: u64,                    // bitmask: swap/deposit/withdraw/crank etkin
@@ -126,8 +126,7 @@ Entegratör tarafından karşılaşılan anahtar alanlar:
 
 Arama tablosu. Fiyat/miktar noktalarının büyük bir seyrek dizisi.
 
-```rust
-// raydium-stable/program/src/state.rs
+```rust raydium-stable/program/src/state.rs
 pub const ELEMENT_SIZE: usize = 50000;
 
 pub struct DataElement {

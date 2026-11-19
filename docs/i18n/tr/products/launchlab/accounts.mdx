@@ -39,8 +39,8 @@ SDK bunu `raydium.launchpad.getRpcPoolInfo({ poolId })` ile okur; bu çağrı, b
 
 Başlatma başına kök durum. Aşağıdaki alan adları zincir üzerindeki Rust yapısıyla eşleşir (`states/pool.rs`); bazı değerler okunabilirlik için basitleştirilmiştir — tam bellek düzeni için kaynağa bakın.
 
-```rust
-// states/pool.rs (kısaltılmış)
+```rust states/pool.rs
+// (kısaltılmış)
 pub struct PoolState {
     pub epoch:                     u64,        // recent_epoch tracker
     pub auth_bump:                 u8,

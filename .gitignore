@@ -1,3 +1,4 @@
 .DS_Store
 translate.log
 research/
+scripts/.translate-failures/

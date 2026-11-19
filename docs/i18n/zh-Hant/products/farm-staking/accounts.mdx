@@ -29,8 +29,8 @@ SDK 在 `raydium.api.fetchFarmInfoById({ ids })` 上返回顯示層級的視圖�
 
 v6 是當前版本，其帳户結構最通用。
 
-```rust
-// programs/farm_v6/src/state/farm.rs (abridged)
+```rust programs/farm_v6/src/state/farm.rs
+// (abridged)
 pub struct FarmState {
     pub state: u64,                // bitfield: 0 = live, 1 = paused, ...
     pub nonce: u64,                 // bump for farm_authority

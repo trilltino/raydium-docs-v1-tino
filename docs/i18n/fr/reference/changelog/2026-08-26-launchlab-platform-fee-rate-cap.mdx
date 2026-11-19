@@ -32,8 +32,8 @@ Rien d'autre n'a changé. Aucun compte n'a grandi ou rétréci, aucune instructi
 
 ## Ce qui a changé
 
-```rust
-// states/platform_config.rs — PlatformParams::check(), exécuté par CreatePlatformConfig
+```rust states/platform_config.rs
+// — PlatformParams::check(), exécuté par CreatePlatformConfig
 - require!(self.fee_rate <= 10000, ErrorCode::InvalidInput);
 + require!(self.fee_rate <= 50000, ErrorCode::InvalidInput);
 

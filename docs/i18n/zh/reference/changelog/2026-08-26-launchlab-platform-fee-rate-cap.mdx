@@ -28,8 +28,8 @@ description: "平台 fee_rate 上限在创建和更新路径上都提高至 500 
 
 ## 变更内容
 
-```rust
-// states/platform_config.rs — PlatformParams::check()，由 CreatePlatformConfig 运行
+```rust states/platform_config.rs
+// — PlatformParams::check()，由 CreatePlatformConfig 运行
 - require!(self.fee_rate <= 10000, ErrorCode::InvalidInput);
 + require!(self.fee_rate <= 50000, ErrorCode::InvalidInput);
 

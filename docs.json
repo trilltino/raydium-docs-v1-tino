@@ -47,8 +47,13 @@
       "destination": "/docs/en/ray/ray-token-white-paper"
     },
     {
-      "source": "/docs/i18n/ar/resources/tino-changes",
-      "destination": "/docs/en/resources/tino-changes",
+      "source": "/docs/en/resources/tino-changes",
+      "destination": "/docs/en/resources/devrel-edits",
+      "permanent": false
+    },
+    {
+      "source": "/docs/i18n/ar/resources/devrel-edits",
+      "destination": "/docs/en/resources/devrel-edits",
       "permanent": false
     },
     {
@@ -57,8 +62,8 @@
       "permanent": false
     },
     {
-      "source": "/docs/i18n/de/resources/tino-changes",
-      "destination": "/docs/en/resources/tino-changes",
+      "source": "/docs/i18n/de/resources/devrel-edits",
+      "destination": "/docs/en/resources/devrel-edits",
       "permanent": false
     },
     {
@@ -67,8 +72,8 @@
       "permanent": false
     },
     {
-      "source": "/docs/i18n/es/resources/tino-changes",
-      "destination": "/docs/en/resources/tino-changes",
+      "source": "/docs/i18n/es/resources/devrel-edits",
+      "destination": "/docs/en/resources/devrel-edits",
       "permanent": false
     },
     {
@@ -77,8 +82,8 @@
       "permanent": false
     },
     {
-      "source": "/docs/i18n/fr/resources/tino-changes",
-      "destination": "/docs/en/resources/tino-changes",
+      "source": "/docs/i18n/fr/resources/devrel-edits",
+      "destination": "/docs/en/resources/devrel-edits",
       "permanent": false
     },
     {
@@ -87,8 +92,8 @@
       "permanent": false
     },
     {
-      "source": "/docs/i18n/id/resources/tino-changes",
-      "destination": "/docs/en/resources/tino-changes",
+      "source": "/docs/i18n/id/resources/devrel-edits",
+      "destination": "/docs/en/resources/devrel-edits",
       "permanent": false
     },
     {
@@ -97,8 +102,8 @@
       "permanent": false
     },
     {
-      "source": "/docs/i18n/ja/resources/tino-changes",
-      "destination": "/docs/en/resources/tino-changes",
+      "source": "/docs/i18n/ja/resources/devrel-edits",
+      "destination": "/docs/en/resources/devrel-edits",
       "permanent": false
     },
     {
@@ -107,8 +112,8 @@
       "permanent": false
     },
     {
-      "source": "/docs/i18n/ko/resources/tino-changes",
-      "destination": "/docs/en/resources/tino-changes",
+      "source": "/docs/i18n/ko/resources/devrel-edits",
+      "destination": "/docs/en/resources/devrel-edits",
       "permanent": false
     },
     {
@@ -117,8 +122,8 @@
       "permanent": false
     },
     {
-      "source": "/docs/i18n/pt/resources/tino-changes",
-      "destination": "/docs/en/resources/tino-changes",
+      "source": "/docs/i18n/pt/resources/devrel-edits",
+      "destination": "/docs/en/resources/devrel-edits",
       "permanent": false
     },
     {
@@ -127,8 +132,8 @@
       "permanent": false
     },
     {
-      "source": "/docs/i18n/ru/resources/tino-changes",
-      "destination": "/docs/en/resources/tino-changes",
+      "source": "/docs/i18n/ru/resources/devrel-edits",
+      "destination": "/docs/en/resources/devrel-edits",
       "permanent": false
     },
     {
@@ -137,8 +142,8 @@
       "permanent": false
     },
     {
-      "source": "/docs/i18n/tr/resources/tino-changes",
-      "destination": "/docs/en/resources/tino-changes",
+      "source": "/docs/i18n/tr/resources/devrel-edits",
+      "destination": "/docs/en/resources/devrel-edits",
       "permanent": false
     },
     {
@@ -147,8 +152,8 @@
       "permanent": false
     },
     {
-      "source": "/docs/i18n/vi/resources/tino-changes",
-      "destination": "/docs/en/resources/tino-changes",
+      "source": "/docs/i18n/vi/resources/devrel-edits",
+      "destination": "/docs/en/resources/devrel-edits",
       "permanent": false
     },
     {
@@ -157,8 +162,8 @@
       "permanent": false
     },
     {
-      "source": "/docs/i18n/zh-Hant/resources/tino-changes",
-      "destination": "/docs/en/resources/tino-changes",
+      "source": "/docs/i18n/zh-Hant/resources/devrel-edits",
+      "destination": "/docs/en/resources/devrel-edits",
       "permanent": false
     },
     {
@@ -167,8 +172,8 @@
       "permanent": false
     },
     {
-      "source": "/docs/i18n/zh/resources/tino-changes",
-      "destination": "/docs/en/resources/tino-changes",
+      "source": "/docs/i18n/zh/resources/devrel-edits",
+      "destination": "/docs/en/resources/devrel-edits",
       "permanent": false
     },
     {
@@ -639,6 +644,8 @@
                     "group": "Changelog",
                     "pages": [
                       "docs/en/reference/changelog",
+                      "docs/en/reference/changelog/2026-10-30-cpmm-initialize-v2",
+                      "docs/en/reference/changelog/2026-10-22-clmm-customizable-pool-v2",
                       "docs/en/reference/changelog/2026-09-30-clmm-anchor-1-and-excess-lamports",
                       "docs/en/reference/changelog/2026-09-19-cpmm-creator-fee-protocol-share",
                       "docs/en/reference/changelog/2026-09-09-launchlab-anchor-1-and-excess-lamports",
@@ -672,12 +679,12 @@
             ]
           },
           {
-            "tab": "Tino changes",
+            "tab": "DevRel Edits",
             "groups": [
               {
-                "group": "Tino changes",
+                "group": "DevRel Edits",
                 "pages": [
-                  "docs/en/resources/tino-changes"
+                  "docs/en/resources/devrel-edits"
                 ]
               }
             ]
@@ -1142,6 +1149,8 @@
                     "group": "Changelog",
                     "pages": [
                       "docs/i18n/zh/reference/changelog",
+                      "docs/i18n/zh/reference/changelog/2026-10-30-cpmm-initialize-v2",
+                      "docs/i18n/zh/reference/changelog/2026-10-22-clmm-customizable-pool-v2",
                       "docs/i18n/zh/reference/changelog/2026-09-30-clmm-anchor-1-and-excess-lamports",
                       "docs/i18n/zh/reference/changelog/2026-09-19-cpmm-creator-fee-protocol-share",
                       "docs/i18n/zh/reference/changelog/2026-09-09-launchlab-anchor-1-and-excess-lamports",
@@ -1634,6 +1643,8 @@
                     "group": "Changelog",
                     "pages": [
                       "docs/i18n/zh-Hant/reference/changelog",
+                      "docs/i18n/zh-Hant/reference/changelog/2026-10-30-cpmm-initialize-v2",
+                      "docs/i18n/zh-Hant/reference/changelog/2026-10-22-clmm-customizable-pool-v2",
                       "docs/i18n/zh-Hant/reference/changelog/2026-09-30-clmm-anchor-1-and-excess-lamports",
                       "docs/i18n/zh-Hant/reference/changelog/2026-09-19-cpmm-creator-fee-protocol-share",
                       "docs/i18n/zh-Hant/reference/changelog/2026-09-09-launchlab-anchor-1-and-excess-lamports",
@@ -2126,6 +2137,8 @@
                     "group": "Changelog",
                     "pages": [
                       "docs/i18n/ja/reference/changelog",
+                      "docs/i18n/ja/reference/changelog/2026-10-30-cpmm-initialize-v2",
+                      "docs/i18n/ja/reference/changelog/2026-10-22-clmm-customizable-pool-v2",
                       "docs/i18n/ja/reference/changelog/2026-09-30-clmm-anchor-1-and-excess-lamports",
                       "docs/i18n/ja/reference/changelog/2026-09-19-cpmm-creator-fee-protocol-share",
                       "docs/i18n/ja/reference/changelog/2026-09-09-launchlab-anchor-1-and-excess-lamports",
@@ -2618,6 +2631,8 @@
                     "group": "Changelog",
                     "pages": [
                       "docs/i18n/ko/reference/changelog",
+                      "docs/i18n/ko/reference/changelog/2026-10-30-cpmm-initialize-v2",
+                      "docs/i18n/ko/reference/changelog/2026-10-22-clmm-customizable-pool-v2",
                       "docs/i18n/ko/reference/changelog/2026-09-30-clmm-anchor-1-and-excess-lamports",
                       "docs/i18n/ko/reference/changelog/2026-09-19-cpmm-creator-fee-protocol-share",
                       "docs/i18n/ko/reference/changelog/2026-09-09-launchlab-anchor-1-and-excess-lamports",
@@ -3110,6 +3125,8 @@
                     "group": "Changelog",
                     "pages": [
                       "docs/i18n/ru/reference/changelog",
+                      "docs/i18n/ru/reference/changelog/2026-10-30-cpmm-initialize-v2",
+                      "docs/i18n/ru/reference/changelog/2026-10-22-clmm-customizable-pool-v2",
                       "docs/i18n/ru/reference/changelog/2026-09-30-clmm-anchor-1-and-excess-lamports",
                       "docs/i18n/ru/reference/changelog/2026-09-19-cpmm-creator-fee-protocol-share",
                       "docs/i18n/ru/reference/changelog/2026-09-09-launchlab-anchor-1-and-excess-lamports",
@@ -3602,6 +3619,8 @@
                     "group": "Changelog",
                     "pages": [
                       "docs/i18n/es/reference/changelog",
+                      "docs/i18n/es/reference/changelog/2026-10-30-cpmm-initialize-v2",
+                      "docs/i18n/es/reference/changelog/2026-10-22-clmm-customizable-pool-v2",
                       "docs/i18n/es/reference/changelog/2026-09-30-clmm-anchor-1-and-excess-lamports",
                       "docs/i18n/es/reference/changelog/2026-09-19-cpmm-creator-fee-protocol-share",
                       "docs/i18n/es/reference/changelog/2026-09-09-launchlab-anchor-1-and-excess-lamports",
@@ -4094,6 +4113,8 @@
                     "group": "Changelog",
                     "pages": [
                       "docs/i18n/de/reference/changelog",
+                      "docs/i18n/de/reference/changelog/2026-10-30-cpmm-initialize-v2",
+                      "docs/i18n/de/reference/changelog/2026-10-22-clmm-customizable-pool-v2",
                       "docs/i18n/de/reference/changelog/2026-09-30-clmm-anchor-1-and-excess-lamports",
                       "docs/i18n/de/reference/changelog/2026-09-19-cpmm-creator-fee-protocol-share",
                       "docs/i18n/de/reference/changelog/2026-09-09-launchlab-anchor-1-and-excess-lamports",
@@ -4586,6 +4607,8 @@
                     "group": "Changelog",
                     "pages": [
                       "docs/i18n/fr/reference/changelog",
+                      "docs/i18n/fr/reference/changelog/2026-10-30-cpmm-initialize-v2",
+                      "docs/i18n/fr/reference/changelog/2026-10-22-clmm-customizable-pool-v2",
                       "docs/i18n/fr/reference/changelog/2026-09-30-clmm-anchor-1-and-excess-lamports",
                       "docs/i18n/fr/reference/changelog/2026-09-19-cpmm-creator-fee-protocol-share",
                       "docs/i18n/fr/reference/changelog/2026-09-09-launchlab-anchor-1-and-excess-lamports",
@@ -5078,6 +5101,8 @@
                     "group": "Changelog",
                     "pages": [
                       "docs/i18n/pt/reference/changelog",
+                      "docs/i18n/pt/reference/changelog/2026-10-30-cpmm-initialize-v2",
+                      "docs/i18n/pt/reference/changelog/2026-10-22-clmm-customizable-pool-v2",
                       "docs/i18n/pt/reference/changelog/2026-09-30-clmm-anchor-1-and-excess-lamports",
                       "docs/i18n/pt/reference/changelog/2026-09-19-cpmm-creator-fee-protocol-share",
                       "docs/i18n/pt/reference/changelog/2026-09-09-launchlab-anchor-1-and-excess-lamports",
@@ -5570,6 +5595,8 @@
                     "group": "Changelog",
                     "pages": [
                       "docs/i18n/tr/reference/changelog",
+                      "docs/i18n/tr/reference/changelog/2026-10-30-cpmm-initialize-v2",
+                      "docs/i18n/tr/reference/changelog/2026-10-22-clmm-customizable-pool-v2",
                       "docs/i18n/tr/reference/changelog/2026-09-30-clmm-anchor-1-and-excess-lamports",
                       "docs/i18n/tr/reference/changelog/2026-09-19-cpmm-creator-fee-protocol-share",
                       "docs/i18n/tr/reference/changelog/2026-09-09-launchlab-anchor-1-and-excess-lamports",
@@ -6062,6 +6089,8 @@
                     "group": "Changelog",
                     "pages": [
                       "docs/i18n/vi/reference/changelog",
+                      "docs/i18n/vi/reference/changelog/2026-10-30-cpmm-initialize-v2",
+                      "docs/i18n/vi/reference/changelog/2026-10-22-clmm-customizable-pool-v2",
                       "docs/i18n/vi/reference/changelog/2026-09-30-clmm-anchor-1-and-excess-lamports",
                       "docs/i18n/vi/reference/changelog/2026-09-19-cpmm-creator-fee-protocol-share",
                       "docs/i18n/vi/reference/changelog/2026-09-09-launchlab-anchor-1-and-excess-lamports",
@@ -6554,6 +6583,8 @@
                     "group": "Changelog",
                     "pages": [
                       "docs/i18n/id/reference/changelog",
+                      "docs/i18n/id/reference/changelog/2026-10-30-cpmm-initialize-v2",
+                      "docs/i18n/id/reference/changelog/2026-10-22-clmm-customizable-pool-v2",
                       "docs/i18n/id/reference/changelog/2026-09-30-clmm-anchor-1-and-excess-lamports",
                       "docs/i18n/id/reference/changelog/2026-09-19-cpmm-creator-fee-protocol-share",
                       "docs/i18n/id/reference/changelog/2026-09-09-launchlab-anchor-1-and-excess-lamports",
@@ -7046,6 +7077,8 @@
                     "group": "Changelog",
                     "pages": [
                       "docs/i18n/ar/reference/changelog",
+                      "docs/i18n/ar/reference/changelog/2026-10-30-cpmm-initialize-v2",
+                      "docs/i18n/ar/reference/changelog/2026-10-22-clmm-customizable-pool-v2",
                       "docs/i18n/ar/reference/changelog/2026-09-30-clmm-anchor-1-and-excess-lamports",
                       "docs/i18n/ar/reference/changelog/2026-09-19-cpmm-creator-fee-protocol-share",
                       "docs/i18n/ar/reference/changelog/2026-09-09-launchlab-anchor-1-and-excess-lamports",

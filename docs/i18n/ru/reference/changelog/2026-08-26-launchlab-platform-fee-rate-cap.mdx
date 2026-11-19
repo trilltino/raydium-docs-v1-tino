@@ -32,8 +32,8 @@ description: "Потолок platform fee_rate повышен до 500 bps ка�
 
 ## Что изменилось
 
-```rust
-// states/platform_config.rs — PlatformParams::check(), запускается CreatePlatformConfig
+```rust states/platform_config.rs
+// — PlatformParams::check(), запускается CreatePlatformConfig
 - require!(self.fee_rate <= 10000, ErrorCode::InvalidInput);
 + require!(self.fee_rate <= 50000, ErrorCode::InvalidInput);
 

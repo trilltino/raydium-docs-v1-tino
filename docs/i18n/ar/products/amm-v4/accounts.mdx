@@ -38,8 +38,8 @@ description: "الجرد الكامل لحسابات مجمع AMM v4 — AmmInfo
 
 حساب حالة جذر المجمع. كبير (≈ 752 بايت) لأنه يحمل مراجع المجمع و OpenBook مضمنة.
 
-```rust
-// programs/amm/src/state.rs (مختصر؛ ترتيب الحقول والأسماء تتبع IDL)
+```rust programs/amm/src/state.rs
+// (مختصر؛ ترتيب الحقول والأسماء تتبع IDL)
 pub struct AmmInfo {
     pub status: u64,           // bitmask: swap/deposit/withdraw/crank enabled
     pub nonce:  u64,           // bump used to derive amm_authority

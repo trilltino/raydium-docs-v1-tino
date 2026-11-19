@@ -38,14 +38,13 @@ CPMM의 크리에이터 수수료는 항상 전부 풀 크리에이터에게 갔
 
 둘 다 `FEE_RATE_DENOMINATOR_VALUE = 1_000_000`에 대한 `u64`이며 둘 다 그 상한에 대해 확인됩니다. 그런 다음 토큰 측면별로:
 
-```rust
-// states/creator_fee_share.rs
+```rust states/creator_fee_share.rs
 shared_amount  = floor(creator_fee * share_rate / 1_000_000);
 creator_amount = creator_fee - shared_amount;
 ```
 
-```rust
-// states/pool.rs — PoolState::settle_creator_fee
+```rust states/pool.rs
+// — PoolState::settle_creator_fee
 self.protocol_fees_token_i = self.protocol_fees_token_i.checked_add(shared_amount_i)?;
 self.creator_fees_token_i  = 0;
 // creator_amount_i is returned and transferred out to the creator

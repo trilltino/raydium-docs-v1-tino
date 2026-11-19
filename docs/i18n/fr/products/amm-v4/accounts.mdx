@@ -38,8 +38,8 @@ Remarque : le préfixe « serum » est conservé dans l'IDL et les noms de champ
 
 Le compte d'état racine du pool. Grand (≈ 752 octets) car il porte à la fois les références du pool et d'OpenBook en ligne.
 
-```rust
-// programs/amm/src/state.rs (abrégé ; l'ordre des champs / les noms suivent l'IDL)
+```rust programs/amm/src/state.rs
+// (abrégé ; l'ordre des champs / les noms suivent l'IDL)
 pub struct AmmInfo {
     pub status: u64,           // masque de bits : swap/deposit/withdraw/crank activé
     pub nonce:  u64,           // bump utilisé pour dériver amm_authority

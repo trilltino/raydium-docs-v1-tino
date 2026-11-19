@@ -38,8 +38,8 @@ Catatan: "serum" dipertahankan sebagai awalan dalam IDL dan nama bidang AMM v4 u
 
 Akun status root pool. Besar (≈ 752 byte) karena membawa referensi pool dan OpenBook secara inline.
 
-```rust
-// programs/amm/src/state.rs (disingkat; urutan bidang / nama mengikuti IDL)
+```rust programs/amm/src/state.rs
+// (disingkat; urutan bidang / nama mengikuti IDL)
 pub struct AmmInfo {
     pub status: u64,           // bitmask: swap/deposit/withdraw/crank enabled
     pub nonce:  u64,           // bump used to derive amm_authority

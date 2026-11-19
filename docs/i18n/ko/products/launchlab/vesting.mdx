@@ -37,8 +37,7 @@ description: "락된 토큰, 클리프와 선형 언락 스케줄, 수혜자별 
 
 이 세 값은 `PoolState.vesting_schedule` (`VestingSchedule` 구조체)과 온체인 `start_time`에 있으며, 이는 프로그램이 펀드레이징이 성공적으로 끝날 때 기록합니다 (졸업 조건이 처음 충족될 때).
 
-```rust
-// states/pool.rs
+```rust states/pool.rs
 pub struct VestingSchedule {
     pub total_locked_amount:     u64,
     pub cliff_period:            u64,
@@ -89,8 +88,7 @@ seeds = [
 program = LaunchLab program
 ```
 
-```rust
-// states/vesting.rs
+```rust states/vesting.rs
 #[account]
 pub struct VestingRecord {
     pub epoch:               u64,         // recent_epoch tracker

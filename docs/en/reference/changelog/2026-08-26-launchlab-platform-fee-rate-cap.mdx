@@ -26,8 +26,8 @@ Nothing else changed. No account grew or shrank, no instruction gained or lost a
 
 ## What changed
 
-```rust
-// states/platform_config.rs — PlatformParams::check(), run by CreatePlatformConfig
+```rust states/platform_config.rs
+// — PlatformParams::check(), run by CreatePlatformConfig
 - require!(self.fee_rate <= 10000, ErrorCode::InvalidInput);
 + require!(self.fee_rate <= 50000, ErrorCode::InvalidInput);
 

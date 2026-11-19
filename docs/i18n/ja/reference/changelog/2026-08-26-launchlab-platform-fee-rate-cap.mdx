@@ -32,8 +32,8 @@ description: "プラットフォーム fee_rate の上限が、create パスと 
 
 ## 変更内容
 
-```rust
-// states/platform_config.rs — PlatformParams::check(), CreatePlatformConfig で実行
+```rust states/platform_config.rs
+// — PlatformParams::check(), CreatePlatformConfig で実行
 - require!(self.fee_rate <= 10000, ErrorCode::InvalidInput);
 + require!(self.fee_rate <= 50000, ErrorCode::InvalidInput);
 

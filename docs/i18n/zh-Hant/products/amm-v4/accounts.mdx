@@ -38,8 +38,8 @@ AMM v4 池在建立時在 `AmmInfo` 上記錄一個綁定的市場。完整情�
 
 池的根狀態帳戶。大小（約 752 位元組），因為它內聯攜帶池和 OpenBook 參考。
 
-```rust
-// programs/amm/src/state.rs (簡化版；欄位順序/名稱遵循 IDL)
+```rust programs/amm/src/state.rs
+// (簡化版；欄位順序/名稱遵循 IDL)
 pub struct AmmInfo {
     pub status: u64,           // 位掩碼：啟用交換/存入/提取/執行
     pub nonce:  u64,           // 用於衍生 amm_authority 的 bump

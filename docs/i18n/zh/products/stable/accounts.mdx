@@ -41,8 +41,8 @@ description: "AmmInfo、ModelDataInfo、DataElement、Fees 和金库布局。Sta
 
 根状态账户。布局几乎与 AMM v4 相同——池参数、小数位、费用、金库/铸币引用——加上一个新增项：指向查找表的 `model_data_key` 字段。
 
-```rust
-// raydium-stable/program/src/state.rs (abridged)
+```rust raydium-stable/program/src/state.rs
+// (abridged)
 pub struct AmmInfo {
     pub account_type: u64,              // = 0 (AmmAccount)
     pub status: u64,                    // bitmask: swap/deposit/withdraw/crank enabled
@@ -126,8 +126,7 @@ pub struct OutPutData {
 
 查找表。价格/数量点的大型稀疏数组。
 
-```rust
-// raydium-stable/program/src/state.rs
+```rust raydium-stable/program/src/state.rs
 pub const ELEMENT_SIZE: usize = 50000;
 
 pub struct DataElement {

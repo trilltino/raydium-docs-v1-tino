@@ -38,8 +38,8 @@ Not: "serum" ön eki, geriye dönük uyumluluk için AMM v4'ün IDL ve alan adla
 
 Havuzun kök durum hesabı. Büyüktür (≈ 752 bayt) çünkü hem havuz hem de OpenBook referanslarını satır içinde taşır.
 
-```rust
-// programs/amm/src/state.rs (kısaltılmış; alan sırası / adları IDL'yi takip eder)
+```rust programs/amm/src/state.rs
+// (kısaltılmış; alan sırası / adları IDL'yi takip eder)
 pub struct AmmInfo {
     pub status: u64,           // bitmask: swap/deposit/withdraw/crank etkin
     pub nonce:  u64,           // amm_authority türetmek için kullanılan bump

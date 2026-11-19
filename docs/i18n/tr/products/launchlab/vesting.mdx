@@ -37,8 +37,7 @@ Bir başlatma için hak kazanım, `Initialize` zamanında kaydedilen üç sayı 
 
 Bu üç değer `PoolState.vesting_schedule` üzerinde (`VestingSchedule` yapısı) ve zincir üstü `start_time` ile birlikte yaşar; program bunu fundraising başarıyla bittiğinde (mezuniyet koşulları ilk karşılandığında) `block_time + cliff_period` olarak kaydeder.
 
-```rust
-// states/pool.rs
+```rust states/pool.rs
 pub struct VestingSchedule {
     pub total_locked_amount:     u64,
     pub cliff_period:            u64,
@@ -89,8 +88,7 @@ seeds = [
 program = LaunchLab program
 ```
 
-```rust
-// states/vesting.rs
+```rust states/vesting.rs
 #[account]
 pub struct VestingRecord {
     pub epoch:               u64,         // recent_epoch izleyicisi

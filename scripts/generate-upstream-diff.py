@@ -19,7 +19,7 @@ import subprocess
 ROOT = Path(__file__).resolve().parent.parent
 EXCLUDED = {
     'scripts/generate-upstream-diff.py',
-    'docs/en/resources/tino-changes.mdx',
+    'docs/en/resources/devrel-edits.mdx',
 }
 OUTPUT_PREFIX = 'public/tino-changes/'
 

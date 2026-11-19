@@ -37,8 +37,8 @@ SDK 用 `raydium.launchpad.getRpcPoolInfo({ poolId })` 读取它，该方法返�
 
 每次启动的根状态。下面的字段名称与链上 Rust 结构体（`states/pool.rs`）匹配；某些值为了可读性已简化——请查阅源代码了解确切的内存布局。
 
-```rust
-// states/pool.rs (abridged)
+```rust states/pool.rs
+// (abridged)
 pub struct PoolState {
     pub epoch:                     u64,        // recent_epoch tracker
     pub auth_bump:                 u8,

@@ -38,14 +38,13 @@ CPMM 的创建者费用一直完全流向池创建者。此版本让协议保留
 
 两者都是 `u64` 超过 `FEE_RATE_DENOMINATOR_VALUE = 1_000_000`，两者都根据该上限进行检查。然后，按每个代币侧：
 
-```rust
-// states/creator_fee_share.rs
+```rust states/creator_fee_share.rs
 shared_amount  = floor(creator_fee * share_rate / 1_000_000);
 creator_amount = creator_fee - shared_amount;
 ```
 
-```rust
-// states/pool.rs — PoolState::settle_creator_fee
+```rust states/pool.rs
+// — PoolState::settle_creator_fee
 self.protocol_fees_token_i = self.protocol_fees_token_i.checked_add(shared_amount_i)?;
 self.creator_fees_token_i  = 0;
 // creator_amount_i is returned and transferred out to the creator

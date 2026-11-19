@@ -37,8 +37,7 @@ description: "鎖定的代幣、懸崖期和線性解鎖時程、每位受益人
 
 這三個值存在於 `PoolState.vesting_schedule`（一個 `VestingSchedule` 結構）加上鏈上的 `start_time`，程序在募資成功結束的時刻（首次滿足畢業條件時）記錄為 `block_time + cliff_period`。
 
-```rust
-// states/pool.rs
+```rust states/pool.rs
 pub struct VestingSchedule {
     pub total_locked_amount:     u64,
     pub cliff_period:            u64,
@@ -89,8 +88,7 @@ seeds = [
 program = LaunchLab program
 ```
 
-```rust
-// states/vesting.rs
+```rust states/vesting.rs
 #[account]
 pub struct VestingRecord {
     pub epoch:               u64,         // recent_epoch tracker

@@ -32,8 +32,8 @@ Başka hiçbir şey değişmedi. Hiçbir hesap büyümedi veya küçülmedi, hi�
 
 ## Ne değişti
 
-```rust
-// states/platform_config.rs — PlatformParams::check(), CreatePlatformConfig tarafından çalıştırılır
+```rust states/platform_config.rs
+// — PlatformParams::check(), CreatePlatformConfig tarafından çalıştırılır
 - require!(self.fee_rate <= 10000, ErrorCode::InvalidInput);
 + require!(self.fee_rate <= 50000, ErrorCode::InvalidInput);
 

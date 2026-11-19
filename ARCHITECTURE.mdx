@@ -137,7 +137,7 @@ Per-product extensions, where the standard template isn't enough:
 - **Math** lives in `docs/en/algorithms/`. Product `math.mdx` pages give the product-specific *instantiation* and link back.
 - **Fee economics** are split across two homes by intent: per-product mechanics in `docs/en/products/<x>/fees.mdx`, and protocol-revenue / RAY-buyback flow in `docs/en/ray/`. The cross-product comparison table lives in `docs/en/reference/fee-comparison`.
 - **RAY tokenomics** lives in `docs/en/ray/`. Pages elsewhere that mention RAY (staking flow, fee splits, governance) link there.
-- **Code versioning.** Every code block has a version banner: SDK version, program ID, Solana cluster, last-verified date.
+- **Code versioning.** Record the SDK version, program reference, Solana cluster and verification date once in the page or section that introduces the examples. Keep this metadata outside code blocks. Use source filenames as titles for Rust excerpts.
 - **Diagrams.** Architecture diagrams are SVGs checked into `/images/architecture/`. The source (Mermaid or draw.io) is committed next to the SVG.
 - **User flows are audience-tagged, not feature-tagged.** A walkthrough belongs under "For Traders / For Liquidity Providers / For Token Creators" — *not* under the program it touches.
 

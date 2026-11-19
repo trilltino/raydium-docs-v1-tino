@@ -39,8 +39,8 @@ Das SDK liest dies mit `raydium.launchpad.getRpcPoolInfo({ poolId })`, was den d
 
 Der Pro-Launch-Root-State. Feldnamen unten entsprechen dem On-Chain-Rust-Struct (`states/pool.rs`); einige Werte sind zur Lesbarkeit vereinfacht — konsultieren Sie die Quelle für das exakte Memory-Layout.
 
-```rust
-// states/pool.rs (abridged)
+```rust states/pool.rs
+// (abridged)
 pub struct PoolState {
     pub epoch:                     u64,        // recent_epoch tracker
     pub auth_bump:                 u8,

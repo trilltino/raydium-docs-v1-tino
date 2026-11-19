@@ -41,8 +41,8 @@ L'inventaire actif est maintenant entièrement côté pool :
 
 Compte d'état racine. La disposition est presque identique à AMM v4 — paramètres du pool, décimales, frais, références aux vaults/mints — avec un ajout : un champ `model_data_key` pointant vers la table de consultation.
 
-```rust
-// raydium-stable/program/src/state.rs (abridged)
+```rust raydium-stable/program/src/state.rs
+// (abridged)
 pub struct AmmInfo {
     pub account_type: u64,              // = 0 (AmmAccount)
     pub status: u64,                    // bitmask: swap/deposit/withdraw/crank enabled
@@ -126,8 +126,7 @@ Champs clés pour les intégrateurs :
 
 La table de consultation. Un grand tableau creux de points prix/quantité.
 
-```rust
-// raydium-stable/program/src/state.rs
+```rust raydium-stable/program/src/state.rs
 pub const ELEMENT_SIZE: usize = 50000;
 
 pub struct DataElement {

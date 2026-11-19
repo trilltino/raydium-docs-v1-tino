@@ -32,8 +32,8 @@ Không có gì khác thay đổi. Không có tài khoản nào phát triển ho�
 
 ## Những gì đã thay đổi
 
-```rust
-// states/platform_config.rs — PlatformParams::check(), chạy bởi CreatePlatformConfig
+```rust states/platform_config.rs
+// — PlatformParams::check(), chạy bởi CreatePlatformConfig
 - require!(self.fee_rate <= 10000, ErrorCode::InvalidInput);
 + require!(self.fee_rate <= 50000, ErrorCode::InvalidInput);
 

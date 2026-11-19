@@ -63,26 +63,24 @@ For a diagram, "this is confusing, use this picture" is not enough. Say why it i
 
 ### Pull requests
 
-Describe the change so a maintainer can judge it without reconstructing your work.
+Describe the change so a maintainer can judge it without reconstructing your work. Keep the description plain and short. Name pages by their title, and leave out line numbers, commit hashes, file sizes, version numbers and ticket references.
 
 ```md
 ## Problem addressed
-What was wrong or missing, with the page and line.
+What was wrong or missing, and on which page.
 
 ## Changes made
-Files and what changed in each.
+The pages changed and what changed in each.
 
 ## Result
 What a reader sees or can do now.
 
-## Verification
-What you ran or read, and the result. Say plainly what you did not check.
-
-## Open questions
-What is uncertain or needs a maintainer's decision.
+These changes should be made across all languages.
 ```
 
-Include before and after screenshots for layout changes, as `CONTRIBUTING.md` asks. The last two sections are **Recommended**.
+**Always end the description with the last line above.** Include it even when the PR only touches English pages, and do not say which language trees the files are in. It tells maintainers the change belongs in every translation.
+
+Include before and after screenshots for layout changes, as `CONTRIBUTING.md` asks.
 
 ## 3. Ideas are contributions too
 
@@ -161,7 +159,7 @@ This fork's layout differs from upstream. Keep the two path conventions apart.
 | Translations | `docs/i18n/<locale>/...` | `<locale>/...` |
 | Internal links | `/docs/en/...` | `/products/...` |
 
-Map paths when you prepare a patch for upstream, and do not include fork-only files (`docs/en/resources/tino-changes.mdx`, `docs/i18n` redirects, `public/tino-changes`).
+Map paths when you prepare a patch for upstream, and do not include fork-only files (`docs/en/resources/devrel-edits.mdx`, `docs/i18n` redirects, `public/tino-changes`).
 
 ### Before you open a PR
 
@@ -176,7 +174,7 @@ Map paths when you prepare a patch for upstream, and do not include fork-only fi
 
 ### Track what you changed
 
-- Record every substantive change in [`docs/en/resources/tino-changes.mdx`](./docs/en/resources/tino-changes.mdx) with a dated entry. Do not remove earlier entries or closed-PR history.
+- Record every substantive change in [`docs/en/resources/devrel-edits.mdx`](./docs/en/resources/devrel-edits.mdx) with a dated entry. Do not remove earlier entries or closed-PR history.
 - If you regenerate the upstream comparison with `scripts/generate-upstream-diff.py`, pin it to the recorded base commit. Otherwise upstream's own new commits show up as differences from this checkout.
 - State PR and issue status accurately. Check it on GitHub before writing it. A page that says "open for review" about a closed PR misleads the next reader.
 
@@ -222,7 +220,7 @@ Map paths when you prepare a patch for upstream, and do not include fork-only fi
 - [ ] Existing behaviour and planned changes are kept apart.
 - [ ] The change is one topic, and any follow-ups are listed separately.
 - [ ] `mint validate` passes, locales are in sync, and I previewed the page locally.
-- [ ] I recorded the change in Tino changes and checked any PR status I mention.
+- [ ] I recorded the change in DevRel Edits and checked any PR status I mention.
 - [ ] Nothing private, secret or unreleased is in the diff.
 - [ ] I sent the reviewer a one-line context with the link.
 

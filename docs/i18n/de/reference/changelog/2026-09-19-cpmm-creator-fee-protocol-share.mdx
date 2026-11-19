@@ -38,14 +38,13 @@ Auflösung in Prioritätsreihenfolge:
 
 Beide sind `u64` über `FEE_RATE_DENOMINATOR_VALUE = 1_000_000` und beide werden gegen diese Obergrenze geprüft. Dann pro Token-Seite:
 
-```rust
-// states/creator_fee_share.rs
+```rust states/creator_fee_share.rs
 shared_amount  = floor(creator_fee * share_rate / 1_000_000);
 creator_amount = creator_fee - shared_amount;
 ```
 
-```rust
-// states/pool.rs — PoolState::settle_creator_fee
+```rust states/pool.rs
+// — PoolState::settle_creator_fee
 self.protocol_fees_token_i = self.protocol_fees_token_i.checked_add(shared_amount_i)?;
 self.creator_fees_token_i  = 0;
 // creator_amount_i wird zurückgegeben und an den Creator übertragen

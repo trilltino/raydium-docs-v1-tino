@@ -78,6 +78,7 @@ CLMM adds `ticks-and-positions.mdx`. LaunchLab adds `bonding-curve.mdx`. New pro
 Stale code samples are the #1 failure mode of DeFi documentation. To keep them honest:
 
 - **Pin the version.** Every code-heavy page declares — near the top — the SDK version (`@raydium-io/raydium-sdk-v2@x.y.z`), the program ID, the Solana cluster (mainnet-beta unless explicitly otherwise), and the last-verified date.
+- **Keep code headers short.** Use the source filename as the title for Rust excerpts. Put version, cluster and verification details in the surrounding page or section once, rather than repeating them as comments inside code blocks.
 - **Use the canonical SDK.** TypeScript examples use [`raydium-sdk-V2`](https://github.com/raydium-io/raydium-sdk-V2). Rust CPI examples use the published crate (`raydium-cp-swap` etc.). Don't introduce one-off forks unless absolutely necessary.
 - **Keep examples self-contained.** A reader should be able to copy the block, fill in their wallet/RPC/mint, and run it. No "see the demo repo" without showing the relevant lines inline.
 - **Use realistic addresses.** Reference real mainnet program IDs from `reference/program-addresses.mdx` rather than placeholders, except for inputs the reader provides (wallets, mints).
@@ -103,7 +104,7 @@ Before requesting review, please confirm:
 - [ ] `mint broken-links` reports zero broken links.
 - [ ] New pages are added to `docs.json` navigation.
 - [ ] New pages have valid frontmatter (`title` and `description`).
-- [ ] Code samples include the version banner described above.
+- [ ] The page or section records the examples' version and verification details outside the code blocks.
 - [ ] No `TODO`, `FIXME`, `XXX`, `coming soon`, or placeholder text remains.
 - [ ] Internal links use absolute `/path` form, not relative paths.
 - [ ] If you renamed or moved a page, set up a redirect in `docs.json` so external links keep working.

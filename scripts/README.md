@@ -2,7 +2,7 @@
 
 Tooling for the Raydium docs repo. Currently:
 
-- [`generate-upstream-diff.py`](./generate-upstream-diff.py) compares tracked documentation and project setup with upstream, records path moves, and writes a normalized review patch under `public/tino-changes`. Run `py scripts/generate-upstream-diff.py --upstream-ref upstream/main --working-tree` after updating the [Tino changes page](../docs/en/resources/tino-changes.mdx).
+- [`generate-upstream-diff.py`](./generate-upstream-diff.py) compares tracked documentation and project setup with upstream, records path moves, and writes a normalized review patch under `public/tino-changes`. Run `py scripts/generate-upstream-diff.py --upstream-ref upstream/main --working-tree` after updating the [DevRel Edits page](../docs/en/resources/devrel-edits.mdx).
 - [`translate.py`](./translate.py) — batch translator that turns the English source tree into locale-specific MDX, page by page, via the Anthropic API.
 
 ## `translate.py` — batch translator
@@ -24,7 +24,7 @@ export ANTHROPIC_API_KEY=sk-ant-...
 python3 scripts/translate.py
 ```
 
-This translates ~154 pages × 8 locales = ~1,232 jobs. With default concurrency of 8 and Sonnet, expect ~30–60 minutes wall-time and a small number of dollars in API spend (depending on page sizes; bulk of the corpus is short-to-medium pages).
+This translates every English page into all 13 locales. With the default model (`claude-haiku-5-5`) and concurrency of 8, a full run takes well under an hour; long pages are sent in several chunks, so they take proportionally longer.
 
 By default it **skips** any target file that is no longer a stub — i.e. anything someone has hand-translated or hand-edited. Re-running is safe; only stubs get touched.
 
@@ -50,6 +50,17 @@ python3 scripts/translate.py --overwrite
 
 Useful after upstream English edits that should propagate to all locales.
 
+### Check existing translations (no API calls)
+
+```bash
+python3 scripts/translate.py --check            # broken pages only; exits 1 if any
+python3 scripts/translate.py --check --verbose  # also list pages that are out of date with English
+```
+
+"Broken" means the page will not build or is visibly cut off: frontmatter that does not parse (e.g. `« »` used as quotes), unbalanced JSX tags, a repetition loop, or missing trailing sections. "Out of date" means the English was edited after the page was translated.
+
+Long pages are translated section by section (split on `##` headings, ~12k characters per request). Any response that stops on `max_tokens` or loses a heading, code fence or JSX tag is retried, and after three failures the target file is left untouched — so a failed run never writes a half-translated page.
+
 ### Dry run
 
 ```bash
@@ -60,7 +71,7 @@ Lists every (locale, page) job and what would happen to it. No API calls, no dis
 
 ### Other knobs
 
-- `--model claude-sonnet-4-5` — pick a different model.
+- `--model claude-sonnet-5-5` — pick a different model (default: `claude-haiku-5-5`).
 - `--concurrency 16` — more in-flight requests.
 
 ### Log
@@ -84,4 +95,4 @@ Every run appends to `scripts/translate.log` with timestamp, locales, page count
 
 ### Cost ballpark
 
-A typical Raydium docs page is ~400 lines / ~12 KB. Sonnet at ~$3/M input + $15/M output → ≤ $0.05 per translated page. Full corpus run: ~$50–80 across 1,232 jobs. Halve that if you skip the longer chapters.
+A typical Raydium docs page is ~400 lines / ~12 KB. Cost scales with pages × locales and with the model you pick; see the [Claude pricing page](https://platform.claude.com/docs/en/about-claude/pricing) for current rates. Translate only the pages you changed (`--paths`) rather than the whole corpus whenever you can.

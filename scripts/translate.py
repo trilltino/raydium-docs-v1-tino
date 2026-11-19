@@ -10,14 +10,14 @@ USAGE
 =====
   export ANTHROPIC_API_KEY=sk-ant-...
   python3 scripts/translate.py [--locales zh,ja,...] [--paths foo/bar.mdx,...]
-                               [--model claude-sonnet-4-6] [--concurrency 8]
+                               [--model claude-sonnet-5-5] [--concurrency 8]
                                [--overwrite] [--dry-run]
 
 DEFAULTS
 ========
   Locales:     zh, zh-Hant, ja, ko, ru, es, de, fr, pt, tr, vi, id, ar
                (skip whichever you want with --locales)
-  Model:       claude-haiku-4-5   (override per --model)
+  Model:       claude-haiku-5-5   (override per --model)
   Concurrency: 8 in-flight requests (gentle on rate limits)
   Skip rule:   MDX  – if the target file already differs from the auto-generated
                        stub (i.e. someone has translated or hand-edited it),
@@ -70,6 +70,13 @@ SAFETY
   - per-file diff log: appended to scripts/translate.log
   - bails on any file whose body fails to round-trip the frontmatter
   - YAML translations are validated by re-parsing before write
+  - long MDX pages are translated section by section (split on `##` headings),
+    so no single response approaches the output-token limit
+  - a response that stops on `max_tokens`, drops headings / code fences / JSX
+    tags, or degenerates into a repetition loop is rejected and retried; after
+    three failures the target file is left untouched
+  - `--check` validates existing translations (truncation, tag balance,
+    frontmatter, repetition) without calling the API
 """
 
 from __future__ import annotations
@@ -118,6 +125,8 @@ except ImportError:
 REPO_ROOT = Path(__file__).resolve().parent.parent
 EN_DOCS_ROOT = Path("docs/en")
 I18N_DOCS_ROOT = Path("docs/i18n")
+
+DEFAULT_MODEL = "claude-haiku-5-5"
 
 # ---------- Locale config ---------------------------------------------------
 
@@ -331,6 +340,7 @@ PRESERVE EXACTLY (do not translate, do not reformat):
 MDX-SPECIFIC ESCAPING — these are required to keep the file parseable. Failing to preserve them breaks Mintlify's build:
 - Dollar-sign escapes. Whenever the source has `\$` (backslash before `$`), preserve the backslash exactly. NEVER write a bare `$` followed by digits, letters, or another `$` in prose: `\$5,000`, `\$RAY`, `\$1.8B` must keep the backslash. If the translation introduces a trailing currency form like `5,50 $`, escape it too as `5,50 \$`. The backslash applies to every `$` that is not inside a fenced code block, an inline code span, or an actual KaTeX math expression that uses LaTeX commands like `\\frac`, `\\sqrt`, `\\text`. (When in doubt, escape.)
 - Bare `<` in prose. The MDX parser treats `<` as the start of a JSX tag. If `<` is followed by `=`, a digit, or whitespace-then-digit, the parser errors. Whenever you write a comparison or "less-than" relation in prose, wrap the whole expression in backticks (`` `<= 10,000` ``) or replace `<` with `&lt;`. Example: NOT `tick_lower <= MAX_TICK`, instead `` `tick_lower <= MAX_TICK` `` or `tick_lower &lt;= MAX_TICK`.
+- Frontmatter quoting. The `title` and `description` values MUST be wrapped in plain ASCII double quotes (`"..."`), exactly like the source. Never use guillemets « », curly quotes “ ”, or 「」 as the outer quotes of a frontmatter value — YAML cannot parse them and the page fails to build. Inside the value, use the locale's own quotation marks or escape `"` as `\\"`.
 - JSX single-quoted attributes containing apostrophes. If the translation introduces an apostrophe inside an attribute like `placeholder='...'`, the quote closes early and parsing breaks. When this happens, switch the outer quote: `placeholder="l'IA…"`. If the body contains both `'` and `"`, use a JSX expression instead: `placeholder={{`l'IA "tick"…`}}`.
 
 TRANSLATE:
@@ -514,6 +524,13 @@ def _wrap_like(original, new_text: str):
     return DoubleQuotedScalarString(new_text)
 
 
+def _is_permanent_error(e: Exception) -> bool:
+    """4xx request errors (bad parameter, auth, unknown model) will fail the
+    same way on every retry, except 408 timeout and 429 rate limit."""
+    code = getattr(e, "status_code", None)
+    return isinstance(code, int) and 400 <= code < 500 and code not in (408, 429)
+
+
 def _batched(seq: list, n: int):
     for i in range(0, len(seq), n):
         yield seq[i : i + n]
@@ -539,10 +556,11 @@ def _translate_string_batch(
             resp = client.messages.create(
                 model=model,
                 max_tokens=16000,
-                temperature=0,
                 system=system,
                 messages=[{"role": "user", "content": user_msg}],
             )
+            if getattr(resp, "stop_reason", None) == "max_tokens":
+                raise RuntimeError("output hit max_tokens (truncated)")
             text = "".join(
                 b.text for b in resp.content if b.type == "text"
             ).strip()
@@ -564,8 +582,10 @@ def _translate_string_batch(
             return translated
         except Exception as e:
             last_err = e
+            if _is_permanent_error(e):
+                break
             time.sleep(2 ** attempt)
-    raise RuntimeError(f"translation batch failed after 3 attempts: {last_err}")
+    raise RuntimeError(f"translation batch failed: {last_err}")
 
 
 def translate_yaml_text(
@@ -711,6 +731,220 @@ def is_yaml_stub(target: Path, source: Path) -> bool:
 
 # ---------- Per-page translation -------------------------------------------
 
+# Chunking / validation ------------------------------------------------------
+
+# Max English characters per request. ~12k chars of English stays well under the
+# output budget even for languages that expand 2-3x in tokens (CJK, Arabic).
+CHUNK_CHARS = 12000
+MAX_OUTPUT_TOKENS = 16000
+
+_FENCE_RE = re.compile(r"^[ \t]*(```|~~~)", re.M)
+_JSX_TAGS = (
+    "Info", "Tip", "Note", "Warning", "Check", "Update", "Card", "CardGroup",
+    "Tabs", "Tab", "Steps", "Step", "Accordion", "AccordionGroup", "Frame",
+    "CodeGroup", "Expandable", "ParamField", "ResponseField",
+)
+# A run of 25+ identical units that contain a letter, found in prose only
+# (code blocks legitimately hold ASCII diagrams and indentation runs).
+_REPEAT_RE = re.compile(r"(\w[^\n]{1,39}?)\1{25,}")
+
+# Locale pages that are intentionally short placeholders, not translations.
+CHECK_SKIP = {"ray/ray-token-white-paper.mdx"}
+
+
+def _strip_code(text: str) -> str:
+    text = re.sub(r"^(```|~~~).*?^\1[^\n]*$", "", text, flags=re.S | re.M)
+    return re.sub(r"`[^`\n]*`", "", text)
+
+
+def _structure(text: str) -> dict:
+    """Structural fingerprint that a faithful translation must preserve."""
+    prose = _strip_code(text)
+    fp = {
+        "headings": len(re.findall(r"^#{1,6} ", prose, re.M)),
+        "fences": len(_FENCE_RE.findall(text)),
+    }
+    for t in _JSX_TAGS:
+        fp[f"<{t}>"] = len(re.findall(r"<%s(\s[^>]*)?>" % t, prose))
+        fp[f"</{t}>"] = len(re.findall(r"</%s>" % t, prose))
+    return fp
+
+
+def _structure_problems(src: str, out: str, banner_added: bool = False) -> list[str]:
+    a, b = _structure(src), _structure(out)
+    if banner_added and a["<Info>"] == b["<Info>"] - 1:
+        # The banner replaces / is inserted as one extra <Info> block.
+        a["<Info>"] += 1
+        a["</Info>"] += 1
+    probs = [f"{k}: source {a[k]} vs output {b[k]}" for k in a if a[k] != b[k]]
+    for t in _JSX_TAGS:
+        if b[f"<{t}>"] != b[f"</{t}>"]:
+            probs.append(f"unbalanced <{t}> in output")
+    m = _REPEAT_RE.search(_strip_code(out))
+    if m:
+        probs.append(f"repetition loop: {m.group(1)[:20]!r} x{len(m.group(0)) // max(1, len(m.group(1)))}")
+    return probs
+
+
+def _frontmatter_problem(text: str) -> str | None:
+    m = FRONTMATTER_RE.match(text)
+    if not m:
+        return "no frontmatter"
+    fm = m.group(1)
+    for line in fm.splitlines():
+        if re.match(r"^\w[\w-]*:\s*[«“”„»「]", line):
+            return f"non-ASCII quote in frontmatter: {line[:50]}"
+    try:
+        import yaml as _pyyaml  # optional
+        _pyyaml.safe_load(fm)
+    except ImportError:
+        pass
+    except Exception as e:
+        return f"frontmatter does not parse: {str(e).splitlines()[0]}"
+    return None
+
+
+def _split_sections(body: str) -> list[str]:
+    """Split an MDX body at level-2 headings that are outside code fences."""
+    parts, cur, in_fence = [], [], False
+    for line in body.splitlines(keepends=True):
+        if _FENCE_RE.match(line):
+            in_fence = not in_fence
+        if not in_fence and line.startswith("## ") and cur:
+            parts.append("".join(cur))
+            cur = []
+        cur.append(line)
+    if cur:
+        parts.append("".join(cur))
+    return parts
+
+
+def _chunk_page(src_text: str) -> list[str]:
+    """Group sections into chunks of at most ~CHUNK_CHARS. Chunk 0 keeps the
+    frontmatter. A single section larger than the budget is kept whole (it is
+    still validated, and fails loudly if it gets truncated)."""
+    m = FRONTMATTER_RE.match(src_text)
+    head = src_text[: m.end()] if m else ""
+    body = src_text[m.end():] if m else src_text
+    chunks, cur = [], head
+    for sec in _split_sections(body):
+        if len(cur) + len(sec) > CHUNK_CHARS and cur.strip() and cur != head:
+            chunks.append(cur)
+            cur = ""
+        cur += sec
+    if cur.strip():
+        chunks.append(cur)
+    return chunks or [src_text]
+
+
+CONTINUATION_NOTE = (
+    "IMPORTANT: this is part {idx} of {total} of a longer page (or a piece of that part). It is a fragment, "
+    "not a whole file: it has no frontmatter, so do NOT add frontmatter and do NOT "
+    "add the AI-translation banner. Translate the fragment only, keep every "
+    "heading, code fence and JSX tag that appears in it, and return just the "
+    "translated fragment."
+)
+
+
+def _split_in_two(text: str) -> tuple[str, str] | None:
+    """Split a piece near its middle at a heading, else at a blank line, never
+    inside a code fence or a JSX block. Returns None if no safe point exists."""
+    lines = text.splitlines(keepends=True)
+    in_fence, depth, safe_heading, safe_blank = False, 0, [], []
+    open_re = re.compile(r"^\s*<(%s)(\s[^>]*)?>\s*$" % "|".join(_JSX_TAGS))
+    close_re = re.compile(r"^\s*</(%s)>\s*$" % "|".join(_JSX_TAGS))
+    for i, line in enumerate(lines):
+        if _FENCE_RE.match(line.lstrip()):
+            in_fence = not in_fence
+            continue
+        if in_fence or i == 0:
+            continue
+        if open_re.match(line):
+            depth += 1
+        elif close_re.match(line):
+            depth = max(0, depth - 1)
+        elif depth == 0:
+            if re.match(r"^#{2,4} ", line):
+                safe_heading.append(i)
+            elif not line.strip() and i + 1 < len(lines) and lines[i + 1].strip() \
+                    and not lines[i + 1].lstrip().startswith("|"):
+                safe_blank.append(i + 1)
+    mid = len(text) / 2
+    def pos(i): return sum(len(l) for l in lines[:i])
+    for cands in (safe_heading, safe_blank):
+        good = [i for i in cands if 0.25 * len(text) < pos(i) < 0.75 * len(text)]
+        if good:
+            i = min(good, key=lambda i: abs(pos(i) - mid))
+            return "".join(lines[:i]), "".join(lines[i:])
+    return None
+
+
+def _unwrap_output(text: str, first: bool) -> str:
+    """Undo the two ways models most often wrap the file despite the prompt:
+    an outer ```mdx ... ``` fence, and a line of preamble ("Here is ...")
+    before the frontmatter."""
+    text = text.strip("\n")
+    m = re.match(r"\A```[a-zA-Z]*\n(.*)\n```\s*\Z", text, re.S)
+    if m:
+        text = m.group(1).strip("\n")
+    if first and not text.startswith("---"):
+        m = re.search(r"^---\s*\n(?=[\w-]+:)", text, re.M)
+        if m and m.start() < 400:  # only a short preamble, never real content
+            text = text[m.start():]
+    return text
+
+
+FAILURE_DIR = REPO_ROOT / "scripts" / ".translate-failures"
+
+
+def _dump_failure(locale: str, en_rel: Path, label: str, depth: int, raw: str) -> str:
+    """Save the model's raw output for a chunk that failed validation, so the
+    cause can be inspected. Returns the repo-relative path, or "" if empty."""
+    if not raw:
+        return ""
+    stem = str(en_rel.with_suffix("")).replace("/", "__")
+    out = FAILURE_DIR / locale / f"{stem}.chunk{label}{'.d%d' % depth if depth else ''}.txt"
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(raw)
+    return str(out.relative_to(REPO_ROOT))
+
+
+def _rebuild_frontmatter(client, model: str, locale: str, src_piece: str, text: str) -> str:
+    """The model returned the body without frontmatter. Translate the source's
+    title / description on their own and prepend a rebuilt frontmatter that
+    keeps every other key exactly as in the source."""
+    m = FRONTMATTER_RE.match(src_piece)
+    if not m:
+        return text
+    lines = m.group(1).splitlines()
+    keys, vals = [], []
+    for i, line in enumerate(lines):
+        mm = re.match(r'^(title|description):\s*"(.*)"\s*$', line)
+        if mm:
+            keys.append(i)
+            vals.append(mm.group(2).replace('\\"', '"'))
+    if vals:
+        translated = _translate_string_batch(client, vals, locale, model)
+        for i, t in zip(keys, translated):
+            key = lines[i].split(":", 1)[0]
+            lines[i] = f"{key}: {json.dumps(t, ensure_ascii=False)}"
+    # Drop anything the model put before its body (a stray preamble line).
+    body = text.lstrip()
+    return "---\n" + "\n".join(lines) + "\n---\n\n" + body
+
+
+def _call(client, model, system, user_msg) -> str:
+    resp = client.messages.create(
+        model=model,
+        max_tokens=MAX_OUTPUT_TOKENS,
+        system=system,
+        messages=[{"role": "user", "content": user_msg}],
+    )
+    if getattr(resp, "stop_reason", None) == "max_tokens":
+        raise RuntimeError("output hit max_tokens (truncated)")
+    return "".join(b.text for b in resp.content if b.type == "text")
+
+
 def _translate_mdx(
     client: Anthropic,
     en_rel: Path,
@@ -718,7 +952,8 @@ def _translate_mdx(
     locale: str,
     model: str,
 ) -> tuple[Path, str]:
-    """Translate one MDX page. Returns (target, status)."""
+    """Translate one MDX page, section by section. Returns (target, status).
+    Nothing is written unless every chunk passes validation."""
     src_text = (REPO_ROOT / en_rel).read_text()
     cfg = LOCALES[locale]
     english_link = str(en_rel.with_suffix("")).replace("\\", "/")
@@ -730,39 +965,119 @@ def _translate_mdx(
         cta=cfg["cta"],
         style_notes=cfg.get("style_notes", "(no locale-specific notes)"),
     )
-    user_msg = (
-        f"english_link: /{english_link}\n"
-        f"locale_code: {locale}\n"
-        f"--- BEGIN SOURCE ---\n"
-        f"{src_text}\n"
-        f"--- END SOURCE ---\n"
+
+    banner_re = re.compile(
+        r"\A\s*<Info>\s*\n\s*\*\*%s\*\*.*?</Info>\s*" % re.escape(cfg["banner"]),
+        re.S,
     )
 
-    translated = None
-    for attempt in range(3):
-        try:
-            resp = client.messages.create(
-                model=model,
-                max_tokens=16000,
-                temperature=0,
-                system=system,
-                messages=[{"role": "user", "content": user_msg}],
-            )
-            translated = "".join(
-                b.text for b in resp.content if b.type == "text"
-            ).rstrip() + "\n"
-            break
-        except Exception as e:
-            if attempt == 2:
-                return target, f"error: {e}"
-            time.sleep(2 ** attempt)
+    def translate_piece(piece: str, first: bool, label: str, depth: int = 0) -> str:
+        """Translate one piece; on max_tokens, split it in two and recurse."""
+        note = "" if first else CONTINUATION_NOTE.format(idx=label, total=len(chunks)) + "\n"
+        user_msg = (
+            f"{note}"
+            f"english_link: /{english_link}\n"
+            f"locale_code: {locale}\n"
+            f"--- BEGIN SOURCE ---\n"
+            f"{piece}\n"
+            f"--- END SOURCE ---\n"
+        )
+        last_err = "unknown"
+        raw = ""
+        for attempt in range(3):
+            try:
+                raw = _call(client, model, system, user_msg)
+                text = _unwrap_output(raw, first)
+                if first and not FRONTMATTER_RE.match(text):
+                    text = _rebuild_frontmatter(client, model, locale, piece, text)
+                if not first:
+                    # Models sometimes add the banner to a fragment anyway; drop it.
+                    text = banner_re.sub("", text, count=1)
+                if first:
+                    fm_err = _frontmatter_problem(text + "\n")
+                    if fm_err:
+                        raise RuntimeError(fm_err)
+                probs = _structure_problems(piece, text, banner_added=first)
+                if probs:
+                    raise RuntimeError("; ".join(probs[:3]))
+                return text
+            except Exception as e:
+                last_err = str(e)
+                if _is_permanent_error(e):
+                    break
+                if "max_tokens" in last_err and depth < 3:
+                    halves = _split_in_two(piece)
+                    if halves:
+                        a, b = halves
+                        return (translate_piece(a, first, label, depth + 1) + "\n\n"
+                                + translate_piece(b, False, label, depth + 1))
+                time.sleep(2 ** attempt)
+        dump = _dump_failure(locale, en_rel, label, depth, raw)
+        raise RuntimeError(f"chunk {label}/{len(chunks)}: {last_err}"
+                           + (f" (raw output: {dump})" if dump else ""))
 
-    if not translated or not translated.startswith("---"):
-        return target, "error: no frontmatter in output"
+    chunks = _chunk_page(src_text)
+    out_parts: list[str] = []
+    try:
+        for idx, chunk in enumerate(chunks, 1):
+            out_parts.append(translate_piece(chunk, idx == 1, str(idx)))
+    except RuntimeError as e:
+        return target, f"error: {e}"
 
+    translated = "\n\n".join(out_parts).rstrip() + "\n"
     target.parent.mkdir(parents=True, exist_ok=True)
     target.write_text(translated)
-    return target, "wrote"
+    return target, "wrote" if len(chunks) == 1 else f"wrote ({len(chunks)} chunks)"
+
+
+def _ends_mid_content(text: str) -> bool:
+    """True if the last line looks cut off: ends on a letter (mid-word or
+    mid-sentence) or is a table row with fewer cells than the row above."""
+    lines = [l for l in text.rstrip().splitlines() if l.strip()]
+    if not lines:
+        return True
+    last = lines[-1].rstrip()
+    if last.startswith("|"):
+        prev = lines[-2] if len(lines) > 1 else ""
+        return prev.startswith("|") and last.count("|") < prev.count("|")
+    if last.startswith("#"):
+        return True
+    return last[-1].isalpha()
+
+
+def check_translation(en_rel: Path, locale: str) -> tuple[list[str], list[str]]:
+    """Offline validation of an existing translated page against its source.
+
+    Returns (broken, stale):
+      broken — the page will not build or is visibly cut off: bad frontmatter,
+               unbalanced JSX tags, a repetition loop, or fewer than 75% of the
+               source's headings.
+      stale  — structure differs from the current English (usually because the
+               English was edited after translation). Re-translate when convenient.
+    """
+    target = REPO_ROOT / locale / en_rel
+    if (not target.exists() or en_rel.suffix.lower() != ".mdx"
+            or en_rel.as_posix() in CHECK_SKIP or is_stub(target)):
+        return [], []
+    src = (REPO_ROOT / en_rel).read_text()
+    out = target.read_text()
+    broken: list[str] = []
+    fm = _frontmatter_problem(out)
+    if fm:
+        broken.append(fm)
+    b = _structure(out)
+    for t in _JSX_TAGS:
+        if b[f"<{t}>"] != b[f"</{t}>"]:
+            broken.append(f"unbalanced <{t}>")
+    m = _REPEAT_RE.search(_strip_code(out))
+    if m:
+        broken.append(f"repetition loop: {m.group(1)[:20]!r}")
+    src_h = _structure(src)["headings"]
+    if src_h and (b["headings"] < 0.8 * src_h
+                  or (b["headings"] < src_h and _ends_mid_content(out))):
+        broken.append(f"truncated: {b['headings']}/{src_h} headings, ends {out.rstrip()[-30:]!r}")
+    stale = [] if broken else _structure_problems(src, out, banner_added=True)
+    return broken, stale
 
 
 def _translate_yaml(
@@ -841,11 +1156,16 @@ def main():
             "to translate. Default: all English source mdx files."
         ),
     )
-    ap.add_argument("--model", default="claude-haiku-4-5")
+    ap.add_argument("--model", default=DEFAULT_MODEL)
     ap.add_argument("--concurrency", type=int, default=8)
     ap.add_argument("--overwrite", action="store_true",
                     help="Overwrite even if target is no longer a stub.")
     ap.add_argument("--dry-run", action="store_true")
+    ap.add_argument("--check", action="store_true",
+                    help="Validate existing translations offline (no API calls). "
+                         "Exits non-zero if any page looks truncated or broken.")
+    ap.add_argument("--verbose", action="store_true",
+                    help="With --check, also list out-of-date (stale) pages.")
     args = ap.parse_args()
 
     locales = [l.strip() for l in args.locales.split(",") if l.strip()]
@@ -857,6 +1177,23 @@ def main():
         rels = [normalize_source_arg(p) for p in args.paths.split(",") if p.strip()]
     else:
         rels = english_pages()
+
+    if args.check:
+        bad, stale = 0, 0
+        for rel in rels:
+            if rel.suffix.lower() != ".mdx":
+                continue
+            for loc in locales:
+                broken, out_of_date = check_translation(rel, loc)
+                if broken:
+                    bad += 1
+                    print(f"[broken] {loc}/{rel}: " + "; ".join(broken[:3]))
+                elif out_of_date:
+                    stale += 1
+                    if args.verbose:
+                        print(f"[stale ] {loc}/{rel}: " + "; ".join(out_of_date[:2]))
+        print(f"\n{bad} broken, {stale} out of date (use --verbose to list).")
+        sys.exit(1 if bad else 0)
 
     if not args.dry_run:
         if "ANTHROPIC_API_KEY" not in os.environ:
@@ -892,6 +1229,7 @@ def main():
                 target, status = fut.result()
                 key = (
                     "error" if status.startswith("error")
+                    else "wrote" if status.startswith("wrote")
                     else status
                 )
                 counts[key] = counts.get(key, 0) + 1

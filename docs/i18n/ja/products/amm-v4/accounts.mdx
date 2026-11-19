@@ -38,8 +38,8 @@ AMM v4 プールは作成時に 1 つのバインドされたマーケットを 
 
 プールのルート状態アカウント。プールと OpenBook 参照の両方をインラインで保持するため、大きい（≈ 752 バイト）です。
 
-```rust
-// programs/amm/src/state.rs (abridged; field order / names follow the IDL)
+```rust programs/amm/src/state.rs
+// (abridged; field order / names follow the IDL)
 pub struct AmmInfo {
     pub status: u64,           // bitmask: swap/deposit/withdraw/crank enabled
     pub nonce:  u64,           // bump used to derive amm_authority

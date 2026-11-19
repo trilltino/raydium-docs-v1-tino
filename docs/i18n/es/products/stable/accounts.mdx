@@ -41,8 +41,8 @@ El inventario activo es ahora completamente del lado del pool:
 
 Cuenta de estado raíz. El diseño es casi idéntico a AMM v4 — parámetros del pool, decimales, comisiones, referencias de bóvedas/mints — con una adición: un campo `model_data_key` que apunta a la tabla de búsqueda.
 
-```rust
-// raydium-stable/program/src/state.rs (abridged)
+```rust raydium-stable/program/src/state.rs
+// (abridged)
 pub struct AmmInfo {
     pub account_type: u64,              // = 0 (AmmAccount)
     pub status: u64,                    // bitmask: swap/deposit/withdraw/crank enabled
@@ -126,8 +126,7 @@ Campos clave orientados al integrador:
 
 La tabla de búsqueda. Un gran arreglo disperso de puntos de precio/cantidad.
 
-```rust
-// raydium-stable/program/src/state.rs
+```rust raydium-stable/program/src/state.rs
 pub const ELEMENT_SIZE: usize = 50000;
 
 pub struct DataElement {

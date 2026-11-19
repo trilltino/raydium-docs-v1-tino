@@ -29,8 +29,8 @@ SDK 通过 `raydium.api.fetchFarmInfoById({ ids })` 返回展示层视图，通�
 
 v6 是当前版本，其账户结构最具通用性。
 
-```rust
-// programs/farm_v6/src/state/farm.rs (abridged)
+```rust programs/farm_v6/src/state/farm.rs
+// (abridged)
 pub struct FarmState {
     pub state: u64,                // bitfield: 0 = live, 1 = paused, ...
     pub nonce: u64,                 // bump for farm_authority

@@ -29,8 +29,8 @@ SDK возвращает отображаемое представление `Fa
 
 v6 — текущая версия. Её структура аккаунта наиболее универсальна.
 
-```rust
-// programs/farm_v6/src/state/farm.rs (сокращённо)
+```rust programs/farm_v6/src/state/farm.rs
+// (сокращённо)
 pub struct FarmState {
     pub state: u64,                // битовое поле: 0 = активна, 1 = пауза, ...
     pub nonce: u64,                 // bump для farm_authority

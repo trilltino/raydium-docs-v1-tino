@@ -29,8 +29,8 @@ description: "FarmState و UserStake / Ledger وخزائن المكافآت وس
 
 v6 هو الإصدار الحالي. هيكل حسابه هو الأكثر عمومية.
 
-```rust
-// programs/farm_v6/src/state/farm.rs (abridged)
+```rust programs/farm_v6/src/state/farm.rs
+// (abridged)
 pub struct FarmState {
     pub state: u64,                // bitfield: 0 = live, 1 = paused, ...
     pub nonce: u64,                 // bump for farm_authority

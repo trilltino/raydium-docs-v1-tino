@@ -28,8 +28,8 @@ Tidak ada yang berubah selain itu. Tidak ada akun yang bertambah atau berkurang,
 
 ## Apa yang berubah
 
-```rust
-// states/platform_config.rs — PlatformParams::check(), dijalankan oleh CreatePlatformConfig
+```rust states/platform_config.rs
+// — PlatformParams::check(), dijalankan oleh CreatePlatformConfig
 - require!(self.fee_rate <= 10000, ErrorCode::InvalidInput);
 + require!(self.fee_rate <= 50000, ErrorCode::InvalidInput);
 

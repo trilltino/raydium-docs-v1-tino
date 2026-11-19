@@ -31,8 +31,7 @@ Vesting for a launch is described by three numbers, recorded once at `Initialize
 
 These three values live on `PoolState.vesting_schedule` (a `VestingSchedule` struct) plus the on-chain `start_time`, which the program records as `block_time + cliff_period` at the moment fundraising successfully ends (when graduation conditions are first met).
 
-```rust
-// states/pool.rs
+```rust states/pool.rs
 pub struct VestingSchedule {
     pub total_locked_amount:     u64,
     pub cliff_period:            u64,
@@ -83,8 +82,7 @@ seeds = [
 program = LaunchLab program
 ```
 
-```rust
-// states/vesting.rs
+```rust states/vesting.rs
 #[account]
 pub struct VestingRecord {
     pub epoch:               u64,         // recent_epoch tracker

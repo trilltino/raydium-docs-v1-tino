@@ -37,8 +37,7 @@ Vesting untuk peluncuran dijelaskan dengan tiga angka, dicatat sekali pada waktu
 
 Ketiga nilai ini berada di `PoolState.vesting_schedule` (struct `VestingSchedule`) ditambah `start_time` on-chain, yang program catat sebagai `block_time + cliff_period` pada saat penggalangan dana berhasil berakhir (ketika kondisi graduation pertama kali terpenuhi).
 
-```rust
-// states/pool.rs
+```rust states/pool.rs
 pub struct VestingSchedule {
     pub total_locked_amount:     u64,
     pub cliff_period:            u64,
@@ -89,8 +88,7 @@ seeds = [
 program = program LaunchLab
 ```
 
-```rust
-// states/vesting.rs
+```rust states/vesting.rs
 #[account]
 pub struct VestingRecord {
     pub epoch:               u64,         // pelacak recent_epoch

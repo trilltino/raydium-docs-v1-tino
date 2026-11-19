@@ -38,8 +38,8 @@ description: "Полный реестр аккаунтов пула AMM v4 — A
 
 Корневой аккаунт состояния пула. Большой (≈ 752 байта), так как содержит ссылки на пул и OpenBook встроенными.
 
-```rust
-// programs/amm/src/state.rs (сокращённо; порядок полей / имена следуют IDL)
+```rust programs/amm/src/state.rs
+// (сокращённо; порядок полей / имена следуют IDL)
 pub struct AmmInfo {
     pub status: u64,           // битовая маска: swap/deposit/withdraw/crank включены
     pub nonce:  u64,           // bump для получения amm_authority

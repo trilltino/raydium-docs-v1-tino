@@ -37,8 +37,7 @@ Bonding curve продаёт `base_supply_graduation` токенов во вре
 
 Эти три значения находятся на `PoolState.vesting_schedule` (структура `VestingSchedule`) плюс on-chain `start_time`, который программа записывает как `block_time + cliff_period` в момент, когда сбор средств успешно заканчивается (когда условия выпуска впервые выполняются).
 
-```rust
-// states/pool.rs
+```rust states/pool.rs
 pub struct VestingSchedule {
     pub total_locked_amount:     u64,
     pub cliff_period:            u64,
@@ -89,8 +88,7 @@ seeds = [
 program = LaunchLab program
 ```
 
-```rust
-// states/vesting.rs
+```rust states/vesting.rs
 #[account]
 pub struct VestingRecord {
     pub epoch:               u64,         // recent_epoch tracker

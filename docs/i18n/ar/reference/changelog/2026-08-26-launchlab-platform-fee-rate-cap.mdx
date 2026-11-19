@@ -32,8 +32,8 @@ description: "يرتفع حد سقف رسم المنصة fee_rate إلى 500 ن�
 
 ## ما تغير
 
-```rust
-// states/platform_config.rs — PlatformParams::check()، يتم تشغيله بواسطة CreatePlatformConfig
+```rust states/platform_config.rs
+// — PlatformParams::check()، يتم تشغيله بواسطة CreatePlatformConfig
 - require!(self.fee_rate <= 10000, ErrorCode::InvalidInput);
 + require!(self.fee_rate <= 50000, ErrorCode::InvalidInput);
 

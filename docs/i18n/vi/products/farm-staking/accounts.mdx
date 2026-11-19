@@ -29,8 +29,8 @@ SDK trả về khung nhìn ở cấp hiển thị qua `raydium.api.fetchFarmInfo
 
 v6 là phiên bản hiện tại. Cấu trúc tài khoản của nó là chung nhất.
 
-```rust
-// programs/farm_v6/src/state/farm.rs (abridged)
+```rust programs/farm_v6/src/state/farm.rs
+// (abridged)
 pub struct FarmState {
     pub state: u64,                // bitfield: 0 = live, 1 = paused, ...
     pub nonce: u64,                 // bump for farm_authority

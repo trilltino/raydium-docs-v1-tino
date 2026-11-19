@@ -40,8 +40,8 @@ AMM v4 풀은 생성 시 하나의 바인딩된 마켓을 `AmmInfo`에 기록합
 
 풀의 루트 상태 계정입니다. 풀과 OpenBook 참조를 인라인으로 포함하기 때문에 크기가 큽니다(약 752바이트).
 
-```rust
-// programs/amm/src/state.rs (축약; 필드 순서 / 이름은 IDL을 따름)
+```rust programs/amm/src/state.rs
+// (축약; 필드 순서 / 이름은 IDL을 따름)
 pub struct AmmInfo {
     pub status: u64,           // 비트마스크: 스왑/입금/출금/크랭크 활성화
     pub nonce:  u64,           // amm_authority 파생에 사용되는 범프
