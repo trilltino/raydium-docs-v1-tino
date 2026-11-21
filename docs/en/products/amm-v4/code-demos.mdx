@@ -155,7 +155,7 @@ const { execute } = await raydium.liquidity.removeLiquidity({
 await execute({ sendAndConfirm: true });
 ```
 
-The example passes `0` for both minimums, which accepts any outcome. In production, set them from a fresh quote less your slippage tolerance. The program checks them only when both are set, and then rejects the withdrawal with `ExceededSlippage` if either side comes in lower.
+The example sets both minimum outputs to `0`, so it provides no slippage protection. In production, set them from a fresh quote less your slippage tolerance. The program checks them only when both are set, and then rejects the withdrawal with `ExceededSlippage` if either side comes in lower.
 
 ## Compute-unit / priority fee tuning
 

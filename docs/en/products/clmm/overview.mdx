@@ -108,7 +108,7 @@ Transferring an unfrozen position NFT transfers the position — the personal-po
 - [Accounts](/docs/en/products/clmm/accounts) — the pool, config, tick-array, and position account layouts.
 - [Ticks and positions](/docs/en/products/clmm/ticks-and-positions) — the tick map, tick-spacing, tick-array sizing, NFT-based positions.
 - [Math](/docs/en/products/clmm/math) — `sqrt_price_x64`, swap step-through, `fee_growth_inside` derivation.
-- [Instructions](/docs/en/products/clmm/instructions) — `OpenPosition`, `IncreaseLiquidity`, `Swap`, `CollectRewards`, the limit-order family, and `CreateCustomizablePool`.
+- [Instructions](/docs/en/products/clmm/instructions) — `OpenPosition`, `IncreaseLiquidity`, `DecreaseLiquidity`, `Swap`, the limit-order family, and `CreateCustomizablePool`. `DecreaseLiquidity` also collects outstanding position fees and rewards.
 - [Fees and rewards](/docs/en/products/clmm/fees) — the per-position fee model, single-sided fee modes, dynamic fee, and the three reward slots.
 - [Code demos](/docs/en/products/clmm/code-demos) — open / adjust / swap / collect / limit-order / customizable-pool walkthroughs in TypeScript.
 

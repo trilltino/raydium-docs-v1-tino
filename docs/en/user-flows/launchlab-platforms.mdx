@@ -1,49 +1,78 @@
 ---
 title: "LaunchLab platforms"
-description: "How third-party platform configurations shape LaunchLab launches, fees, branding, and post-migration settings."
+description: "How third-party PlatformConfig accounts shape LaunchLab fees, branding, launch restrictions, vesting, migration, and post-migration rights."
 ---
 
 <Info>
-  A LaunchLab platform is an on-chain configuration used by a launch surface or community. Platform settings can affect fees, branding, creator-fee support, and post-migration pool behavior.
+  A LaunchLab platform is an on-chain configuration used by a launch surface or community. Platform settings can affect fees, branding, creator-fee support, launch restrictions, and post-migration pool behavior.
 </Info>
 
-LaunchLab supports third-party launch environments through Platform PDAs. A platform can offer its own branded token launch experience while using LaunchLab program infrastructure and Raydium pool migration.
+LaunchLab supports third-party launch environments through **PlatformConfig PDAs**. A platform can offer its own branded token-launch experience while using LaunchLab program infrastructure and Raydium's authorized CPMM migration path.
 
 ## What a platform can control
 
-| Setting | Why it matters |
+| Configuration | Why it matters |
 |---|---|
-| Creator fees | Sets the bonding-curve creator fee and can select the CPMM creator-of-record. |
-| Platform fees | Sets where platform-level fee revenue is sent. |
-| Branding metadata | Gives the platform a name, description, and logo that can be displayed in app surfaces. |
-| Launch grouping | Lets the UI show tokens launched under the same platform. |
-| Post-migration pool settings | Can define CPMM fee configuration when the platform migrates launches to CPMM. |
-| LP distribution | Sets the burned share and the platform-owned locked-LP share. The retained creator scale is combined into the platform share. |
-| Global config allowlist | Can restrict launches to `GlobalConfig` accounts explicitly allowed by the platform admin. |
+| `creatorFeeRate` | Sets the bonding-curve creator-fee component. It is separate from CPMM creator fees. |
+| `feeRate` and `platformClaimFeeWallet` | Sets the platform trade-fee component and the wallet authorized to claim it. Pre-migration platform fees accrue to a claim vault; they are not simply sent to that wallet on each trade. |
+| `name`, `web`, `img` | Stores the platform's on-chain branding strings. There are no `description` or `logo` fields in the SDK layout. |
+| `cpConfigId` | Selects the CPMM `AmmConfig` used for migration. |
+| `platformCpCreator` | Optionally replaces the launch creator as the post-migration CPMM creator-of-record. |
+| `platformScale`, `creatorScale`, `burnScale` | Determines locked and burned LP. Under the updated migration flow, the first two combine into the platform-owned locked share. |
+| `platformLockNftWallet` | Receives the platform Fee Key when the locked share is nonzero. |
+| `platformVestingWallet`, `platformVestingScale` | Controls the platform's vesting beneficiary and share. |
+| `transferFeeExtensionAuth` | Controls applicable Token-2022 transfer-fee authorities during launch and migration. |
+| `restrictGlobalConfig` | Can require an allow record for the selected `GlobalConfig`. |
+| `restrictCurveParam`, `curveRuleManager` | Enables `PlatformCurveRule` checks and delegates rule management without transferring platform-admin ownership. |
+
+PlatformConfig does not give the platform arbitrary curve math or permission to migrate launches itself. `GlobalConfig` still supplies protocol limits and the authorized migration wallet.
+
+## Three different post-launch rights
+
+Do not combine these revenue paths:
+
+1. **Pre-migration platform fees** accrue to platform fee vaults and are claimed by `platformClaimFeeWallet`.
+2. **Locked-LP fees** belong to the current holder of the platform Fee Key sent to `platformLockNftWallet`.
+3. **CPMM creator fees** follow the recorded CPMM `pool_creator`, which can be the launch creator or `platformCpCreator`, subject to CPMM enablement, rates, and collection rules.
+
+```text
+PlatformConfig
+  ├─ feeRate → platform fee vault → platformClaimFeeWallet
+  ├─ LP lock scales → LP-Lock → Fee Key at platformLockNftWallet
+  ├─ platformCpCreator → CPMM pool_creator → CPMM creator-fee rights
+  ├─ vesting wallet/scale → separate platform vesting record
+  └─ launch restrictions → allowed GlobalConfig + PlatformCurveRule
+```
 
 ## What creators should check
 
 Before launching under any platform, confirm:
 
-- Which wallet receives platform fees.
-- Whether creator fees are enabled.
-- Which CPMM fee config and creator-of-record the platform uses after graduation.
-- How LP tokens are split after graduation.
-- Whether a platform Fee Key NFT will be minted.
-- Whether the platform has its own terms, policies, or eligibility rules.
+- The platform fee rate and claim wallet.
+- The bonding-curve creator fee rate.
+- The CPMM config, creator-fee settings, and creator-of-record.
+- The LP lock and burn scales and the platform Fee Key recipient.
+- Any platform vesting share and beneficiary.
+- Token-2022 transfer-fee authorities where applicable.
+- Global-config allowlist and curve-rule restrictions.
+- The platform's own terms, policies, or eligibility rules.
 
 <Warning>
-  Platform settings can materially change creator economics and user expectations. Review them before signing the launch transaction. This page explains mechanics only and is not legal, financial, or investment advice.
+  Platform settings can materially change creator economics and user expectations. Review them before signing the launch transaction. Mutable platform settings can also differ between launch creation and migration; read the relevant values at both points.
 </Warning>
 
 ## What traders should check
 
 When buying a LaunchLab token, the platform can affect the fee path and post-migration liquidity handling. Before trading:
 
-- Check the token's platform and launch settings.
-- Confirm the CPMM fee tier if the UI displays it.
-- Check whether LP is burned, locked, or assigned.
-- Verify the token mint from the token page, not from social media text alone.
+- Check the token's platform, quote mint, curve type, and launch state.
+- Check the protocol, platform, creator, and any referral fee components.
+- Check whether LP is configured to be burned or locked, then verify the actual migration records after migration.
+- Verify the token mint from the token page and an independent source where possible.
+
+## Read the configuration
+
+The SDK exports a `PlatformConfig` layout. For a working `PlatformConfig.decode` example and string-decoding helper, see [PlatformConfig read path](/docs/en/products/launchlab/platform-config#read-path). Use those actual decoded field names rather than inventing descriptive aliases in transaction or integration code.
 
 ## Pointers
 

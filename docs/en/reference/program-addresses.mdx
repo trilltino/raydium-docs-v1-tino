@@ -57,6 +57,17 @@ Account-level operational authorities (e.g. `protocol_owner`, `fund_owner` on CP
 | mainnet-beta | `RayqjDRsNEFuPcDE4JpEScwJvwusmHYuNZ3MgET4D7U` |
 | devnet | `DRayJkSKsijbcEqdooK4uUGcT6gjbEuwUh7V6Nmqct7M` |
 
+### CPMM creator-fee share authority
+
+`CreateCreatorFeeShare` and `CloseCreatorFeeShare` accept either the shared program admin above or this dedicated owner.
+
+| Cluster | Dedicated creator-fee-share owner |
+|---------|-----------------------------------|
+| mainnet-beta | `RayRrPVNAg3hTPa1yfZiR49FqCpkmiLaP4yWsVBnoBZ` |
+| devnet | `DRay2aRSqmGVMkcvsQNU4iskM1ztX31EP7pyrtrntqBQ` |
+
+Source: [`programs/cp-swap/src/lib.rs`](https://github.com/raydium-io/raydium-cp-swap/blob/3d69122790e97cd6aff24e8ba95940793773f58c/programs/cp-swap/src/lib.rs#L74-L80) and the [creation](https://github.com/raydium-io/raydium-cp-swap/blob/3d69122790e97cd6aff24e8ba95940793773f58c/programs/cp-swap/src/instructions/admin/create_creator_fee_share.rs#L16-L21) and [closure](https://github.com/raydium-io/raydium-cp-swap/blob/3d69122790e97cd6aff24e8ba95940793773f58c/programs/cp-swap/src/instructions/admin/close_creator_fee_share.rs#L6-L11) account constraints.
+
 ### Support-mint registry authorities
 
 `CreateSupportMintAssociated` and `CloseSupportMintAssociated` accept either the shared program admin or the program's own dedicated owner below. Registering a mint admits it past that program's Token-2022 extension allow-list — see [`reference/token-2022-support`](/docs/en/reference/token-2022-support#the-one-bypass-the-per-mint-registry). CPMM and CLMM each keep their own registry PDA and their own authority; neither key works on the other program.

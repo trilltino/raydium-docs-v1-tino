@@ -82,6 +82,11 @@
       "permanent": false
     },
     {
+      "source": "/docs/i18n/ar/resources/devrel-edits/user-flow-docs-updates",
+      "destination": "/docs/en/resources/devrel-edits/user-flow-docs-updates",
+      "permanent": false
+    },
+    {
       "source": "/docs/i18n/ar/solana-fundamentals/transfer-hooks",
       "destination": "/docs/en/solana-fundamentals/transfer-hooks",
       "permanent": false
@@ -109,6 +114,11 @@
     {
       "source": "/docs/i18n/de/resources/devrel-edits/transfer-hooks",
       "destination": "/docs/en/resources/devrel-edits/transfer-hooks",
+      "permanent": false
+    },
+    {
+      "source": "/docs/i18n/de/resources/devrel-edits/user-flow-docs-updates",
+      "destination": "/docs/en/resources/devrel-edits/user-flow-docs-updates",
       "permanent": false
     },
     {
@@ -142,6 +152,11 @@
       "permanent": false
     },
     {
+      "source": "/docs/i18n/es/resources/devrel-edits/user-flow-docs-updates",
+      "destination": "/docs/en/resources/devrel-edits/user-flow-docs-updates",
+      "permanent": false
+    },
+    {
       "source": "/docs/i18n/es/solana-fundamentals/transfer-hooks",
       "destination": "/docs/en/solana-fundamentals/transfer-hooks",
       "permanent": false
@@ -169,6 +184,11 @@
     {
       "source": "/docs/i18n/fr/resources/devrel-edits/transfer-hooks",
       "destination": "/docs/en/resources/devrel-edits/transfer-hooks",
+      "permanent": false
+    },
+    {
+      "source": "/docs/i18n/fr/resources/devrel-edits/user-flow-docs-updates",
+      "destination": "/docs/en/resources/devrel-edits/user-flow-docs-updates",
       "permanent": false
     },
     {
@@ -202,6 +222,11 @@
       "permanent": false
     },
     {
+      "source": "/docs/i18n/id/resources/devrel-edits/user-flow-docs-updates",
+      "destination": "/docs/en/resources/devrel-edits/user-flow-docs-updates",
+      "permanent": false
+    },
+    {
       "source": "/docs/i18n/id/solana-fundamentals/transfer-hooks",
       "destination": "/docs/en/solana-fundamentals/transfer-hooks",
       "permanent": false
@@ -229,6 +254,11 @@
     {
       "source": "/docs/i18n/ja/resources/devrel-edits/transfer-hooks",
       "destination": "/docs/en/resources/devrel-edits/transfer-hooks",
+      "permanent": false
+    },
+    {
+      "source": "/docs/i18n/ja/resources/devrel-edits/user-flow-docs-updates",
+      "destination": "/docs/en/resources/devrel-edits/user-flow-docs-updates",
       "permanent": false
     },
     {
@@ -262,6 +292,11 @@
       "permanent": false
     },
     {
+      "source": "/docs/i18n/ko/resources/devrel-edits/user-flow-docs-updates",
+      "destination": "/docs/en/resources/devrel-edits/user-flow-docs-updates",
+      "permanent": false
+    },
+    {
       "source": "/docs/i18n/ko/solana-fundamentals/transfer-hooks",
       "destination": "/docs/en/solana-fundamentals/transfer-hooks",
       "permanent": false
@@ -289,6 +324,11 @@
     {
       "source": "/docs/i18n/pt/resources/devrel-edits/transfer-hooks",
       "destination": "/docs/en/resources/devrel-edits/transfer-hooks",
+      "permanent": false
+    },
+    {
+      "source": "/docs/i18n/pt/resources/devrel-edits/user-flow-docs-updates",
+      "destination": "/docs/en/resources/devrel-edits/user-flow-docs-updates",
       "permanent": false
     },
     {
@@ -322,6 +362,11 @@
       "permanent": false
     },
     {
+      "source": "/docs/i18n/ru/resources/devrel-edits/user-flow-docs-updates",
+      "destination": "/docs/en/resources/devrel-edits/user-flow-docs-updates",
+      "permanent": false
+    },
+    {
       "source": "/docs/i18n/ru/solana-fundamentals/transfer-hooks",
       "destination": "/docs/en/solana-fundamentals/transfer-hooks",
       "permanent": false
@@ -349,6 +394,11 @@
     {
       "source": "/docs/i18n/tr/resources/devrel-edits/transfer-hooks",
       "destination": "/docs/en/resources/devrel-edits/transfer-hooks",
+      "permanent": false
+    },
+    {
+      "source": "/docs/i18n/tr/resources/devrel-edits/user-flow-docs-updates",
+      "destination": "/docs/en/resources/devrel-edits/user-flow-docs-updates",
       "permanent": false
     },
     {
@@ -382,6 +432,11 @@
       "permanent": false
     },
     {
+      "source": "/docs/i18n/vi/resources/devrel-edits/user-flow-docs-updates",
+      "destination": "/docs/en/resources/devrel-edits/user-flow-docs-updates",
+      "permanent": false
+    },
+    {
       "source": "/docs/i18n/vi/solana-fundamentals/transfer-hooks",
       "destination": "/docs/en/solana-fundamentals/transfer-hooks",
       "permanent": false
@@ -412,6 +467,11 @@
       "permanent": false
     },
     {
+      "source": "/docs/i18n/zh-Hant/resources/devrel-edits/user-flow-docs-updates",
+      "destination": "/docs/en/resources/devrel-edits/user-flow-docs-updates",
+      "permanent": false
+    },
+    {
       "source": "/docs/i18n/zh-Hant/solana-fundamentals/transfer-hooks",
       "destination": "/docs/en/solana-fundamentals/transfer-hooks",
       "permanent": false
@@ -439,6 +499,11 @@
     {
       "source": "/docs/i18n/zh/resources/devrel-edits/transfer-hooks",
       "destination": "/docs/en/resources/devrel-edits/transfer-hooks",
+      "permanent": false
+    },
+    {
+      "source": "/docs/i18n/zh/resources/devrel-edits/user-flow-docs-updates",
+      "destination": "/docs/en/resources/devrel-edits/user-flow-docs-updates",
       "permanent": false
     },
     {
@@ -957,7 +1022,8 @@
                 "group": "Documentation Edits",
                 "pages": [
                   "docs/en/resources/devrel-edits/transfer-hooks",
-                  "docs/en/resources/devrel-edits/amm-v4-docs-updates"
+                  "docs/en/resources/devrel-edits/amm-v4-docs-updates",
+                  "docs/en/resources/devrel-edits/user-flow-docs-updates"
                 ]
               },
               {

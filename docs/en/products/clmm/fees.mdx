@@ -143,7 +143,7 @@ On every subsequent touch (`IncreaseLiquidity`, `DecreaseLiquidity`, and implici
 
 3. `fee_growth_inside_{0,1}_last_x64` is updated.
 
-Tokens physically move only on `DecreaseLiquidity` or the dedicated `CollectFees` path (in Raydium's current instruction set, fees are swept as part of `DecreaseLiquidity`). Setting `liquidity = 0` in a `DecreaseLiquidity` call is the canonical "collect only" idiom.
+Tokens physically move through `DecreaseLiquidity` or `DecreaseLiquidityV2`; there is no standalone `CollectFees` instruction. Setting `liquidity = 0` in a `DecreaseLiquidity` call is the canonical "collect only" idiom.
 
 ### Out-of-range positions earn nothing
 
@@ -196,7 +196,7 @@ for each stream i:
     personal_position.reward_infos[i].growth_inside_last_x64 = reward_growth_inside_now_i
 ```
 
-Users claim via `CollectReward`, which transfers `reward_amount_owed` from the stream's vault to the user and zeros the counter.
+Users claim via `DecreaseLiquidity`, which transfers `reward_amount_owed` from the stream's vault to the user and zeros the counter.
 
 ### Only in-range positions earn rewards
 
@@ -206,7 +206,7 @@ Users claim via `CollectReward`, which transfers `reward_amount_owed` from the s
 
 A stream is created via `InitializeReward`, which deposits the total budget (`emissions_per_second × (end_time − open_time)`) into the stream's reward vault up-front. The program rejects `InitializeReward` if the funder's balance is short. `SetRewardParams` can extend `end_time` or raise the emission rate; shrinking either is blocked to avoid rug-pulling emissions already promised to LPs.
 
-When `now > end_time` the stream transitions to `Ended` but its `reward_growth_global_x64` continues to be read — LPs can still `CollectReward` for historically earned amounts long after emissions stop.
+When `now > end_time` the stream transitions to `Ended` but its `reward_growth_global_x64` continues to be read — LPs can still `DecreaseLiquidity` for historically earned amounts long after emissions stop.
 
 ## Admin collection
 
@@ -223,7 +223,7 @@ Fees and rewards are all denominated in one of the pool's or stream's tokens. To
 
 - **Transfer fee on the input mint of a swap.** The pool receives `amount_in − mint_transfer_fee`. The CLMM program's step input is computed against the net amount, so the pool's fee accumulators reflect real-in-the-vault tokens.
 - **Transfer fee on the output mint.** The pool sends `amount_out`; the user receives `amount_out − mint_transfer_fee`. Slippage checks should be done against the user-receive amount.
-- **Transfer fee on a reward mint.** Emissions are denominated in "into-the-vault" units at `InitializeReward` time (the funder pays the mint transfer fee into the vault). Withdrawals at `CollectReward` then incur another mint transfer fee; LPs should expect a slight haircut on transfer-fee reward tokens.
+- **Transfer fee on a reward mint.** Emissions are denominated in "into-the-vault" units at `InitializeReward` time (the funder pays the mint transfer fee into the vault). Withdrawals at `DecreaseLiquidity` then incur another mint transfer fee; LPs should expect a slight haircut on transfer-fee reward tokens.
 - **Non-transferable / confidential / group-member mints.** Rejected at `CreatePool` / `InitializeReward`.
 
 The combined effect on a multi-hop transfer-fee swap can be substantial. Quoters that ignore it will over-promise; see [`algorithms/token-2022-transfer-fees`](/docs/en/algorithms/token-2022-transfer-fees) for the reference calculation.
@@ -255,7 +255,7 @@ The layout fields are `tokenFeesOwedA` / `tokenFeesOwedB` (not `...Owed0` / `...
 ## Where to go next
 
 - [`products/clmm/math`](/docs/en/products/clmm/math) — full derivation of `fee_growth_inside`.
-- [`products/clmm/instructions`](/docs/en/products/clmm/instructions) — `CollectReward`, `InitializeReward`, `SetRewardParams` account lists.
+- [`products/clmm/instructions`](/docs/en/products/clmm/instructions) — `DecreaseLiquidity`, `InitializeReward`, `SetRewardParams` account lists.
 - [`algorithms/token-2022-transfer-fees`](/docs/en/algorithms/token-2022-transfer-fees) — quoting with transfer-fee mints.
 - [`reference/fee-comparison`](/docs/en/reference/fee-comparison) — side-by-side CLMM/CPMM/AMM-v4 fee matrix.
 

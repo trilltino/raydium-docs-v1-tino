@@ -176,7 +176,7 @@ tokens_owed_s += L · (fee_growth_inside_s − fee_growth_inside_last_s) / 2^64
 fee_growth_inside_last_s = fee_growth_inside_s
 ```
 
-This update runs on every interaction with the position (`IncreaseLiquidity`, `DecreaseLiquidity`, `CollectFees`).
+This checkpoint updates when `IncreaseLiquidity` or `DecreaseLiquidity` touches the position. A zero-liquidity decrease collects outstanding fees; there is no standalone `CollectFees` instruction.
 
 ## Worked example — crossing one tick
 

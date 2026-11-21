@@ -1,10 +1,10 @@
 ---
 title: "Earn referral fees (LaunchLab)"
-description: "Share a LaunchLab token page link with your wallet as the referrer and earn 0.1% of every trade that comes through it — paid automatically in SOL."
+description: "Share a LaunchLab token page with your wallet as the referrer and receive the current Raydium UI's 1% referral fee on attributed curve trades."
 ---
 
 <Info>
-  The LaunchLab referral is separate from the 1% Raydium swap referral described in [Referrals & Blinks](/docs/en/user-flows/referrals-and-blinks). The 1% referral applies to Raydium's general Swap interface; the LaunchLab referral (0.1%) applies to trades on LaunchLab token pages specifically.
+  LaunchLab referrals are separate from [Raydium Swap referrals and Blinks](/docs/en/user-flows/referrals-and-blinks). The Raydium LaunchLab UI currently uses a **1%** referral rate. Integrators can choose a different per-trade rate within the selected `GlobalConfig` cap.
 </Info>
 
 <Warning>
@@ -13,50 +13,74 @@ description: "Share a LaunchLab token page link with your wallet as the referrer
 
 ## How it works
 
-When you share a token page link that includes your wallet address as the referrer, anyone who trades via your link generates a **0.1% commission** paid directly to your wallet. The commission is:
+Any wallet holder can act as a referrer; you do not need to be the token's creator. When a trade carries your wallet as its referral recipient, the referral component is paid in the launch's quote token as part of that confirmed trade transaction.
 
-- Denominated in SOL (or the pool's quote token).
-- Sent automatically to your wallet on each trade — no separate claim step.
-- Applicable to buys and sells on the bonding curve while the token is pre-graduation.
+For the current Raydium LaunchLab UI:
 
-### Session scope
+- The referral rate is **1%** of the applicable trade amount.
+- Buys and sells on the bonding curve can carry the referral.
+- Payment goes to your quote-token associated token account, not to a pending off-chain balance.
+- There is no separate LaunchLab referral claim step.
 
-A referral link points to a specific token, but if the user who clicked your link then trades *other* LaunchLab tokens within the same browser session, you may also earn commissions on those trades. This extends your earning potential beyond the single token you initially shared.
+"Real time" means settlement in the trader's confirmed transaction. It does not mean a separate payment service or an off-chain rewards balance.
+
+## Link and attribution scope
+
+The Raydium UI uses the `lreferrer` URL/query parameter to carry the referrer address. If a recipient navigates to another token and that parameter survives in the trade URL or application state, the later trade can remain attributed to you. If the parameter is removed or replaced, do not assume the referral still applies.
+
+This is conditional URL propagation, not a promise of a durable browser-session referral store.
 
 ## Generating your referral link
 
 1. Connect your wallet on [raydium.io/launchpad](https://raydium.io/launchpad).
 2. Navigate to any LaunchLab token's detail page.
-3. Click the **Share** button on the token page.
-4. Copy the generated link — it includes your wallet address as the referrer parameter.
-5. Share the link wherever your audience is: social media, communities, newsletters.
+3. Click **Share** on the token page.
+4. Copy the generated link and verify that it contains your wallet address in `lreferrer`.
+5. Share the link with your audience.
 
 <Note>
-  Your wallet must be connected when you click Share. The link will not contain a valid referrer parameter if generated without a connected wallet.
+  Connect the wallet that should receive the fees before creating the link. Anyone inspecting the link can identify the referral address.
 </Note>
 
 ## What you earn
 
-| Scenario | Commission |
+| Scenario | Current Raydium UI referral |
 |---|---|
-| Recipient buys the linked token | 0.1% of the trade value |
-| Recipient sells the linked token | 0.1% of the trade value |
-| Recipient trades other LaunchLab tokens in the same session | 0.1% of those trades |
+| Attributed buy of the linked token | 1% of the applicable trade amount |
+| Attributed sell of the linked token | 1% of the applicable trade amount |
+| Attributed trade of another LaunchLab token | 1% only if your `lreferrer` value remains attached to that trade |
+| Trade without your referral parameter | No referral payment to you |
 
-Earnings are sent in real time — there is no vault or pending balance to claim.
+The program accepts a per-trade `shareFeeRate`. It must not exceed `GlobalConfig.maxShareFeeRate`; the live public configuration's cap was 1% when checked on 2026-11-19. Raydium's 1% UI rate is therefore a product choice, not a universal rate for every integration.
 
-## Comparison: LaunchLab referral vs. Swap referral
+## Fee accounting
 
-| | LaunchLab referral | Swap referral (Blinks) |
-|---|---|---|
-| Rate | 0.1% | 1% |
-| Scope | LaunchLab token pages | Raydium Swap interface |
-| Payment | Automatic, per trade | Manual claim or auto depending on integration |
-| Setup | Share button on token page | Generate via [referrals-and-blinks](/docs/en/user-flows/referrals-and-blinks) |
+Referral fees are one component of the curve trade's total charges:
+
+```text
+protocol_fee = protocol rate × trade amount
+platform_fee = platform rate × trade amount
+creator_fee  = creator rate × trade amount
+referral_fee = shareFeeRate × trade amount
+```
+
+Rates use integer base units and their configured denominators. Program rounding can create small differences from a decimal estimate. Review the trade quote and actual balance changes rather than assuming the referral is the only fee.
+
+```text
+Shared URL with lreferrer
+          ↓
+Recipient opens token and keeps the referral parameter
+          ↓
+Trade transaction includes shareFeeRate + referral recipient
+          ↓
+Confirmed trade pays the referrer's quote-token ATA
+```
+
+For the SDK parameters and remaining accounts, see [LaunchLab code demos](/docs/en/products/launchlab/code-demos) and [LaunchLab instructions](/docs/en/products/launchlab/instructions).
 
 ## Pointers
 
-- [Referrals & Blinks](/docs/en/user-flows/referrals-and-blinks) — the higher-rate 1% swap referral program.
-- [LaunchLab overview](/docs/en/user-flows/launchlab-overview) — how LaunchLab trading and graduation work.
-- [Buying a LaunchLab token](/docs/en/user-flows/buying-a-launchlab-token) — how the trades you are referring work.
-- [How creator fees work](/docs/en/user-flows/how-creator-fees-work) — the creator's own fee streams (distinct from the referral).
+- [Referrals & Blinks](/docs/en/user-flows/referrals-and-blinks) — the separate Raydium Swap referral flow.
+- [LaunchLab overview](/docs/en/user-flows/launchlab-overview) — how LaunchLab trading and migration work.
+- [Buying a LaunchLab token](/docs/en/user-flows/buying-a-launchlab-token) — the trades you are referring.
+- [How creator fees work](/docs/en/user-flows/how-creator-fees-work) — creator fee streams, which are distinct from referrals.

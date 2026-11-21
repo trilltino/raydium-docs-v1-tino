@@ -12,11 +12,11 @@ description: "Deposit, withdraw, harvest farm rewards, and collect CLMM fees and
 Check that you have:
 
 - The token pair you want to deposit.
-- Enough SOL for transaction fees and priority fees.
+- Enough SOL for transaction fees, priority fees, and any required token-account rent.
 - The correct pool on Raydium.io.
-- A clear understanding of whether the position is passive CPMM liquidity or actively managed CLMM liquidity.
+- A clear understanding of whether the position is full-range CPMM liquidity or range-bound CLMM liquidity.
 
-If you are creating a new pool, start with [Pool Creation](/docs/en/user-flows/choosing-a-pool-type).
+If you are creating a new pool, start with [Pool creation](/docs/en/user-flows/choosing-a-pool-type).
 
 ## Add liquidity to a CPMM pool
 
@@ -36,7 +36,7 @@ The UI creates missing token accounts, accounts for supported Token-2022 transfe
 4. Review the two token amounts you will receive.
 5. Confirm and approve in your wallet.
 
-Small rounding dust can remain after withdrawal. This is normal for constant-product pools.
+CPMM withdrawal rounds computed token amounts down to integers, which can leave a small remainder in pool reserves. Separately, every new CPMM pool permanently locks 100 LP base units at initialization. Neither mechanism indicates a failed withdrawal. Token-2022 transfer deductions are also separate from this rounding.
 
 ## Open or manage a CLMM position
 
@@ -44,8 +44,8 @@ CLMM positions are NFTs. They have four common actions:
 
 - **Open position**: mint a new position NFT with an initial range and liquidity.
 - **Increase liquidity**: add more liquidity to an existing position.
-- **Decrease liquidity**: remove part of the liquidity while keeping the NFT.
-- **Close position**: remove all liquidity, collect pending fees and rewards, then burn the NFT.
+- **Decrease liquidity**: remove part of the liquidity while keeping the NFT. This instruction also collects pending fees and rewards.
+- **Close position**: decrease liquidity to zero and collect all pending fees and rewards, then close the empty position NFT account.
 
 <Info>
   Most new CLMM positions remain unfrozen and transferable. A position is bound to its initial NFT owner only when it uses a V2 open path and either pool mint's freeze authority matches CLMM's restricted-issuer list. That matching NFT account is frozen, so it cannot be transferred or moved into an escrow. Its owner can still increase or decrease liquidity, collect fees and rewards, and close the position through Raydium.
@@ -56,20 +56,36 @@ CLMM positions are NFTs. They have four common actions:
 1. Open the CLMM pool page.
 2. Choose a lower price and upper price.
 3. Enter the deposit amount.
-4. Review whether the position is in range, partially in range, or out of range.
+4. Review whether the position is in range or out of range at the current tick.
 5. Confirm and approve.
 
-Your selected range determines the token ratio. If the current price is near the lower edge, the position may require mostly one token. If it is near the upper edge, it may require mostly the other token.
+Your selected range determines the token ratio. If the current price is near the lower edge, the position may require mostly one token. If it is near the upper edge, it may require mostly the other token. At any given tick, the position is either in range or out of range; holding a particular token ratio does not create a partial range state.
 
 ## Increase, decrease, or close a CLMM position
 
 - **Increase**: open the position card, click **Increase**, enter an amount, review the required token pair, and sign.
-- **Decrease**: click **Decrease**, choose a percentage or amount, review the estimated token return, and sign.
-- **Close**: decrease liquidity to zero, collect unclaimed fees and rewards, then close the position. Closing burns the position NFT and returns rent where applicable.
+- **Decrease**: click **Decrease**, choose a percentage or amount, review the estimated token return and pending balances, and sign.
+- **Close**: decrease liquidity to zero, collect unclaimed fees and rewards, then close the position. Closing burns the empty position NFT and returns rent where applicable.
+
+The UI can combine these operations into one workflow. On-chain, `ClosePosition` is a separate final instruction that requires zero liquidity and zero pending fee and reward balances.
 
 If the position belongs to a restricted-issuer pool, use the current Raydium UI or an updated SDK to close it. The close transaction must include the pool account so the CLMM program can atomically thaw and burn the frozen position NFT.
 
 If the current price is outside your selected range, the deposit may be single-sided. The UI warns before you sign a single-sided or out-of-range position.
+
+## How fee and reward claims differ
+
+```text
+CPMM swap fee → pool reserves → realized by withdrawing LP
+
+CLMM fee or reward → per-position pending balance
+                   → DecreaseLiquidity, including a zero-liquidity collection
+
+Farm reward → farm ledger pending balance
+            → Farm v6 Harvest, or legacy v3/v5 Deposit with amount = 0
+```
+
+For the complete claim paths and troubleshooting, see [Claim rewards](/docs/en/user-flows/claim-rewards).
 
 ## Harvest farm rewards
 
@@ -81,11 +97,11 @@ Farm rewards accrue while your LP tokens are staked in an active farm. Harvestin
 4. Review pending amounts per reward stream.
 5. Confirm and approve in your wallet.
 
-Farm deposits and withdrawals often settle pending rewards as part of the same action. Review the confirmation carefully because it may also harvest pending rewards.
+Farm v6 uses `Harvest`. Legacy Farm v3 and v5 use `Deposit` with `amount = 0` to claim without changing stake. Farm deposits and withdrawals can also settle pending rewards, so review the confirmation carefully.
 
 ## Collect CLMM fees and rewards
 
-CLMM positions earn swap fees in both pool mints. Fees accrue on the position and do not auto-compound.
+Only in-range CLMM liquidity accrues new fees and rewards. Each swap accrues its fee in the token entering the pool, so both pool mints can accrue fees over multiple trade directions. Pending amounts remain attached to the position and do not auto-compound.
 
 1. Open your CLMM position from [raydium.io/portfolio](https://raydium.io/portfolio).
 2. Click **Collect fees** or **Collect rewards**.
@@ -94,15 +110,21 @@ CLMM positions earn swap fees in both pool mints. Fees accrue on the position an
 
 If the UI offers **Collect all**, use it to collect fees and rewards together.
 
+The UI labels describe the action, not separate on-chain instruction names. CLMM pays fees and rewards through `DecreaseLiquidity` or `DecreaseLiquidityV2`. A collect-only call uses these arguments:
+
+```text
+liquidity    = 0
+amount_0_min = 0
+amount_1_min = 0
+```
+
+For active reward streams, the instruction also needs one remaining-account group per stream, in this order: reward vault, recipient token account, reward mint. See [CLMM reward collection](/docs/en/products/clmm/instructions#collecting-rewards) for the account contract.
+
 To compound manually, collect fees, rebalance the two tokens if needed, then increase liquidity on the position.
 
-## Timing and fee economics
+## Claim costs
 
-Every claim costs a Solana transaction fee and may include a priority fee during congestion.
-
-- For small pending amounts, wait until rewards are meaningful relative to the transaction fee.
-- For larger positions, weekly or monthly claims are often enough.
-- There is usually no need to claim every day unless you are actively compounding.
+Every claim costs a Solana transaction fee and may include a priority fee during congestion. Compare the pending amount with that cost and whether you intend to compound it. No protocol rule requires a daily, weekly, or monthly claim schedule.
 
 ## Verification
 
@@ -128,23 +150,23 @@ After harvesting or collecting:
 
 ### Slippage on deposit ratio
 
-The deposit ratio is computed at quote time. If the pool price moves before you sign, the transaction may fail. Re-quote and retry. Raise slippage only as much as needed for volatile pairs.
+The deposit ratio is computed at quote time. If the pool price moves before you sign, the transaction may fail. Re-quote and retry. Review the minimum amounts in the transaction rather than assuming the quote is guaranteed.
 
 ### Token-2022 transfer fees on deposit
 
 If a Token-2022 mint charges transfer fees, the pool receives less than you send. Raydium shows the transfer-fee warning before you sign.
 
-### Dust at withdrawal
+### Small remainder at withdrawal
 
-Rounding may leave tiny amounts in the pool or in your wallet. This is normal and does not indicate a failed withdrawal.
+Integer rounding can leave a small amount in pool reserves. Check the transaction's actual balance changes before treating an expected amount as missing.
 
 ### CLMM position is not an LP token
 
 CLMM positions are NFTs. Check Raydium's portfolio page or your wallet's NFT view instead of looking for fungible LP tokens.
 
-### Harvesting just before a reward ends
+### Harvesting after a reward ends
 
-If a reward stream ends while you have pending rewards, the pending amount stops growing. You can still claim it after the end time unless the farm has been wound down in an unusual way.
+Ending a reward stream stops new emissions. Claiming previously earned rewards still requires the applicable farm instruction, available reward-vault funds, and a farm state that has not been wound down.
 
 ### Priority fee too low
 

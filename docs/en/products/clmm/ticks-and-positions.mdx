@@ -101,7 +101,7 @@ A Raydium CLMM position is an NFT. Opening a position mints a brand-new mint wit
 
 Consequences:
 
-- **Positions are normally transferable.** A wallet can sell or airdrop a position by transferring the NFT. The new holder can then call `CollectRewards`, `IncreaseLiquidity`, etc. The exception is a position frozen under the restricted-issuer path below.
+- **Positions are normally transferable.** A wallet can sell or airdrop a position by transferring the NFT. The new holder can then call `DecreaseLiquidity` to collect outstanding fees and rewards, `IncreaseLiquidity`, and other owner-authorized instructions. The exception is a position frozen under the restricted-issuer path below.
 - **Positions are addressable outside CLMM.** Marketplaces and wallets display positions like other NFTs. The SDK sets a reasonable `name`/`symbol` on the mint metadata.
 - **A position's PDA is derived from the NFT mint.** You can find the `PersonalPositionState` without knowing who currently holds it.
 

@@ -1,6 +1,6 @@
 ---
 title: "Creating a LaunchLab token"
-description: "Two creation modes — JustSendit for a fast no-config launch, LaunchLab for full control over supply, curve, vesting, and post-migration fees. Covers UI walkthrough, key decisions, and what to do after launch."
+description: "Create a LaunchLab token through JustSendIt or Advanced, with current configuration limits, vesting, migration, and fee-rights mechanics."
 ---
 
 <Info>
@@ -11,156 +11,180 @@ description: "Two creation modes — JustSendit for a fast no-config launch, Lau
 
 LaunchLab offers two creation paths accessible from [raydium.io/launchpad/create](https://raydium.io/launchpad/create):
 
-| | **JustSendit** | **LaunchLab** |
+| | **JustSendIt** | **Advanced** |
 |---|---|---|
-| Setup time | ~1 minute | ~5 minutes |
-| Token supply | Fixed default | Fully configurable |
-| SOL target | 85 SOL (fixed) | 24 SOL minimum, custom |
-| Curve % | Default | 51–80% on curve |
-| Vesting | None | Optional |
+| Token supply | Deployment default | Current UI presets: 100M, 1B, or 10B |
+| Funding target | Deployment default | Configurable within the selected config and platform rules |
+| Curve allocation | Deployment default | Current UI range: 51–80% |
+| Vesting | None | Optional, within UI and on-chain limits |
 | Post-migration fees | Platform-defined CPMM creator fee and LP policy | Platform-defined CPMM creator fee and LP policy |
-| Best for | Quick community launches | Structured token launches |
 
----
+These are current Raydium UI choices, not a claim that the program accepts arbitrary values or that every deployment uses the same defaults.
 
-## JustSendit mode
+## What creation costs
 
-The fastest way to launch. Minimal input required; the platform fills in sensible defaults.
+Keep enough SOL for the complete transaction and any optional initial buy. The wallet simulation and confirmation can include:
+
+- Solana network and priority fees;
+- rent for new mint, launch-state, token, and associated accounts;
+- charges shown by the selected LaunchLab configuration and platform;
+- the optional initial-buy amount and its trading fees.
+
+Review the exact balance changes before signing. A fixed SOL estimate becomes stale when account requirements, rent, priority fees, or platform configuration change.
+
+## JustSendIt mode
+
+JustSendIt uses the selected deployment's defaults and requires fewer inputs.
 
 ### What you need
 
-- A connected wallet with enough SOL for transaction fees (~0.05–0.1 SOL for creation).
+- A connected wallet with enough SOL for the costs above.
 - A token name and ticker symbol.
 - An image or GIF that meets the UI requirements.
 
 ### Steps
 
-1. Go to [raydium.io/launchpad/create](https://raydium.io/launchpad/create) and select **JustSendit**.
+1. Go to [raydium.io/launchpad/create](https://raydium.io/launchpad/create) and select **JustSendIt**.
 2. Enter the token **name** and **ticker**.
-3. Optionally add a **description** and **social links** (website, Twitter/X, Telegram).
+3. Optionally add a **description** and **social links**.
 4. Upload a **logo image or GIF**.
-5. Optionally enter an **initial buy amount** in SOL to purchase tokens at creation. This changes the first on-curve price state and should be reviewed before signing.
+5. Optionally enter an **initial buy amount** in SOL. Review the tokens and fees in the resulting transaction.
 6. Review the summary and click **Create**.
 7. Approve the transaction in your wallet.
 
-Your token launches immediately on the bonding curve. It graduates to a Raydium AMM pool once 85 SOL has been collected by the curve.
+Your token launches on the bonding curve in `Fund`. The public SOL configuration's default funding target was 85 SOL when checked on 2026-11-19. Reaching the configured target makes the launch ready for authorized migration; it does not itself complete CPMM pool creation.
 
----
+## Advanced mode
 
-## LaunchLab mode
-
-Full-control creation with configurable supply, fundraising target, curve allocation, vesting, and fee parameters.
+Advanced exposes the launch parameters supported by the current UI, selected `GlobalConfig`, and platform rules.
 
 ### What you need
 
-- A connected wallet with ~0.1–0.5 SOL for creation and vault rent.
-- All the inputs below ready before you start (settings cannot be changed after launch).
+- A connected wallet with enough SOL for creation, account rent, and any initial buy.
+- The token metadata and launch parameters ready before you sign.
+
+Launch parameters such as supply, curve allocation, funding target, and vesting schedule are fixed by the launch transaction. This does not mean every related platform setting or later vesting-account allocation is frozen. Platform admins can update permitted platform fields, and beneficiary vesting records are created through separate instructions.
 
 ### Configuration options
 
 #### Token details
 
-- **Name, ticker, logo** — same as JustSendit.
-- **Description and social links** — recommended for discoverability.
+- **Name, ticker, logo** — same as JustSendIt.
+- **Description and social links** — metadata for supporting launch surfaces.
 
 #### Supply and curve allocation
 
-- **Total supply** — total number of tokens to be minted (e.g. 1,000,000,000).
-- **Curve allocation (%)** — the percentage of total supply placed on the bonding curve for public purchase (51–80%). The remainder seeds the post-graduation liquidity pool.
+- **Total supply** — choose from the current 100M, 1B, and 10B Advanced UI presets. The SDK validates six base-mint decimals and the selected config's supply and allocation rules.
+- **Curve allocation** — the percentage of supply available for public purchase on the curve. The current UI permits 51–80%.
+- **Vested allocation** — any `total_locked_amount` is withheld from both the curve sale and migration liquidity.
+- **Migration liquidity** — the remaining base amount is `supply − totalSellA − totalLockedAmount`.
 
-<Warning>
-  The curve allocation and total supply are fixed at launch and **cannot be changed**. Choose carefully before signing.
-</Warning>
+The SDK and program apply more than the visible UI range. They check the selected config's minimum supply, minimum sale amount, minimum migration amount, maximum lock amount, and minimum raise. Platform curve rules can narrow those limits further.
 
-#### SOL fundraising target
+#### Funding target
 
-- The minimum graduation threshold is **24 SOL**. You can set it higher.
-- This is the amount of SOL the curve must collect before the token graduates to a CPMM pool.
-- Setting it too high risks the curve never graduating if demand is insufficient.
+- The public SOL configuration's default target was **85 SOL** and its minimum was **24 SOL** when checked on 2026-11-19.
+- These values belong to that live configuration. Other global configs, quote mints, or platform rules can impose different limits.
+- If the funding condition is not met, the launch remains in `Fund` rather than migrating automatically.
 
-#### Vesting (optional)
+#### Current public SOL configuration
 
-Vesting locks a portion of the token supply and releases it linearly to designated wallets over a schedule.
+The following values were read from `https://launch-mint-v1.raydium.io/main/configs` on 2026-11-19. They are deployment settings, not universal protocol constants.
+
+| Setting | Current value |
+|---|---|
+| Default supply | 1B |
+| Default curve sale allocation | 79.31% |
+| Default / minimum raise | 85 SOL / 24 SOL |
+| Minimum sale rate | 20% |
+| Minimum migration rate | 15% |
+| Maximum lock rate in the config | 80% |
+| Maximum referral share rate | 1% |
+
+The current Raydium UI separately limits vesting to 30%. Distinguish that interface limit from the selected on-chain config's maximum lock rate.
+
+#### Vesting
+
+Vesting locks part of the token supply and releases it linearly to designated wallets over a schedule.
 
 | Field | Description |
 |---|---|
-| Total locked amount | Tokens to lock across all beneficiaries (as % of total supply, subject to program caps). |
-| Cliff period | Wait time after graduation before any tokens unlock (e.g. 180 days). |
-| Unlock period | Duration of linear unlock after the cliff (e.g. 365 days). |
+| Total locked amount | Tokens reserved across creator and platform beneficiaries, subject to UI, config, and platform limits. |
+| Cliff period | Wait time after fundraising ends before tokens start unlocking. |
+| Unlock period | Duration of linear unlock after the cliff. |
 
-Locked tokens do not enter the curve and are not part of the graduation liquidity pool. They are released to each beneficiary's wallet over the schedule above.
+The program records the vesting start when fundraising successfully ends and the launch becomes ready to migrate. It does not wait for the later `MigrateToCpswap` transaction. Claims still require the launch to have completed migration.
 
-**Important vesting rules:**
-- Cliff and unlock periods are fixed at launch — they cannot be changed retroactively.
-- If a beneficiary loses their wallet key, locked tokens are permanently unreachable. Use a multisig if recovery matters.
-- Any portion of `total_locked_amount` not allocated to a beneficiary before graduation is permanently stuck. Allocate the full amount.
+<Warning>
+  Supply, total locked amount, cliff, and unlock period are fixed at launch. A later platform-config update does not rewrite an existing launch's schedule.
+</Warning>
 
-For the full on-chain mechanics see [LaunchLab vesting](/docs/en/products/launchlab/vesting).
+**Beneficiary allocation is separate.**
 
-#### Post-migration fee sharing
+- `InitializeV2` or `InitializeWithToken2022` records the total locked amount and schedule, not a list of beneficiary wallets.
+- The creator creates each beneficiary record with `CreateVestingAccount`.
+- The platform creates its own record with `CreatePlatformVestingAccount` when applicable.
+- Any part of `total_locked_amount` not allocated before the relevant cutoff remains unallocated. Review the full [LaunchLab vesting](/docs/en/products/launchlab/vesting) mechanics before choosing an amount.
 
-When the token graduates:
-- LP tokens are minted to the CPMM pool.
-- Read the current platform config before signing. Before the 2026-08-17 upgrade, `creatorScale` produced a creator Fee Key. For migrations executed afterward, `platformScale + creatorScale` becomes a platform-owned Fee Key position and `burnScale` is burned. Existing creator Fee Keys from earlier migrations are unchanged.
-- Your post-graduation creator revenue comes from CPMM creator fees only when you remain the recorded CPMM pool creator and the selected config enables them.
+#### Post-migration LP and creator fees
 
-See [How creator fees work](/docs/en/user-flows/how-creator-fees-work) for details.
+When authorized migration creates the CPMM pool:
+
+1. The pool's initial LP tokens are minted to the migration recipient controlled by the launch flow, not left as LP tokens owned by the CPMM pool itself.
+2. For migrations under the updated program, `platformScale + creatorScale` determines the locked share. Its Fee Key goes to the configured platform NFT wallet.
+3. `burnScale` determines the burned share.
+4. No new creator-owned Fee Key is minted merely because you created the token. Creator-owned Fee Keys from migrations completed before the 2026-08-17 upgrade remain historical positions.
+
+Post-graduation creator revenue is separate. It requires you to remain the recorded CPMM `pool_creator`, the pool and `AmmConfig` to enable creator fees, and a nonzero creator-fee rate. A platform can assign the CPMM creator role to `platformCpCreator` instead. See [How creator fees work](/docs/en/user-flows/how-creator-fees-work).
 
 ### Steps
 
-1. Select **LaunchLab** mode on the creation page.
-2. Fill in token details (name, ticker, logo, description, socials).
-3. Set **total supply** and **curve allocation percentage**.
-4. Set your **SOL fundraising target** (≥ 24 SOL).
-5. Configure **vesting** if needed (set beneficiary wallets and schedule).
-6. Enable **post-migration fee sharing** if you want a creator LP share.
-7. Optionally enter an initial buy amount.
-8. Review the full summary — curve price range, graduation condition, LP split.
-9. Click **Create** and approve the transaction.
-
----
+1. Select **Advanced** on the creation page.
+2. Fill in token details.
+3. Select a supported **total supply** and **curve allocation**.
+4. Set the **funding target** within the selected config and platform rules.
+5. Configure the total vesting amount and schedule if needed. Plan beneficiary records separately.
+6. Optionally enter an initial buy amount.
+7. Review the curve settings, migration liquidity, platform fee settings, and LP split.
+8. Click **Create** and approve the transaction.
 
 ## After your token launches
 
 ### Monitor curve progress
 
-Your token's LaunchLab page shows real-time progress:
-- % of curve sold.
-- SOL raised vs. graduation target.
-- Current price and price chart.
+Your token's LaunchLab page shows curve progress, quote raised relative to the funding target, and current price information where supported by the selected curve.
 
-LaunchLab does not intervene in launches that fail to reach graduation. Monitor curve progress and communicate clearly with your community.
+If the launch does not meet its funding condition, it remains on the curve. Communicate the actual launch state rather than describing migration as guaranteed.
 
-### Graduation
+### Migration
 
-Graduation is triggered automatically by the first transaction that pushes the curve past the threshold — this can be called by any user (the caller earns a small bounty). No action is required from you as creator.
+A trade that meets the funding condition changes the launch from `Fund` to `Migrate`. The `migrate_to_cpswap_wallet` recorded on the selected `GlobalConfig` must then sign `MigrateToCpswap`. An arbitrary user cannot execute this step, and there is no permissionless caller bounty.
 
-After graduation:
-- A CPMM pool is created with the collected SOL and remaining curve tokens as initial liquidity.
-- If you enabled post-migration fees, a **Fee Key NFT** is minted to your wallet.
-- Claim pre-migration creator fees from your Portfolio page.
+```text
+Create → Fund → funding condition met → Migrate
+                                        │ authorized migration wallet
+                                        ▼
+                             CPMM pool + LP lock/burn → Trade
+```
 
-### Claim pre-migration creator fees
+After migration, verify the CPMM pool, LP lock or burn records, Fee Key owner, and creator-fee configuration. Claim any available pre-migration creator-fee balance through the Portfolio page.
 
-If your platform enables creator fees during the bonding curve phase, they accumulate in a vault. Claim them from the **Portfolio** page on raydium.io at any time.
+## Operational pitfalls
 
----
-
-## Pitfalls to avoid
-
-| Pitfall | What to do |
+| Pitfall | What to check |
 |---|---|
-| Setting SOL target too high | Pick a target the market can realistically hit. |
-| Over-allocating vesting before beneficiaries are confirmed | Unallocated vested supply is permanently inaccessible after graduation. |
-| Transferring or burning the Fee Key NFT unintentionally | Fee claim rights are permanently lost. Keep the NFT in the creating wallet or a wallet you control. |
-| Not making an initial buy | Without an early buy, sniping bots may capture all early tokens at near-zero cost, which can undermine community trust. |
+| Treating a live config value as a protocol constant | Read the selected `GlobalConfig`, platform config, and current UI constraints. |
+| Leaving vesting supply unallocated | Create and verify the intended beneficiary records before the applicable cutoff. |
+| Assuming the token creator receives a new Fee Key | Check `platformLockNftWallet` and the actual migration record. Current migrations assign the combined locked share to the platform. |
+| Assuming CPMM creator fees are enabled | Check `pool_creator`, `enable_creator_fee`, `creator_fee_on`, and `creator_fee_rate`. |
+| Transferring a Fee Key unintentionally | The new holder controls future LP-fee collection. Verify the recipient before transferring it. |
 
 ## Pointers
 
-- [LaunchLab overview](/docs/en/products/launchlab/overview) — the curve lifecycle and graduation mechanics.
+- [LaunchLab overview](/docs/en/products/launchlab/overview) — curve lifecycle and migration mechanics.
 - [LaunchLab overview for users](/docs/en/user-flows/launchlab-overview) — product-level lifecycle and launch modes.
-- [LaunchLab bonding curve](/docs/en/products/launchlab/bonding-curve) — curve math and graduation threshold derivation.
-- [LaunchLab vesting](/docs/en/products/launchlab/vesting) — full vesting account layout and instruction reference.
+- [LaunchLab bonding curve](/docs/en/products/launchlab/bonding-curve) — curve math and funding thresholds.
+- [LaunchLab vesting](/docs/en/products/launchlab/vesting) — vesting accounts and instructions.
 - [How creator fees work](/docs/en/user-flows/how-creator-fees-work) — pre- and post-migration fee details.
 - [LaunchLab platforms](/docs/en/user-flows/launchlab-platforms) — how platform configuration affects launch settings and fees.
-- [Launch a token (developer guide)](/docs/en/user-flows/launch-token-launchlab) — programmatic SDK walkthrough for developers.
+- [Launch a token developer guide](/docs/en/user-flows/launch-token-launchlab) — programmatic SDK walkthrough.

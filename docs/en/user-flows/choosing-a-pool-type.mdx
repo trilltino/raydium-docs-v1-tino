@@ -1,111 +1,135 @@
 ---
-title: "Pool Creation"
-description: "Choose the right Raydium pool type before creating a CPMM pool, CLMM pool, or farm."
+title: "Pool creation"
+description: "Choose a Raydium pool type by comparing liquidity mechanics, position accounts, token support, and fee configuration."
 ---
 
 <Info>
-  **TL;DR.** If you just want to LP and walk away, pick **CPMM**. If you are willing to actively manage a price range in exchange for higher fee capture per dollar, pick **CLMM**. Do not open new **AMM v4** positions unless you specifically need OpenBook orderbook connectivity for an existing pair.
+  **TL;DR.** Choose **CPMM** for new full-range constant-product liquidity represented by fungible LP tokens. Choose **CLMM** when you want to select and manage a price range. **AMM v4** remains operational, but no longer integrates with OpenBook.
 </Info>
 
 ## The three pools in one paragraph
 
-Raydium runs three AMM programs in parallel. **CPMM** is a standard `xy=k` constant-product pool — simple, robust, supports Token-2022, accepts 0.01% / 0.25% / 1% fee tiers. **CLMM** is a Uniswap V3–style concentrated-liquidity pool — you pick a price range, and your capital only earns fees while price is inside that range. **AMM v4** is the original Raydium hybrid that couples a constant-product curve with an OpenBook orderbook; it is still accepted by the program but no longer the default for new pools. Every new launch of a novel pair today goes to CPMM or CLMM.
+Raydium runs three AMM programs in parallel. **CPMM** is an `x · y = k` constant-product pool with full-range, fungible LP tokens and Token-2022 support. **CLMM** is a concentrated-liquidity pool where each position NFT has its own tick range and accrues fees only while that range is active. **AMM v4** is Raydium's original constant-product pool. Since the July 2026 upgrade, it no longer places or reads OpenBook orders.
 
-For a side-by-side product-level comparison see [`products/index`](/docs/en/products/index) and [`reference/fee-comparison`](/docs/en/reference/fee-comparison). This page helps you choose the right creation flow before opening the CPMM, CLMM, or farm walkthrough.
+For a side-by-side product-level comparison, see [`products/index`](/docs/en/products/index) and [`reference/fee-comparison`](/docs/en/reference/fee-comparison). This page helps you choose the creation flow before opening the CPMM, CLMM, or farm walkthrough.
 
 <CardGroup cols={3}>
   <Card title="Create a CPMM pool" icon="plus" href="/docs/en/user-flows/create-cpmm-pool">
-    Use CPMM for passive, full-range liquidity and most new standard token pairs.
+    Use CPMM for full-range liquidity and fungible LP tokens.
   </Card>
   <Card title="Create a CLMM pool" icon="sliders-horizontal" href="/docs/en/user-flows/create-clmm-pool">
-    Use CLMM when you want concentrated liquidity and can manage a price range.
+    Use CLMM when you want to define and manage a concentrated price range.
   </Card>
   <Card title="Create a farm" icon="sprout" href="/docs/en/user-flows/create-farm">
     Add incentive rewards for eligible LP tokens after the pool exists.
   </Card>
 </CardGroup>
 
-## Decision matrix
+## Selection flow
 
-| Your situation | Recommended pool | Why |
-|---|---|---|
-| First time LP, want low ongoing effort | **CPMM 0.25%** | Single deposit, no range management, fees auto-compound in reserves. |
-| Stable-to-stable pair (USDC/USDT, wSOL/stSOL) | **CLMM 0.01% tight range** | Tight range captures the bulk of fees at minimal IL. Huge capital efficiency vs CPMM. |
-| Correlated but drifting (SOL/JitoSOL, ETH/WETH bridged) | **CLMM 0.05% wide range** | Captures fees, tolerates drift, still far more efficient than CPMM. |
-| Volatile majors (SOL/USDC, BTC/USDC) | **CLMM 0.25% medium range** OR **CPMM 0.25%** | CLMM if you will manage; CPMM if you will set-and-forget. |
-| Long-tail memecoin or low-liquidity pair | **CPMM 1%** | Wide CLMM ranges barely beat CPMM on such pairs; CPMM's simpler accounting wins. |
-| Need orderbook liquidity on top of AMM | **AMM v4** | The only program that integrates with OpenBook's orderbook. |
-| Launching a new token bonding curve | **LaunchLab** (graduates to CPMM) | Not strictly a "pool type" decision — the LaunchLab product chooses CPMM for you. |
+```text
+Do you need a position with a custom price range?
+  ├─ No  → CPMM: full-range liquidity and fungible LP tokens
+  └─ Yes → CLMM: position NFT, selected ticks, range-dependent accrual
 
-## The three questions that actually matter
+Already hold AMM v4 LP tokens?
+  └─ Migration is optional. Both AMM v4 and CPMM now operate without OpenBook.
 
-### 1. Am I willing to rebalance?
+Need token incentives?
+  └─ Create or use a compatible farm after selecting the pool.
+```
 
-CLMM rewards active management; CPMM rewards inaction. If you can check your position once a week and move the range when price drifts to an edge, CLMM's fee capture per dollar is 4–40× higher than CPMM on the same pair at the same nominal fee tier. If you cannot, your CLMM position will silently sit out of range while CPMM LPs keep earning. Choose CPMM.
+## Mechanics matrix
 
-### 2. How correlated are the two tokens?
+| Requirement or behavior | CPMM | CLMM | AMM v4 |
+|---|---|---|---|
+| Position representation | Fungible LP tokens | Position NFT per range | Fungible LP tokens |
+| Price range | Full range | Selected lower and upper ticks | Full range |
+| Fee accrual | Pool reserves | Per-position accumulators while in range | Pool reserves and later PnL settlement |
+| Token-2022 support | Supported within program constraints | Supported within program constraints | Not supported |
+| OpenBook orders | None | None | Removed in July 2026 |
+| Typical creation flow | [CPMM guide](/docs/en/user-flows/create-cpmm-pool) | [CLMM guide](/docs/en/user-flows/create-clmm-pool) | Existing integrations; CPMM is recommended for new constant-product pools |
 
-Impermanent loss grows with **divergence** between the two prices. For tightly correlated assets (stable/stable, LST/SOL), IL is tiny and a narrow CLMM range is very effective. For weakly correlated assets (e.g., memecoin/SOL) IL can easily exceed fee income for a full year; widen the range or use CPMM.
+LaunchLab is a token-launch flow, not another pool type in this decision. Newly initialized LaunchLab launches migrate to CPMM through the authorized migration path.
 
-See [`algorithms/impermanent-loss`](/docs/en/algorithms/impermanent-loss) for the math and worked examples.
+## Three questions to answer
 
-### 3. What fee tier matches my pair's volatility?
+### 1. Do you want to manage a price range?
 
-Higher volatility → higher realised volume per TVL → a higher fee tier is sustainable. Rough guideline:
+CPMM liquidity remains active across the full price range. CLMM liquidity accrues new fees and rewards only while the current tick is inside the position's range. Moving a range requires a new liquidity operation; it does not happen automatically.
 
-- Stable/stable → 0.01%
-- Major/major correlated → 0.05%
-- Major/major volatile → 0.25%
-- Long-tail / memecoin → 1%
+Concentration changes both fee exposure and impermanent loss. There is no universal multiplier for CLMM returns because the result depends on range width, active liquidity, volume, price movement, and time in range. See [`algorithms/impermanent-loss`](/docs/en/algorithms/impermanent-loss) for the math.
 
-A pair with lots of arbitrage flow at 0.25% may earn more LP revenue than the same pair at 1% because the higher fee can reduce volume. Check live 24-hour volume, TVL, and fee APR in the Raydium pool list before committing size.
+### 2. Which position and token mechanics do you need?
+
+CPMM and AMM v4 use fungible LP tokens. CLMM uses an NFT for each position and range. Check the token program and supported extensions before choosing a pool; Token-2022 support does not mean every extension is accepted.
+
+Farm support is a separate check. Do not assume a CLMM position NFT can be staked in a farm designed for fungible LP tokens.
+
+### 3. Which fee configuration does the pool use?
+
+Read the selected `AmmConfig` rather than relying on a generic tier list. The Raydium CPMM UI currently exposes `0.25%`, `0.3%`, `0.5%`, `1%`, `1.5%`, `2%`, `2.5%`, and `4%` configurations. Other configuration accounts can exist, and the live API is the source for currently available values.
+
+Under the standard CPMM 0.25% configuration, LPs receive 84% of the trade fee, equivalent to 0.21% of volume. AMM v4's default economic LP equivalent is 0.22% of volume. A separate CPMM creator fee can also apply when enabled and configured with a nonzero rate; it does not come out of the LP trade-fee share.
+
+A higher nominal fee does not guarantee higher LP income. Compare observed volume, active liquidity, time in range, and the complete fee configuration.
 
 ## CPMM vs CLMM in practice
 
 ### CPMM
 
 - **Deposit:** two tokens at the current price ratio. Receive fungible LP tokens.
-- **Earn:** fees compound into pool reserves; your LP share appreciates.
-- **Withdraw:** burn LP tokens, receive pro-rata share of reserves plus earned fees.
-- **IL profile:** standard `xy=k` IL — see [`algorithms/impermanent-loss`](/docs/en/algorithms/impermanent-loss).
-- **Best suited for:** passive LP, long-tail pairs, Token-2022 mints with transfer fees (CPMM handles them natively via `SwapV2`).
+- **Earn:** fees compound into pool reserves; your LP share represents a claim on those reserves.
+- **Withdraw:** burn LP tokens and receive your pro-rata share of reserves, subject to integer rounding and any mint transfer deductions.
+- **Swaps:** the program exposes `SwapBaseInput` and `SwapBaseOutput`.
+- **IL profile:** standard `x · y = k` IL. See [`algorithms/impermanent-loss`](/docs/en/algorithms/impermanent-loss).
 
 ### CLMM
 
-- **Deposit:** two tokens (or one if the price is at a range boundary) for a specific `[tick_lower, tick_upper]` range. Receive a **position NFT**, not fungible LP tokens.
-- **Earn:** fees accrue per-position and must be **claimed** explicitly (`collectFee`). They do not auto-compound.
-- **Withdraw:** burn or partially decrease the position; receive remaining tokens and any unclaimed fees.
-- **IL profile:** IL is amplified within the range (you are effectively levered), but you also stop being exposed if price leaves the range. See [`algorithms/impermanent-loss`](/docs/en/algorithms/impermanent-loss#clmm-specific-il).
-- **Best suited for:** active LP, correlated assets, pairs where you have a view on the price distribution.
+- **Deposit:** two tokens, or one when the range requires only one side, for a specific `[tick_lower, tick_upper]` range. Receive a **position NFT**, not fungible LP tokens.
+- **Earn:** fees accrue to the position while it is in range and do not auto-compound.
+- **Collect:** use `DecreaseLiquidity` or `DecreaseLiquidityV2`. A zero-liquidity decrease collects without reducing position liquidity.
+- **Close:** first reduce liquidity to zero and collect all pending fees and rewards. `ClosePosition` then closes the empty position; it does not collect nonzero balances itself.
+- **Out of range:** the position stops new fee and reward accrual and becomes fully one-sided. You remain exposed to the asset it holds.
 
 ### AMM v4
 
-- **Deposit:** two tokens at the current price ratio. Pool is also registered against an OpenBook market, and pool assets sit partly on the orderbook.
-- **Earn:** fees from on-curve swaps plus any maker/taker interaction via OpenBook.
-- **Withdraw:** as CPMM, but the program must also unwind orderbook orders before settling.
-- **When to choose:** only when you need the OpenBook integration for an existing long-lived pair. New pairs should go to CPMM.
+- **Deposit:** two tokens at the current pool ratio. Receive fungible LP tokens.
+- **Earn:** the whole swap fee initially remains in pool reserves. Protocol PnL is realized separately under the pool's current parameters.
+- **Withdraw:** burn LP tokens for the underlying reserves. No OpenBook orders are unwound.
+- **OpenBook history:** the removed hybrid design is historical. The `market` key used by current pool creation is an address seed, not a live orderbook connection.
 
-See [`products/amm-v4/overview`](/docs/en/products/amm-v4/overview) for the full hybrid model.
+See [`products/amm-v4/overview`](/docs/en/products/amm-v4/overview) for the current program model.
 
-## Worked example: SOL/USDC as an LP
+## Worked fee-APR example
 
-Assume \$10,000 capital, SOL at \$160, projected 30-day volume \$150M on each pool.
+This example compares only CPMM and AMM v4 because their pool-wide liquidity inputs are sufficient for a simple calculation.
 
-| Pool | Your TVL | Estimated fee APR* | Rebalance effort |
-|---|---|---|---|
-| CPMM 0.25% | \$10k in \$50M pool | ~27% | None |
-| CLMM 0.25%, ±5% range | \$10k concentrated | ~110% (when in-range) | Check weekly, rebalance on ±4% drift |
-| CLMM 0.05%, ±2% range | \$10k concentrated | ~180% (when in-range) | Check daily |
-| AMM v4 0.25% | \$10k in \$30M pool | ~18% | None |
+Assume:
 
-*APR numbers are illustrative; real numbers depend on volume, realised volatility, your time-in-range, and fee compounding. Use [`algorithms/clmm-apr`](/docs/en/algorithms/clmm-apr) to estimate for your specific parameters.
+- You supply \$10,000.
+- Projected 30-day volume is \$150M.
+- CPMM pool TVL is \$50M and uses the standard 0.25% fee with an 84% LP share.
+- AMM v4 pool TVL is \$30M and uses its default 0.22% LP economic equivalent.
+- Volume and TVL remain constant, and you do not compound.
+
+```text
+CPMM 30-day fees = $150M × 0.25% × 84% × ($10k / $50M) = $63
+CPMM simple APR  = ($63 / $10,000) × (365 / 30) = 7.665%
+
+AMM v4 30-day fees = $150M × 0.22% × ($10k / $30M) = $110
+AMM v4 simple APR  = ($110 / $10,000) × (365 / 30) = 13.383%
+```
+
+These are arithmetic examples, not return forecasts. They exclude price changes, impermanent loss, compounding, and any separate CPMM creator fee. CLMM needs additional active-liquidity and time-in-range inputs, so the same TVL formula cannot produce a defensible CLMM APR. Use [`algorithms/clmm-apr`](/docs/en/algorithms/clmm-apr) for that calculation.
 
 ## Common mistakes
 
-- **"CLMM always earns more."** Only while in range. Out-of-range CLMM earns zero; CPMM keeps earning at any price.
-- **"Tighter range = more fees."** Yes while in range — and more frequent out-of-range events if you don't rebalance. Tight ranges on volatile pairs are for active managers.
-- **"Higher fee tier = more fee income."** Not if the tier is too high for the pair and kills volume. Always quote volume-to-TVL at each tier before choosing.
-- **"LP token and position NFT are interchangeable."** CPMM LP tokens are fungible SPL tokens (farmable). CLMM position NFTs are non-fungible and carry your specific range. Farm v6 only stakes CPMM / AMM v4 LP tokens, not CLMM position NFTs.
+- **"CLMM always earns more."** Only in-range liquidity accrues new fees and rewards, and concentration also changes IL.
+- **"Tighter range means more total fees."** A tighter range can increase fee exposure per unit of active liquidity while in range, but it can also spend more time out of range.
+- **"A higher fee tier guarantees more income."** Volume, active liquidity, and trader routing also matter.
+- **"LP tokens and position NFTs are interchangeable."** They have different account models and farm compatibility.
+- **"AMM v4 still requires OpenBook."** Current AMM v4 rejects the removed orderbook instructions and ignores legacy market accounts during swaps.
 
 ## Where to go next
 
@@ -113,8 +137,3 @@ Assume \$10,000 capital, SOL at \$160, projected 30-day volume \$150M on each po
 - [`algorithms/impermanent-loss`](/docs/en/algorithms/impermanent-loss) — IL math and scenarios.
 - [`algorithms/clmm-apr`](/docs/en/algorithms/clmm-apr) — estimating CLMM fee APR before opening a position.
 - [`reference/fee-comparison`](/docs/en/reference/fee-comparison) — fee-tier table across products.
-
-Sources:
-
-- Raydium pool list and pool detail pages.
-- Empirical CLMM fee distribution across the top-100 Raydium CLMM pools, April 2026.

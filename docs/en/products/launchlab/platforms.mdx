@@ -1,118 +1,110 @@
 ---
 title: "LaunchLab platforms"
-description: "How third parties register a Platform PDA on LaunchLab to offer their own branded token-launch experience, set platform fees, and configure post-migration parameters."
+description: "How third parties use PlatformConfig PDAs to brand LaunchLab launches, configure fees and restrictions, and control platform-side migration rights."
 ---
 
 <Info>
-  A **Platform** in LaunchLab is a third-party launch environment built on top of Raydium's LaunchLab program. Platforms can brand themselves, charge their own fees, and configure the post-bonding-curve migration parameters for every token launched under them — without running a separate on-chain program. Raydium's own launch UI is just one platform among many.
+  A **platform** in LaunchLab is a third-party launch environment built on Raydium's LaunchLab program. Platforms can brand themselves, charge configured fees, restrict permitted launch parameters, and configure migration rights without running a separate on-chain pool program.
 </Info>
 
 ## Why platforms exist
 
-Raydium wanted LaunchLab to be a **shared primitive**, not a single branded product. The Platform PDA system lets ecosystems, tooling providers, communities, and meme teams offer curated or branded launch experiences that all settle into the same underlying LaunchLab bonding-curve program and CPMM post-migration pool.
+LaunchLab is a shared launch primitive. The `PlatformConfig` system lets ecosystems, tooling providers, and communities offer branded launch experiences that use the same LaunchLab program and CPMM migration path.
 
-Examples of platforms you might see in the wild:
+Examples include Raydium's own LaunchLab UI and third-party launch surfaces with their own platform configuration. A token's platform configuration affects its fees, permitted launch parameters, and LP handling; it does not guarantee that an aggregator or wallet will list or route the token.
 
-- **Raydium's own LaunchLab UI** at raydium.io/launchpad — the reference implementation.
-- **Partner launchpads** — third parties who've registered their own Platform PDA to brand the launch experience.
-- **Niche platforms** — e.g. a community-specific platform that only launches memecoins tied to a particular theme, with a custom fee share funding its treasury.
+## The PlatformConfig PDA
 
-All of these tokens still live on the same LaunchLab program, graduate to the same CPMM program, and can be routed by the same aggregators.
-
-## The Platform PDA
-
-Each platform is represented by a Platform PDA stored in the LaunchLab program. Fields include:
+Each platform is represented by a `PlatformConfig` PDA derived from the `platform_config` seed and platform admin key. The SDK layout uses these fields:
 
 | Field | Description |
 |---|---|
-| `platform_key` | Seed / identifier for the platform, used to derive the Platform PDA. |
-| `platform_fee_destination` | Account that receives the platform's cut of trading fees pre- and post-migration. |
-| `platform_fee_bps` | Platform fee share on pre-migration swaps (varies by platform). |
-| `creator_fee_rate` | Creator-fee rate during bonding-curve trading. |
-| `platform_scale`, `creator_scale`, `burn_scale` | Stored LP scales. Before the upgrade, the creator scale went to a creator Fee Key. For migrations executed afterward, the first two combine into the platform's locked-LP share; `burn_scale` is burned. |
-| `cp_config_id` | If post-migration target is CPMM, which `AmmConfig` to use — chooses fee tier. |
-| `restrict_global_config` | Whether launches must present a platform-created allow PDA for the selected `GlobalConfig`. |
-| `name`, `description`, `image_url` | Display metadata used by wallets and UIs that support platform branding. |
-| `tokens_launched` | Counter or on-chain index of tokens created under this platform. |
+| `platformClaimFeeWallet` | Authorized to claim accrued platform fees. |
+| `platformLockNftWallet` | Receives the platform Fee Key when the locked-LP share is nonzero. |
+| `platformScale`, `creatorScale`, `burnScale` | Stored LP scales. Under the updated migration flow, the first two combine into the platform locked-LP share and `burnScale` is burned. |
+| `feeRate` | Platform fee rate on pre-migration trades, denominated in millionths. |
+| `name`, `web`, `img` | Inline platform branding strings. |
+| `cpConfigId` | CPMM `AmmConfig` selected for migration. |
+| `creatorFeeRate` | Bonding-curve creator-fee rate. |
+| `transferFeeExtensionAuth` | Platform authority used by applicable Token-2022 transfer-fee extension handovers. |
+| `platformVestingWallet`, `platformVestingScale` | Platform vesting beneficiary and allocation. |
+| `platformCpCreator` | Optional CPMM creator-of-record override. The default pubkey leaves the role with the launch creator. |
+| `restrictGlobalConfig` | Requires a platform allow record for the selected `GlobalConfig` when enabled. |
+| `restrictCurveParam` | Requires the launch to satisfy the applicable `PlatformCurveRule` when enabled. |
+| `curveRuleManager` | Wallet allowed to manage platform curve rules alongside the platform admin. |
 
-Exact field names are in the LaunchLab IDL ([`sdk-api/anchor-idl`](/docs/en/sdk-api/anchor-idl)). The table above is a descriptive overview.
+For byte layout, PDA derivation, rate caps, update rules, and a decode example, see [`products/launchlab/platform-config`](/docs/en/products/launchlab/platform-config).
 
-## What a platform can control
+## Fee and rights separation
 
-**Fee capture:**
+LaunchLab has distinct platform, creator, referral, and locked-LP paths:
 
-- **Platform fee share** on every pre-migration buy/sell.
-- **Post-migration share** — before the 2026-08-17 upgrade, the creator scale produced a separate creator Fee Key. For migrations executed afterward, `platform_scale + creator_scale` becomes one platform-owned locked-LP position and `burn_scale` is burned.
+- **Platform fee:** `feeRate` accrues to the applicable platform fee vault. `platformClaimFeeWallet` claims it through the supported claim instruction.
+- **Bonding-curve creator fee:** `creatorFeeRate` accrues to the vault keyed by creator and quote mint. The creator claims it with `ClaimCreatorFee`.
+- **Referral fee:** a per-trade `shareFeeRate` pays the supplied referrer's quote-token account. It is bounded by `GlobalConfig.maxShareFeeRate`, not by the platform fee-rate cap.
+- **Locked-LP fee:** the current platform Fee Key holder harvests fees from the locked share. This is separate from CPMM creator fees.
 
-**Post-migration destination:**
+```text
+Curve trade
+  ├─ protocol fee
+  ├─ platform fee → platform fee vault
+  ├─ creator fee → creator/quote-mint vault
+  └─ optional referral fee → referrer quote-token account
 
-- **CPMM** with an `AmmConfig` chosen via `cp_config_id`. All newly initialized launches use CPMM.
-- **AMM v4** remains only as the graduation path for existing launch state created with the legacy migrate type.
+CPMM migration
+  ├─ platformScale + creatorScale → LP-Lock → platform Fee Key
+  └─ burnScale → burned LP
 
-**User experience:**
-
-- **Branding metadata** used by the Raydium app and any wallet / explorer that surfaces LaunchLab tokens.
-- **Launch-page customization** — platforms that host their own frontend can filter tokens to only show their own platform's launches.
-
-## What a platform cannot control
-
-- **Bonding-curve math.** The curve shape (logistic, exponential, etc.) is part of the LaunchLab program itself. Platforms choose from the supported curves; they cannot add arbitrary custom curves.
-- **Migration threshold logic.** The condition that triggers graduation to CPMM is program-enforced.
-- **Core security / audit posture.** Every platform inherits LaunchLab's audit history; a malicious platform cannot bypass it by altering the program.
-
-## Registering a platform
-
-The LaunchLab program exposes a `create_platform` instruction (exact name from the IDL). Callers pass:
-
-- The seed that will derive the Platform PDA.
-- The fee destination account.
-- Desired fee bps (subject to program-level caps).
-- Post-migration config (CPMM `AmmConfig` ID if applicable).
-- Branding metadata.
-
-Rent for the Platform PDA is paid by the creator. Updates to branding and some fee parameters are permitted post-creation by the platform's authority; structural parameters (migration destination program) typically are not.
-
-See [`products/launchlab/instructions`](/docs/en/products/launchlab/instructions) for the exact instruction signature in the current LaunchLab IDL.
-
-## Economic interaction
-
-A single swap on a LaunchLab bonding curve distributes value roughly like this (exact ratios set by the platform):
-
-```
-Buyer pays:                  100 SOL
-Protocol fee (LaunchLab):    – small %
-Platform fee:                – platform_fee_bps%
-Creator fee (pre-migration): – creator_fee_bps% (if enabled)
-Remainder (to curve):        ~ rest
+CPMM trading
+  ├─ LP trade-fee share → LP positions, including the locked share
+  └─ optional creator fee → recorded CPMM pool_creator
 ```
 
-Post-migration, LP tokens have two effective destinations:
+## Migration configuration
 
-```
-LP tokens minted at graduation:  100%
-  → Burned:                         burnScale
-  → Platform Fee Key:               platformScale + creatorScale
-```
+All newly initialized launches use CPMM. `cpConfigId` selects its `AmmConfig`. Existing state created with the legacy migration type can retain its legacy path.
 
-The platform Fee Key represents claimable LP-fee rights without an ability to withdraw the locked liquidity. Burned LP has no Fee Key holder.
+For migrations executed after the 2026-08-17 upgrade, `platformScale + creatorScale` becomes one platform-owned locked-LP position and `burnScale` is burned. Earlier migrations could create a separate creator Fee Key. Completed historical Fee Key records are not rewritten.
 
-## Restricting global configs
+`platformCpCreator` determines the CPMM creator-fee beneficiary independently of the Fee Key. CPMM creator fees also require the relevant enablement, nonzero rate, and fee-side settings.
 
-A platform admin can set `restrict_global_config = 1` and create one `PlatformAllowConfig` per accepted `GlobalConfig`. New launch transactions must then append the matching allow PDA. With restriction disabled, the platform accepts any config that passes the program's other validation.
+## Launch restrictions
+
+Platforms can apply two independent restrictions:
+
+- **Global-config allowlist:** with `restrictGlobalConfig` enabled, launch transactions need the matching `PlatformAllowConfig` for the selected `GlobalConfig`.
+- **Curve rules:** with `restrictCurveParam` enabled, the launch must satisfy the applicable `PlatformCurveRule`. Rule groups support alternative permitted launch shapes; `curveRuleManager` can manage them alongside the platform admin.
+
+These restrictions can narrow protocol and deployment limits. They do not replace `GlobalConfig` validation or make the platform admin an authorized migration wallet.
+
+## Token-2022 and vesting controls
+
+`transferFeeExtensionAuth` affects the transfer-fee authorities used by supported Token-2022 launches. Read the authority handover rules before rotating this field between creation and migration.
+
+`platformVestingWallet` and `platformVestingScale` configure the platform's share of a launch's locked supply. `CreatePlatformVestingAccount` creates the corresponding vesting record separately from launch initialization.
+
+See [`products/launchlab/platform-config`](/docs/en/products/launchlab/platform-config) and [`products/launchlab/vesting`](/docs/en/products/launchlab/vesting) for the detailed rules.
+
+## Registering and updating a platform
+
+The current IDL exposes `CreatePlatformConfig` for initialization and `UpdatePlatformConfig` for supported field updates. The platform admin pays the account rent and signs updates. Fee rates and other fields remain subject to program validation.
+
+Use [`products/launchlab/instructions`](/docs/en/products/launchlab/instructions) for the current instruction interface and [`products/launchlab/platform-config`](/docs/en/products/launchlab/platform-config) for exact parameters and update variants. Do not substitute descriptive names such as `platform_fee_destination` or `platform_fee_bps` for the SDK's actual fields.
 
 ## Integrator notes
 
-- **Listing tokens by platform.** Use the API pool-info / mint endpoints with a `platform` filter (when supported) to list only tokens launched under a specific Platform PDA.
-- **Branding display.** If you build a wallet or explorer that surfaces LaunchLab tokens, reading the platform's name / image URL from the Platform PDA is far better UX than showing "LaunchLab" for every token.
-- **Fee math.** Every bonding-curve quote must account for the platform fee in addition to the protocol and creator fees. The SDK's quote helpers do this automatically when the platform PDA is supplied.
+- **Decode by the real layout.** Use the SDK's `PlatformConfig.decode` example in the technical reference.
+- **Read branding from `name`, `web`, and `img`.** There are no `description`, `image_url`, or `tokens_launched` fields in this layout.
+- **Include every fee component.** Quotes can need protocol, platform, creator, referral, and Token-2022 transfer-fee accounting.
+- **Verify migration outcomes.** Read the CPMM pool, LP lock or burn record, Fee Key owner, and `pool_creator` rather than inferring current ownership from historical rules.
 
 ## Where to go next
 
 - [`products/launchlab/overview`](/docs/en/products/launchlab/overview) — LaunchLab program model.
-- [`products/launchlab/creator-fees`](/docs/en/products/launchlab/creator-fees) — how creator and platform fees interact post-migration.
-- [`user-flows/burn-and-earn`](/docs/en/user-flows/burn-and-earn) — the lock mechanism that post-migration LP uses.
+- [`products/launchlab/creator-fees`](/docs/en/products/launchlab/creator-fees) — creator and platform fee interaction.
+- [`user-flows/burn-and-earn`](/docs/en/user-flows/burn-and-earn) — the lock mechanism used for migrated LP.
 
 Sources:
 
-- LaunchLab program IDL bundled in the Raydium SDK v2: [`raydium-io/raydium-sdk-V2`](https://github.com/raydium-io/raydium-sdk-V2) under `src/raydium/launchpad/`.
-- `api-v3.raydium.io/launchlab/platforms` endpoints (when available).
+- [LaunchLab SDK layout](https://github.com/raydium-io/raydium-sdk-V2/blob/32a184eb0aea15ddbb485e24a1a73d3723fd94d6/src/raydium/launchpad/layout.ts#L106-L150).
+- LaunchLab program IDL bundled in the Raydium SDK. LaunchLab implementation source is not publicly available.

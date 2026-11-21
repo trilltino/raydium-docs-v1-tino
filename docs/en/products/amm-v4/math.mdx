@@ -19,7 +19,7 @@ Two things to notice:
 
 The program computes this via `calc_total_without_take_pnl_no_orderbook` (the old orderbook-aware variant is gone).
 
-The swap handlers don't check `k' ≥ k` explicitly. `k` can't fall on a swap anyway: the output is computed from the after-fee input and rounded down, and the full input, fee included, lands in the vault.
+The swap handlers do not explicitly check `k' ≥ k`. The swap calculation prevents `k` from decreasing because it computes the output from the after-fee input, rounds the output down, and deposits the full input into the vault.
 
 ## Fee convention
 

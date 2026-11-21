@@ -94,7 +94,7 @@ Program ID: see [reference/program-addresses](/docs/en/reference/program-address
 | 6027 | `RewardTokenAlreadyInUse` | The init reward token already in use | Reward mint duplicates an existing one. | N/A — admin path. |
 | 6028 | `ExceptRewardMint` | The reward tokens must contain one of pool vault mint except the last reward | Pre-slot 2, reward mint must equal one of the pool's vault mints. | N/A — admin path. |
 | 6029 | `InvalidRewardInitParam` | Invalid reward init param | Bad emission start/end time or per-second rate. | N/A — admin path. |
-| 6030 | `InvalidRewardInputAccountNumber` | Invalid collect reward input account number | Wrong number of remaining accounts passed to `CollectReward`. | "Internal: wrong account count — refresh and retry." |
+| 6030 | `InvalidRewardInputAccountNumber` | Invalid collect reward input account number | Wrong number of reward remaining accounts passed to `DecreaseLiquidity` / `DecreaseLiquidityV2`. | "Internal: wrong account count — refresh and retry." |
 | 6031 | `InvalidRewardPeriod` | Invalid reward period | Reward emission period invalid (`end <= start`, zero duration). | N/A — admin path. |
 | 6032 | `NotApproveUpdateRewardEmissions` | Modification of emissions is allowed within 72 hours from the end of the previous cycle | Admin tried to modify emissions outside the 72-hour window around cycle boundaries. | N/A — admin path. |
 | 6033 | `UnInitializedRewardInfo` | uninitialized reward info | Reward slot not initialized but referenced. | N/A — admin path. |

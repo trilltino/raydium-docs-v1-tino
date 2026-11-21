@@ -1,147 +1,120 @@
 ---
 title: "LaunchLab overview"
-description: "How Raydium's bonding-curve launch venue works end-to-end: pre-graduation trading against a deterministic curve, the funding threshold that triggers graduation, and the automatic migration into a standard CPMM pool."
+description: "How LaunchLab moves a token from bonding-curve fundraising through authorized migration to a CPMM pool, including accounts, states, fees, and LP handling."
 ---
 
 ## The problem LaunchLab solves
 
-Before LaunchLab, launching a new token on Raydium required the creator to seed an AMM pool with both sides of the pair up front — meaning the team had to provide the quote-side liquidity (SOL or USDC) out of pocket. This favored well-funded projects and gated access to the launchpad mechanism on initial capital.
+Before LaunchLab, launching a token on Raydium required the creator to seed both sides of an AMM pool up front. LaunchLab replaces that opening step with a bonding curve backed by a configured quote mint. Buyers acquire base tokens from the curve, and the accumulated quote and remaining base supply can later seed a CPMM pool.
 
-LaunchLab replaces that opening step with a **bonding curve**: the token is deployed against a curve priced in a quote mint (typically SOL or USDC). Buyers acquire the token by sending quote to the curve, which atomically mints or releases base-token units at a price determined by the curve formula and current supply. No pre-seeded liquidity required.
-
-Once the curve collects enough quote to match the liquidity formula for a real AMM pool, it **graduates**: the program creates a CPMM pool on mainnet seeded with the curve's base reserve and quote reserve, and from that point trading moves to the AMM.
+Initialization mints the full base supply into the launch's base vault and revokes its mint authority in the same instruction. Curve trades move existing tokens from that vault; they do not mint new supply on each buy.
 
 ## Lifecycle
 
-```
-             ┌───────────────────────┐
-creator  ──▶ │  Initialize (Launch)  │   ▸ mints the base token, funds the curve vaults,
-             │                        │     sets curve params and graduation threshold
-             └───────────┬────────────┘
-                         │
-                         ▼
-             ┌───────────────────────┐       repeated N times
-             │   Buy  /  Sell        │ ◀─── traders interact with the curve
-             └───────────┬────────────┘
-                         │ curve quote_reserve
-                         │ crosses threshold
-                         ▼
-             ┌───────────────────────┐   ▸ snapshots curve state
-             │      Graduate         │   ▸ deploys CPMM pool seeded with curve reserves
-             │                        │   ▸ locks / burns remaining base supply per policy
-             └───────────┬────────────┘
-                         │
-                         ▼
-             ┌───────────────────────┐
-             │   CPMM pool live      │   ▸ standard CPMM behavior going forward
-             └───────────────────────┘
+```text
+             ┌────────────────────────┐
+creator  ──▶ │ InitializeV2 or        │  ▸ mints full supply and fixes launch parameters
+             │ InitializeWithToken2022 │  ▸ revokes base mint authority
+             └────────────┬───────────┘
+                          ▼
+             ┌────────────────────────┐
+             │ PoolStatus::Fund       │ ◀── Buy / Sell against the selected curve
+             └────────────┬───────────┘
+                          │ funding condition met
+                          ▼
+             ┌────────────────────────┐
+             │ PoolStatus::Migrate    │  ▸ curve trading closed; vesting clock started
+             └────────────┬───────────┘
+                          │ authorized MigrateToCpswap
+                          ▼
+             ┌────────────────────────┐
+             │ CPMM pool created      │  ▸ LP locked or burned under platform config
+             │ PoolStatus::Trade      │  ▸ ordinary CPMM trading can begin
+             └────────────────────────┘
 ```
 
-Every launch passes through this sequence exactly once. `Buy` and `Sell` are the user-facing instructions in the middle phase. After the threshold is crossed, the migration wallet stored on `GlobalConfig` signs `MigrateToCpswap`.
+Reaching the threshold and migrating are separate events. `MigrateToCpswap` requires the `migrate_to_cpswap_wallet` recorded on the selected `GlobalConfig`. An arbitrary trader cannot call it, and there is no permissionless migration bounty. Existing legacy state can use `MigrateToAmm` with its own configured wallet; newly initialized launches are CPMM-only.
 
-## Two fixed parties
+## Core accounts
 
-A LaunchLab state has two distinguished accounts:
+- **PoolState:** launch parameters, supply, real reserves, fees, platform and config links, vesting schedule, and launch status.
+- **Base mint and base vault:** the launched token and its unsold or locked supply.
+- **Quote mint and quote vault:** the configured collateral and quote proceeds available for fees and migration.
+- **GlobalConfig:** curve and deployment limits, protocol fee rate, fee recipients, and authorized migration wallets.
+- **PlatformConfig:** branding, platform and creator fee rates, launch restrictions, CPMM configuration, LP scales, and platform-side wallets.
+- **VestingRecord:** one record per beneficiary, created separately from launch initialization.
 
-- **The base mint** — the token being launched. Its mint authority is held by the LaunchLab program until graduation; post-graduation, it is revoked.
-- **The quote mint** — the collateral. Always a mainstream mint (SOL / USDC / RAY). The launch config picks one at `Initialize`; it cannot be changed.
-
-Plus two vaults:
-
-- **`base_vault`** — holds the portion of the base supply that has been pre-minted to the curve but not yet sold. Decreases as users buy.
-- **`quote_vault`** — accumulates the quote paid in by buyers. Increases as users buy. This is the balance that is checked against the graduation threshold.
+See [`products/launchlab/accounts`](/docs/en/products/launchlab/accounts) for layouts and derivation.
 
 ## Pricing model
 
-LaunchLab supports multiple curve formulas (see [`bonding-curve`](/docs/en/products/launchlab/bonding-curve)). The most common is a **quadratic** bonding curve analogous to the Pump.fun / Curve.fi / Bancor lineage:
+LaunchLab supports constant-product, fixed-price, and linear-price curve configurations. Price behavior is curve-specific:
 
-```
-price(s) = k × (s / S_max)²     (or similar — exact formula is curve-config dependent)
-```
+- Constant-product and linear curves change price as base supply is bought or sold.
+- A fixed-price curve retains its configured price during curve trading.
+- All trades still need exact quote, fee, and slippage accounting.
 
-where `s` is the amount of base already sold to users and `S_max` is the curve's maximum supply. Price rises monotonically with each buy and falls with each sell. Because the program computes the AMM-integrated cost exactly, a buy of any size returns the correct integrated amount; there is no per-trade slippage beyond the curve's natural convexity.
+See [`products/launchlab/bonding-curve`](/docs/en/products/launchlab/bonding-curve) for the formulas. Do not apply a monotonic-price statement to fixed-price launches.
 
-## Graduation
+## Funding and migration
 
-A launch graduates when `quote_vault.balance ≥ graduation_threshold`. The threshold is set at `Initialize` and is typically chosen so that at graduation the curve's implied price matches the price the AMM pool will open at with the collected reserves. Concretely:
+A launch becomes ready to migrate when its configured funding condition is met. The last qualifying trade changes the state to `Migrate`; it does not create the CPMM pool itself.
 
-```
-threshold ≈ S_graduate × price(S_graduate) × f
-```
+The authorized migration transaction then:
 
-where `S_graduate` is the base amount already sold, `price(S_graduate)` is the curve's marginal price at that point, and `f` is a small factor to account for the fee line (1–2%).
+1. Checks that the launch is in `Migrate` and uses the matching migration type.
+2. Computes the base amount available for liquidity as `supply − totalSellA − totalLockedAmount`, subject to the actual vault balance and program accounting.
+3. Deducts applicable protocol, migration, and platform amounts from quote liquidity.
+4. Creates the CPMM pool through `InitializeWithPermission`.
+5. Mints initial LP to the migration recipient and applies the platform's lock and burn distribution.
+6. Moves the launch to `Trade`.
 
-At graduation:
-
-1. The program snapshots `(base_vault_remaining, quote_vault)`.
-2. It calls CPMM `CreatePool` CPI with these two reserves, minting the initial LP to a program-owned authority (usually burned / locked per policy).
-3. It revokes the base mint's mint authority (so no more base tokens can ever be minted).
-4. `LaunchState.status` flips to `Graduated`.
-
-Post-graduation, `Buy` and `Sell` reject. Trading continues on the resulting CPMM pool, which is indistinguishable from any other Raydium CPMM pool.
+The base mint authority was already revoked at initialization. Migration does not revoke it again. Token-2022 transfer-fee authority handovers are separate and depend on `PlatformConfig`.
 
 ## Fees
 
-During the curve phase, each `Buy` and `Sell` incurs a fee split between:
+Curve trades can include independent fee components:
 
-- **Curve LP side** — increases the curve's implied `k`, which benefits later buyers (tighter price).
-- **Protocol** — accrues to LaunchLab admin, collected via `CollectFees`.
-- **Creator** — optional, configurable at `Initialize`. Some launches direct a share to the creator as an ongoing revenue stream.
+- **Protocol:** `GlobalConfig.trade_fee_rate`, claimed through the protocol fee path.
+- **Platform:** `PlatformConfig.fee_rate`, accrued to the applicable platform vault and claimed by `platformClaimFeeWallet`.
+- **Creator:** `PlatformConfig.creator_fee_rate`, accrued to the vault keyed by creator and quote mint and claimed with `ClaimCreatorFee`.
+- **Referral:** per-trade `shareFeeRate`, bounded by `GlobalConfig.maxShareFeeRate`, paid to the supplied referrer's quote-token account during the trade.
 
-Default rates are documented on [`bonding-curve`](/docs/en/products/launchlab/bonding-curve). The exact split is stored on `LaunchState.fees` and can differ per launch.
+After migration, the CPMM `AmmConfig` controls the trade-fee configuration. A separate CPMM creator fee applies only when enabled with a nonzero rate. Its beneficiary is the recorded `pool_creator`, which can be the launch creator or the platform's configured override.
 
-Post-graduation fees follow the CPMM config the pool was created with (typically `AmmConfig[0]`, the 0.25% tier).
+## Who holds the LP after migration?
 
-## Who holds the LP after graduation?
+LaunchLab uses the platform's stored scales to produce two effective destinations:
 
-LaunchLab uses the platform's three stored scales to produce two effective LP destinations:
+- **Platform lock:** for migrations under the updated program, `platformScale + creatorScale` is locked through LP-Lock. One Fee Key goes to `platformLockNftWallet` when this share is nonzero.
+- **Burn:** `burnScale` is burned permanently and has no Fee Key holder.
 
-- **Platform lock** — for migrations executed after the 2026-08-17 upgrade, `platform_scale + creator_scale` is locked through LP-Lock and one Fee Key goes to `platform_nft_wallet` when this share is non-zero. Before the upgrade, `creator_scale` produced a separate creator Fee Key.
-- **Burn** — `burn_scale` is burned permanently and has no Fee Key.
-
-The scales live on `PlatformConfig` and must sum to `1_000_000`. The upgrade changes future migration execution only. It does not alter creator Fee Keys created by earlier migrations.
-
-<Info>
-  **2026-09 program upgrade.** LaunchLab was rebuilt on Anchor 1.0.2 / Solana 3.1.10 and gained one admin instruction, [`CollectExcessLamports`](/docs/en/products/launchlab/instructions#collectexcesslamports), for reclaiming rent freed by [SIMD-0437](/docs/en/solana-fundamentals/rent-and-reclaimable-rent). Three transition mechanisms were cleared out at the same time: the deprecated `Initialize` now always fails, `MigrateToAmm` lost its arguments and every OpenBook account, and the clock-based `get_upgrade_timestamp` gate is gone. Trading, fees and vesting are unchanged. See the [2026-09-09 changelog entry](/docs/en/reference/changelog/2026-09-09-launchlab-anchor-1-and-excess-lamports).
-</Info>
+Before the 2026-08-17 upgrade, `creatorScale` could produce a separate creator Fee Key. The upgrade changes future migration execution only; it does not modify completed historical locks. This LP-fee right is separate from CPMM creator fees.
 
 ## Important invariants
 
-- **The base mint is inflation-free from creation.** The initialize instruction mints the full supply and revokes `mint_authority` in the same call; `freeze_authority` was never set.
-- **All new launches are CPMM-only.** `InitializeV2` and `InitializeWithToken2022` require `migrate_type = CPSWAP`, and the legacy `Initialize` fails outright as of the 2026-09 upgrade. Existing legacy state can still use `MigrateToAmm`.
-- **Curve state is monotonic in one direction.** `base_sold` only rises during Buy, `quote_vault` only rises during Buy (falls during Sell — which symmetrically reduces `base_sold`). The program never lets the curve go negative.
-- **Graduation is a one-way gate.** Even if post-graduation trading pushes the AMM pool price back below the graduation price, the launch does not revert to the curve.
-
-## When to use LaunchLab
-
-<Note>
-  This page describes protocol mechanics only. Nothing here constitutes financial, legal, or investment advice. Token launches carry significant financial risk. Consult appropriate professionals before launching a token that involves public fundraising.
-</Note>
-
-- You are launching a new token with no prior market.
-- You want the market to determine the opening CPMM price rather than pre-declaring it.
-- You want to allow anyone — including the team itself — to buy in at the same curve-determined prices, rather than pre-allocating to insiders at a discount.
-
-Do **not** use LaunchLab for:
-
-- Existing tokens with established markets (use `CreatePool` on CPMM directly).
-- Launches where you need precise control over the opening AMM price (you can approximate it with careful curve config, but the mechanism is still curve-driven).
-- Tokens that require Token-2022 extensions LaunchLab does not allowlist (the launch program rejects extensions like `TransferHook` and `PermanentDelegate` even on the Token-2022 path).
+- **Base supply is fixed from creation.** Initialization mints the full supply and revokes `MintTokens` in the same instruction.
+- **New launches are CPMM-only.** Existing legacy state can retain its legacy migration path.
+- **Migration is authorized and one-way.** Reaching the threshold does not let any trader migrate, and a completed launch does not return to the curve.
+- **Vesting starts at fundraising completion.** The later migration transaction does not restart the vesting clock.
+- **Fee rights are separate.** Creator vaults, CPMM creator fees, referrals, and Fee Key LP fees have different beneficiaries and claim paths.
 
 ## Chapter contents
 
-- [`bonding-curve`](/docs/en/products/launchlab/bonding-curve) — the curve formula, cost and proceeds math, graduation threshold derivation.
-- [`accounts`](/docs/en/products/launchlab/accounts) — `LaunchConfig`, `LaunchState`, vaults, authority PDAs.
-- [`instructions`](/docs/en/products/launchlab/instructions) — `Initialize`, `Buy`, `Sell`, `Graduate`, `CollectFees`, `SetParams`.
-- [`code-demos`](/docs/en/products/launchlab/code-demos) — end-to-end TypeScript examples.
+- [`bonding-curve`](/docs/en/products/launchlab/bonding-curve) — curve formulas, cost and proceeds math, and funding thresholds.
+- [`accounts`](/docs/en/products/launchlab/accounts) — config, pool, vault, and vesting accounts.
+- [`instructions`](/docs/en/products/launchlab/instructions) — initialization, trading, authorized migration, fee claims, and configuration.
+- [`code-demos`](/docs/en/products/launchlab/code-demos) — TypeScript examples.
+- [`platform-config`](/docs/en/products/launchlab/platform-config) — platform fields and update rules.
+- [`creator-fees`](/docs/en/products/launchlab/creator-fees) — creator, platform, CPMM, and locked-LP fee paths.
 
 ## Where to go next
 
-- [`products/cpmm/overview`](/docs/en/products/cpmm/overview) — what happens after a launch graduates.
-- [`user-flows/create-cpmm-pool`](/docs/en/user-flows/create-cpmm-pool) — alternative path for tokens that do not need a curve.
+- [`products/cpmm/overview`](/docs/en/products/cpmm/overview) — what happens after a launch migrates.
+- [`user-flows/creating-a-launchlab-token`](/docs/en/user-flows/creating-a-launchlab-token) — creator UI flow.
 - [`reference/program-addresses`](/docs/en/reference/program-addresses) — LaunchLab program ID.
 
 Sources:
 
-- [Raydium SDK v2 `LaunchLab` module](https://github.com/raydium-io/raydium-sdk-V2) (IDL under `src/raydium/launchpad/`).
-- LaunchLab program source is not currently published as a standalone repo. The IDL bundled with the SDK above is the canonical interface.
+- [Raydium SDK v2 LaunchLab module](https://github.com/raydium-io/raydium-sdk-V2) and the published LaunchLab IDL.
+- LaunchLab program implementation source is not publicly available. The IDL and SDK define the public interface used here.

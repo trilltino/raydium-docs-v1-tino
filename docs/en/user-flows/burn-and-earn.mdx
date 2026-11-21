@@ -1,10 +1,10 @@
 ---
 title: "Burn & Earn (permanent liquidity lock)"
-description: "Permanently lock a CPMM or CLMM LP position while retaining the right to claim trading fees via a transferable Raydium Fee Key NFT."
+description: "Permanently lock CPMM LP tokens or a CLMM position while retaining the right to claim its LP trading fees through a transferable Fee Key NFT."
 ---
 
 <Info>
-  **What "burn" means here.** Despite the name, the LP tokens / position NFT are **locked** in a program-owned escrow, not destroyed. The liquidity can never be withdrawn, but fees continue to accrue and can be claimed by whoever holds the Fee Key NFT. The NFT is transferable; whoever owns it owns the fee stream.
+  **What "burn" means here.** Despite the name, the selected CPMM LP amount or CLMM position NFT is **locked** in program-owned escrow, not destroyed. That liquidity cannot be withdrawn, but its LP fees continue to accrue. The transferable Fee Key NFT represents the right to collect them.
 </Info>
 
 <Warning>
@@ -13,83 +13,74 @@ description: "Permanently lock a CPMM or CLMM LP position while retaining the ri
 
 ## What Burn & Earn is
 
-Burn & Earn is a Raydium feature that lets a pool creator (or any LP) make a deposit **permanent** on-chain while keeping the right to harvest trading fees. A position becomes non-redeemable, but a newly minted **Raydium Fee Key** NFT represents the ongoing right to `collectFees` from that locked position.
+Burn & Earn lets a pool creator or another LP make selected liquidity **permanent** on-chain while keeping a separate right to harvest its LP trading fees. CPMM supports locking all or part of an LP balance. CLMM locks a whole position NFT.
 
-Common use cases:
-
-- **Launch trust.** Projects commit to not rug-pulling by locking the deployer's LP. Holders can verify on-chain that the liquidity is permanent.
-- **Fee-bearing collectible.** A tradable NFT that generates yield. Sell the NFT; transfer the fee stream.
-- **Treasury-grade LP.** Protocols that want to keep liquidity forever for brand / discovery purposes, while still monetizing the fee side.
+Common uses include committing project liquidity, transferring LP-fee rights without transferring the underlying liquidity, and separating treasury liquidity custody from fee collection.
 
 ## Supported pool types
 
 | Program | Burn & Earn support |
 |---|---|
-| CPMM | Yes |
-| CLMM | **Full-range only** (recommended) |
-| AMM v4 (Hybrid) | Not supported |
+| CPMM | Full or partial LP-balance lock |
+| CLMM | Whole position NFT; full-range positions are recommended |
+| AMM v4 | Not supported |
 
-For CLMM, only positions spanning the full price range should be locked. Once locked, you cannot rebalance — if price moves out of your chosen range you permanently stop earning fees on that position. A tight-range Burn & Earn position is almost always a mistake.
+For CLMM, consider the permanence of the selected range. Once locked, you cannot rebalance. If price moves out of that range, the position stops accruing new fees and rewards until price returns. A full-range position avoids that range-exit risk, but does not remove market or smart-contract risk.
 
 ## How the lock works at the program level
 
-1. The original LP token (CPMM) or position NFT (CLMM) is transferred into a program-owned PDA owned by the Burn & Earn program.
-2. A **Fee Key NFT** is minted to the caller. Its metadata points back to the locked position's PDA.
-3. Burn & Earn exposes `collectFees` (or the equivalent per-pool-type call) that:
-   - Verifies the signer holds the Fee Key NFT for the given locked position.
-   - Calls the underlying pool program's fee-claim instruction via CPI.
-   - Routes the collected fees to the Fee Key holder's ATAs.
-4. There is no corresponding `withdraw` — the underlying LP / position never exits the escrow.
+1. The selected CPMM LP amount or whole CLMM position NFT moves into program-owned escrow.
+2. LP-Lock mints a **Fee Key NFT** to the configured `fee_nft_owner`. In the Raydium UI this is normally your connected wallet. Metadata is optional and depends on the lock call's `with_metadata` argument.
+3. The current Fee Key holder can collect the locked position's LP fees:
+   - CPMM uses `collect_cp_fees`.
+   - CLMM uses `collect_clmm_fees_and_rewards`.
+4. The underlying LP amount or position never leaves escrow through a withdrawal path.
 
-The Fee Key is a standard SPL NFT. It can be sold on any Solana NFT marketplace, moved between wallets, used as collateral on lending protocols that accept NFTs, or wrapped into another contract. Whoever holds it at the time of a `collectFees` call receives the locked position's LP fees.
+The lock instructions are `lock_cp_liquidity` and `lock_clmm_position`. The official CPI interface accepts an explicit CPMM `lp_amount`, which is why a CPMM lock does not have to consume the full balance.
+
+```text
+CPMM wallet LP ── selected amount ──→ LP-Lock escrow
+CLMM position NFT ── whole position ─→ LP-Lock escrow
+                                      │
+                                      └─→ Fee Key NFT → current holder collects LP fees
+```
+
+The Fee Key is a standard SPL NFT and can be transferred between wallets. Marketplace, collateral, and other contract support depend on those third parties; they are not guarantees made by LP-Lock. Whoever holds the Fee Key when the applicable collection instruction executes receives the locked position's LP fees.
 
 A CPMM creator fee is a separate entitlement. It goes to `PoolState.pool_creator`, less the protocol share applied at collection. Locking an LP position or transferring its Fee Key does not transfer the `pool_creator` designation or its creator-fee stream. See [`products/cpmm/fees`](/docs/en/products/cpmm/fees).
 
 ## UI walk-through
 
-1. Create a CPMM pool, or a CLMM pool with a full-range position, as usual.
-2. Go to **Liquidity → Create → Burn & Earn**.
-3. Select the position to lock.
-4. Verify the position details (NFT address, size, pool) and type the confirmation sentence the UI shows. This is intentionally friction-heavy because the operation is irreversible.
-5. Click **Confirm, lock the liquidity permanently**.
-6. A Fee Key NFT arrives in your wallet. It appears on the Portfolio page under locked positions.
+1. Open the [CPMM lock page](https://raydium.io/liquidity/lock) or [CLMM lock page](https://raydium.io/clmm/lock).
+2. Select the pool or position to lock.
+3. For CPMM, choose the amount or percentage. The current UI provides 25%, 50%, 75%, and 100% choices. For CLMM, review the whole position and its range.
+4. Verify the pool, position, amount, and irreversible lock. Type the confirmation sentence the UI shows.
+5. Click **Confirm, lock the liquidity permanently** and approve the transaction.
+6. Confirm that the Fee Key NFT arrived in your wallet and that the Portfolio page shows the locked position.
 
-Claim fees the same way you claim from any position — through the Portfolio page or via `collectFees`.
+Claim through the Portfolio page. Integrators use `collect_cp_fees` for CPMM or `collect_clmm_fees_and_rewards` for CLMM rather than a generic `collectFees` instruction.
 
-## API surface
+## Verifying a lock
 
-The pool info endpoint returns a `burnPercent` field indicating the share of that pool's liquidity that has been locked via Burn & Earn:
+Verify the actual locked amount and the pool's LP supply or position record on-chain. An API or UI percentage can help locate a lock, but it does not establish the safety of the whole token.
 
-```http
-GET https://api-v3.raydium.io/pools/info/list
-  ?poolType=standard
-  &poolSortField=default
-  &sortType=desc
-  &pageSize=1
-  &page=1
-```
+A high locked share in one pool does not establish that the token is safe. Check:
 
-```json
-{
-  "data": [
-    {
-      "id": "...",
-      "burnPercent": 99.17,
-      ...
-    }
-  ]
-}
-```
+- liquidity in other pools;
+- unlocked LP held elsewhere;
+- token-holder concentration;
+- mint or Token-2022 authorities and extensions;
+- the security of the token or its project.
 
-`burnPercent` is a handy surface for trust-signalling: a token whose LP is 99%+ burned is dramatically less rug-able than one whose LP is 0% burned.
+Do not describe a token as protected from every liquidity withdrawal solely because one pool reports a high lock percentage.
 
 ## Pitfalls
 
-- **Irreversible.** The LP side can never be retrieved. Confirm the amount is something you're willing to never touch again.
-- **CLMM tight ranges are a trap.** Lock only full-range CLMM positions, unless you truly understand that a range-bound locked position stops earning once price exits the band.
-- **Losing the Fee Key NFT is losing the fees forever.** Treat it like a deed. Do not accidentally burn it; do not stake it in a hostile contract.
-- **Token-2022 mints with transfer fees**: Burn & Earn supports them but the transfer-fee haircut applies on every fee claim — budget for it.
-- **There is no partial lock.** If you want 50% locked and 50% movable, split the position into two positions first, then lock only one.
+- **Irreversible.** The locked LP side cannot be retrieved. Confirm the exact amount before signing.
+- **CLMM range risk is permanent until price returns.** A locked out-of-range position cannot be rebalanced into a new range.
+- **Fee Key ownership controls collection.** Transferring it transfers future LP-fee rights. Losing or burning it can make those rights inaccessible.
+- **Token-2022 deductions are separate.** A transfer-fee mint can reduce the net amount received during transfers and fee claims.
+- **CPMM permits partial locks.** You do not need to split a CPMM position merely to lock 50% of its LP balance. CLMM still locks the whole position NFT.
 
 ## LaunchLab uses Burn & Earn under the hood
 
@@ -103,5 +94,5 @@ Tokens graduated from [LaunchLab](/docs/en/products/launchlab) use LP-Lock for l
 
 Sources:
 
-- Raydium web UI Burn & Earn flow at raydium.io/liquidity.
-- `api-v3.raydium.io/pools/info/list` response schema.
+- Raydium web UI lock flows at `raydium.io/liquidity/lock` and `raydium.io/clmm/lock`.
+- [Official LP-Lock CPI interface](https://github.com/raydium-io/raydium-cpi/blob/115df2779d53bacc7db9d0be2773a4b48a6d372b/programs/locking-cpi/src/lib.rs). LP-Lock program implementation source is not publicly available.

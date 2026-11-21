@@ -4,7 +4,7 @@ description: "End-to-end token launch through LaunchLab: curve choice, initial c
 ---
 
 <Info>
-  LaunchLab is Raydium's primary-market launch venue. A project deposits its token supply into a bonding curve; buyers trade against the curve using SOL (or another quote mint); when a graduation threshold is reached, the curve's assets migrate automatically to a CPMM pool, and the token becomes freely tradable. This page walks through the whole flow from the project's side.
+  LaunchLab is Raydium's primary-market launch venue. A project initializes its token supply in a bonding curve; buyers trade against the curve using SOL or another configured quote mint. Reaching the funding threshold moves the launch to `Migrate`. The authorized migration wallet then creates the CPMM pool and moves it to `Trade`. This page walks through the flow from the project's side.
 </Info>
 
 ## What you need
@@ -294,7 +294,7 @@ The graduated pool uses LaunchLab's default CPMM config (0.25%). If you wanted 1
 - [`products/launchlab/instructions`](/docs/en/products/launchlab/instructions) — full instruction reference.
 - [`products/launchlab/vesting`](/docs/en/products/launchlab/vesting) — vesting schedule mechanics.
 - [`algorithms/bonding-curves`](/docs/en/algorithms/bonding-curves) — general bonding-curve math.
-- [`user-flows/creating-a-launchlab-token`](/docs/en/user-flows/creating-a-launchlab-token) — UI walkthrough for token creators (JustSendit and LaunchLab modes).
+- [`user-flows/creating-a-launchlab-token`](/docs/en/user-flows/creating-a-launchlab-token) — UI walkthrough for token creators (JustSendIt and Advanced modes).
 - [`user-flows/how-creator-fees-work`](/docs/en/user-flows/how-creator-fees-work) — pre- and post-migration creator fee overview.
 
 Sources:

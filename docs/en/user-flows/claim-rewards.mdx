@@ -1,15 +1,31 @@
 ---
 title: "Claim rewards"
-description: "Harvest farm rewards and collect CLMM fees and rewards through the Raydium UI."
+description: "Harvest farm rewards and collect CLMM fees and rewards through the Raydium UI, with the underlying claim paths and common failure causes."
 ---
 
 <Info>
-  Rewards accrue automatically, but they remain pending until you claim them. This page covers two claim paths: **farm harvest** for staked farm positions and **CLMM collect** for concentrated liquidity positions.
+  Rewards accrue automatically, but they remain pending until you claim them. This page covers **farm harvest** for staked positions and **CLMM collection** for concentrated-liquidity positions.
 </Info>
+
+## Claim paths at a glance
+
+| Position or revenue | Underlying claim path |
+|---|---|
+| CPMM LP fees | Fees remain in pool reserves; withdraw LP to realize your share |
+| CLMM LP fees and position rewards | `DecreaseLiquidity` or `DecreaseLiquidityV2`, including zero-liquidity collection |
+| Farm v6 rewards | `Harvest` |
+| Legacy Farm v3/v5 rewards | `Deposit` with `amount = 0` |
+| Locked-position LP fees | LP-Lock collection by the current Fee Key holder; see [Burn & Earn](/docs/en/user-flows/burn-and-earn) |
+
+```text
+CPMM fee → pool reserves → LP withdrawal
+CLMM fee/reward → position counters → DecreaseLiquidity
+Farm reward → farm ledger → v6 Harvest or legacy Deposit(0)
+```
 
 ## Farm harvest
 
-Farm rewards accrue while your LP tokens are staked in an active farm. Harvesting transfers pending rewards to your wallet. It does not withdraw your stake.
+Farm rewards accrue while your eligible LP tokens are staked in an active farm. Harvesting transfers pending rewards to your wallet. It does not withdraw your stake.
 
 ### UI walkthrough
 
@@ -19,13 +35,15 @@ Farm rewards accrue while your LP tokens are staked in an active farm. Harvestin
 4. Review pending amounts per reward stream.
 5. Confirm and approve in your wallet.
 
+Farm v6 has an explicit `Harvest` instruction. Legacy Farm v3 and v5 instead use `Deposit` with `amount = 0` to settle rewards without changing stake. Identify the farm's program version before building or debugging a transaction.
+
 ## Combined deposit or withdraw with harvest
 
-Farm deposits and withdrawals often settle pending rewards as part of the same action. If you add more stake or withdraw stake, review the confirmation carefully because it may also harvest pending rewards.
+Farm deposits and withdrawals can settle pending rewards as part of the same action. If you add or remove stake, review the confirmation carefully because it may also harvest pending rewards.
 
 ## CLMM collect fees
 
-CLMM positions earn swap fees in both pool mints. Fees accrue on the position and do not auto-compound.
+Only in-range CLMM liquidity accrues new fees. Each swap accrues its fee in the token entering the pool, so both pool mints can accrue over multiple trade directions. Fees remain pending on the position and do not auto-compound.
 
 1. Open your CLMM position from [raydium.io/portfolio](https://raydium.io/portfolio).
 2. Click **Collect fees**.
@@ -36,7 +54,7 @@ To compound manually, collect fees, rebalance the two tokens if needed, then inc
 
 ## CLMM collect rewards
 
-Some CLMM pools have reward streams in addition to swap fees.
+Some CLMM pools have reward streams in addition to swap fees. Only in-range liquidity accrues new position rewards.
 
 1. Open the CLMM position.
 2. Click **Collect rewards**.
@@ -45,27 +63,49 @@ Some CLMM pools have reward streams in addition to swap fees.
 
 If the UI offers **Collect all**, use it to collect fees and rewards together.
 
-## Timing and fee economics
+### On-chain collection mechanism
 
-Every claim costs a Solana transaction fee and may include a priority fee during congestion.
+The UI's **Collect fees** and **Collect rewards** labels do not name separate program instructions. CLMM pays both through `DecreaseLiquidity` or `DecreaseLiquidityV2`. To collect without reducing liquidity, use:
 
-- For small pending amounts, wait until rewards are meaningful relative to the transaction fee.
-- For larger positions, weekly or monthly claims are often enough.
-- There is usually no need to claim every day unless you are actively compounding.
+```text
+liquidity    = 0
+amount_0_min = 0
+amount_1_min = 0
+```
+
+Each active reward stream also needs a remaining-account group in this order:
+
+```text
+reward_token_vault (writable)
+recipient_token_account (writable)
+reward_vault_mint
+```
+
+The program pays pending fees and rewards and leaves position liquidity unchanged. `CollectRemainingRewards` is different: it lets a reward funder recover undistributed budget after the stream ends. See [CLMM reward collection](/docs/en/products/clmm/instructions#collecting-rewards).
+
+## Claim costs
+
+Every claim costs a Solana transaction fee and may include a priority fee during congestion. Compare the pending amount with that cost and whether you intend to compound it. No protocol rule requires a particular claim cadence.
 
 ## Troubleshooting
 
-### Harvesting just before a reward ends
+### Harvesting after a reward ends
 
-If a reward stream ends while you have pending rewards, the pending amount stops growing. You can still claim it after the end time unless the farm has been wound down in an unusual way.
+Ending a stream stops new emissions. Claiming previously earned rewards still requires available reward-vault funds and a farm state that has not been wound down. Do not assume an ended display label alone determines whether a claim can succeed.
 
 ### Transfer-fee reward mints
 
 If a reward mint charges transfer fees, your net received amount can be lower than the pending display. Review wallet balance changes after confirmation.
 
-### First harvest fails
+### A harvest or collection fails
 
-Refresh the page and retry. If your position was created or migrated recently, the UI may need to initialize or refresh account data before harvest works.
+Check the specific path rather than only refreshing the page:
+
+- Confirm the farm is v6 or legacy v3/v5 and use the matching claim instruction.
+- Confirm all required recipient ATAs and reward remaining accounts are present.
+- Refresh recently created, migrated, or changed position data before rebuilding the transaction.
+- Confirm the pending amount is nonzero.
+- Keep enough SOL for the transaction fee and any required account rent.
 
 ### Priority fee too low
 
@@ -77,11 +117,12 @@ Large batch claims can fail if too many positions or reward streams are included
 
 ## Verification
 
-After harvest or collect:
+After harvest or collection:
 
 - Check that the transaction status is **Success**.
 - Confirm the reward or fee token balance increased in your wallet.
 - Refresh Raydium's portfolio page and confirm pending amounts reset or decreased.
+- For a zero-liquidity CLMM collection, confirm the position's liquidity did not decrease.
 
 ## Pointers
 

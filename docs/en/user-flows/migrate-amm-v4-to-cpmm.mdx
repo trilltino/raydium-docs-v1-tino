@@ -4,20 +4,20 @@ description: "Move liquidity from an AMM v4 pool to a CPMM pool through Raydium:
 ---
 
 <Info>
-  AMM v4 is fully operational and has no announced sunset. Migration is a choice, not a forced move. CPMM offers a better LP fee split by default, lower creation costs, Token-2022 support, and no OpenBook dependency.
+  AMM v4 is fully operational and has no announced sunset. Migration is a choice, not a forced move. CPMM supports Token-2022 and configurable fee accounts. Neither current AMM v4 nor CPMM depends on OpenBook.
 </Info>
 
 ## Why migrate
 
 | Dimension | AMM v4 | CPMM |
 |-----------|--------|------|
-| Fee destination | Protocol + LP split | LPs receive the default swap-fee share |
-| OpenBook dependency | Yes | None |
-| Creation cost | Higher | Lower |
-| Token-2022 support | No | Yes |
-| New listings routed to | Rare | Default |
+| Default LP economic share of volume | 0.22% under default parameters | 0.21% under the standard 0.25% config with an 84% LP trade-fee share |
+| Fee configuration | Per-pool values; the admin can change them with `SetParams` | Selected `AmmConfig`; a separate creator fee can also apply |
+| OpenBook dependency | Removed in July 2026 | None |
+| Token-2022 support | No | Supported within program constraints |
+| Position representation | Fungible LP tokens | Fungible LP tokens |
 
-If your pair trades heavily, the LP-fee uplift can justify migration. If the old pool still has strong liquidity and the project has not endorsed a destination CPMM pool, migration may not be worth the coordination cost.
+Compare the live source and destination configurations rather than assuming migration improves LP fees. Also account for changes in liquidity depth, price exposure, farm rewards, and coordination costs.
 
 ## Pre-migration checklist
 
@@ -25,20 +25,34 @@ For pool operators and project treasuries:
 
 - [ ] Announce the migration timeline to LPs.
 - [ ] Give LPs at least 48 hours where possible.
-- [ ] Confirm the destination CPMM pool and fee tier.
+- [ ] Confirm the destination CPMM pool identity and mints.
+- [ ] Read the destination `AmmConfig`, including its trade-fee split and creator-fee settings.
 - [ ] Prepare post-migration announcements with the new pool ID and LP mint.
-- [ ] Decide whether a new farm is needed.
+- [ ] Decide whether a new farm is needed and when old and new reward streams change.
 
 For individual LPs:
 
 - [ ] Confirm you are following the project's endorsed migration.
-- [ ] Keep enough SOL for multiple transactions.
+- [ ] Keep enough SOL for multiple transactions and token-account rent.
 - [ ] Note your AMM v4 LP balance and expected underlying amounts.
 - [ ] Check whether your AMM v4 LP tokens are staked in a farm.
+- [ ] Verify the destination pool's mints, fee config, and liquidity before depositing.
 
 ## UI migration: individual LP
 
-The migration is two actions: remove liquidity from AMM v4, then add liquidity to CPMM.
+Migration has two main **liquidity operations**: remove liquidity from AMM v4, then add liquidity to CPMM. They are not one atomic migration instruction and do not necessarily equal two transactions. Unstaking, destination-pool creation, ATA creation, and new-farm staking can add transactions.
+
+```text
+Optional: unstake AMM v4 LP and settle farm rewards
+                    ↓
+        Withdraw AMM v4 LP → receive both tokens
+                    ↓
+   Select or create the intended CPMM pool and required ATAs
+                    ↓
+          Deposit tokens → receive CPMM LP tokens
+                    ↓
+        Optional: stake CPMM LP in the destination farm
+```
 
 ### Step 1: withdraw from AMM v4
 
@@ -57,7 +71,9 @@ The migration is two actions: remove liquidity from AMM v4, then add liquidity t
 4. Review the paired token amount and any leftover balance.
 5. Confirm and approve.
 
-Between withdrawal and deposit, pool prices can move. If the two pools have different ratios, some tokens may remain as dust in your wallet.
+Between withdrawal and deposit, pool prices can move. Different pool ratios can leave a meaningful amount of one token in your wallet; it is not necessarily rounding dust.
+
+Withdrawing and re-depositing also changes your position's exposure to price divergence and fee accrual. Compare the value and token amounts at each step rather than treating the new LP balance as the same position. If you unstake or change farms, check when each reward stream stops and starts accruing.
 
 ## UI migration: project treasury
 
@@ -68,7 +84,7 @@ For a project treasury, the process is the same but requires coordination:
 3. **Migrate treasury LP** first and publish transaction links.
 4. **Create a new farm** if incentives should continue on the CPMM LP mint.
 5. **Monitor individual LP migrations** over the next days or weeks.
-6. **Deprecate the old pool** only after users had enough time to move.
+6. **Delist or stop promoting the old pool** only after users have had enough time to move. The project cannot disable a permissionless pool for everyone.
 
 ## Verification
 
@@ -86,28 +102,28 @@ For a project treasury, the process is the same but requires coordination:
 
 ### Proof of migration
 
-For transparency, publish both transaction links:
+For transparency, publish the relevant transaction links, including unstaking or pool-creation transactions where applicable:
 
 - Withdraw from AMM v4.
 - Deposit to CPMM.
 
 ## Rollback considerations
 
-Rolling back from CPMM to AMM v4 means withdrawing from CPMM and depositing to AMM v4. It is usually not worth doing unless there is a specific product reason. AMM v4 pool creation is more expensive and requires OpenBook market setup.
+Rolling back from CPMM to AMM v4 means withdrawing from CPMM and depositing to AMM v4 through another non-atomic sequence. Current AMM v4 pool creation does not require OpenBook market setup. Compare current creation costs, fee settings, liquidity, and farm support before changing pools again.
 
 ## Common concerns
 
 ### My AMM v4 LP is staked in a farm. Can I migrate?
 
-Yes. Unstake first, withdraw LP from AMM v4, deposit into CPMM, then stake the new CPMM LP tokens if a new farm exists.
+Yes. Unstake first, withdraw LP from AMM v4, deposit into CPMM, then stake the new CPMM LP tokens if a new farm exists. Review pending-reward settlement at unstaking and the new farm's reward schedule.
 
 ### The CPMM pool does not exist yet
 
-Most LPs should wait for the project to create and endorse a destination pool. Creating one yourself means you take the initial price and liquidity risk.
+Most LPs should wait for the project to identify a destination pool. Creating one yourself adds pool-creation steps and makes you responsible for its initial price, liquidity, and configuration.
 
 ### I have a large position. What about slippage?
 
-Withdraw and deposit in smaller slices if your position is large relative to pool TVL. Review each quote and avoid signing if the received amounts are materially worse than expected.
+Review each withdrawal and deposit quote. Splitting execution into smaller slices does not automatically reduce total price impact and adds transaction costs. Compare the complete expected amounts and costs before signing.
 
 ### What happens to LP tokens I forget to migrate?
 
@@ -119,17 +135,13 @@ They stay in the old pool and keep earning according to AMM v4 rules. Nothing fo
 
 The first CPMM deposit may need to create a new LP token account. Keep extra SOL in your wallet for rent and fees.
 
-### Second transaction expires
+### A later transaction expires
 
-If withdrawal lands but deposit expires, your tokens remain in your wallet. Reopen the CPMM pool and retry with a higher priority-fee setting.
+If withdrawal lands but deposit expires, your tokens remain in your wallet. Reopen the verified CPMM pool, refresh the quote, and retry. The migration is not atomic.
 
 ### Wrong CPMM pool
 
-Multiple CPMM pools can exist for the same pair. Use the pool endorsed by the project or the pool with the intended fee tier and liquidity.
-
-### Tax implications
-
-In some jurisdictions, LP withdrawal can be a taxable event. Consult local rules before migrating large positions.
+Multiple CPMM pools can exist for the same pair. Verify the pool address, mints, `AmmConfig`, creator-fee settings, and liquidity rather than relying on the token symbols alone.
 
 ## Pointers
 

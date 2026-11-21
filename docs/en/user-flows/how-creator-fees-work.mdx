@@ -1,10 +1,10 @@
 ---
 title: "How creator fees work"
-description: "How LaunchLab creator fees accrue on the bonding curve and after CPMM graduation, separately from the platform-owned Fee Key."
+description: "How LaunchLab creator fees accrue on the bonding curve and after CPMM migration, separately from platform-owned Fee Keys and referral fees."
 ---
 
 <Info>
-  Creator fees have two separate phases. Locked-LP Fee Keys are a third mechanism. Before the 2026-08-17 upgrade, the creator scale produced a creator Fee Key. Migrations executed after the upgrade assign that share to the platform.
+  Creator fees have two separate phases. Locked-LP Fee Keys are a third mechanism. Before the 2026-08-17 upgrade, the creator scale produced a creator Fee Key. Migrations executed after the upgrade assign that locked-LP share to the platform.
 </Info>
 
 <Warning>
@@ -15,18 +15,27 @@ description: "How LaunchLab creator fees accrue on the bonding curve and after C
 
 While your token trades on the bonding curve, the platform can charge a creator-fee component on buys and sells.
 
-- It accrues in the quote token, usually SOL.
-- The platform sets the rate.
-- You can claim it through the LaunchLab creator-fee claim flow.
-- Graduation stops new bonding-curve accrual. Any existing balance remains claimable.
+- The fee accrues in the quote token, usually SOL.
+- `PlatformConfig.creator_fee_rate` sets the rate.
+- The creator-fee vault is keyed by **creator and quote mint**. The same creator can reuse that vault across launches sharing the quote mint; it is not one vault per token.
+- The creator claims an available balance through LaunchLab `ClaimCreatorFee`, including through the supported Portfolio flow.
+- Migration stops new bonding-curve accrual. An existing vault balance remains separate from CPMM fees.
 
 ## Phase 2: CPMM creator fees
 
-Every newly initialized launch graduates to CPMM. CPMM creator fees accrue only when the selected `AmmConfig` has a non-zero creator-fee rate.
+Every newly initialized launch uses the CPMM migration path. A nonzero `AmmConfig.creator_fee_rate` alone is not enough to make creator fees accrue. Check all three settings:
 
-By default, the launch creator becomes the CPMM pool creator. A platform can instead set `platform_cp_creator`, in which case that address receives the CPMM creator-fee rights.
+| Setting | What it controls |
+|---|---|
+| `AmmConfig.creator_fee_rate` | The independent creator-fee rate |
+| `AmmConfig.enable_creator_fee` | Whether the selected config enables the creator-fee path |
+| `PoolState.creator_fee_on` | Which token side bears the creator fee |
 
-The recorded CPMM creator can claim directly. Another payer can also trigger permissionless collection, but CPMM fixes the destinations to the creator's canonical token accounts.
+By default, the launch creator becomes the CPMM pool creator. A platform can instead set `platformCpCreator`, in which case that address receives the CPMM creator-fee rights.
+
+The recorded CPMM creator can use creator-signed collection. Another payer can trigger permissionless collection, but CPMM fixes the creator's destinations to its canonical associated token accounts.
+
+At collection, CPMM applies the configured `creator_fee_share_rate` or a per-creator override. The protocol retains that share of the accrued creator-fee bucket, and the remainder goes to the recorded creator. Gross accrued creator fees are therefore not necessarily the creator's net payout.
 
 ## What happens to LP tokens
 
@@ -37,33 +46,52 @@ platform locked LP = platformScale + creatorScale
 burned LP          = burnScale
 ```
 
-If the locked share is non-zero, one Fee Key NFT goes to the platform's configured NFT wallet. This NFT controls LP-fee harvesting. It does not control CPMM creator-fee collection. Creator Fee Keys from migrations completed before the upgrade remain with their existing holders.
+If the locked share is nonzero, one Fee Key NFT goes to the platform's configured lock-NFT wallet. This NFT controls LP-fee harvesting. It does not control CPMM creator-fee collection. Creator Fee Keys from migrations completed before the upgrade remain with their existing holders.
+
+## Claim paths
+
+| Revenue | Beneficiary | Claim path |
+|---|---|---|
+| Bonding-curve creator fee | Original launch creator | LaunchLab `ClaimCreatorFee` from the creator/quote-mint vault |
+| CPMM creator fee | Recorded CPMM `pool_creator`, less the protocol share at collection | Creator-signed collection or permissionless collection to canonical ATAs |
+| Locked-LP fees from a historical creator Fee Key | Current holder of that Fee Key | LP-Lock / Burn & Earn harvest |
+| Locked-LP fees from an updated migration | Current holder of the platform Fee Key | LP-Lock / Burn & Earn harvest |
 
 ## Fee flow summary
 
 ```text
 Bonding curve
-  creator fee → launch creator vault
+  creator fee → vault keyed by (launch creator, quote mint)
+              → ClaimCreatorFee
 
-Graduation to CPMM
-  Before upgrade → platform Fee Key + creator Fee Key + burned share
-  After upgrade  → combined platform Fee Key share + burned share
+Migration to CPMM
+  Before 2026-08-17 upgrade → platform Fee Key + creator Fee Key + burned share
+  After upgrade             → combined platform Fee Key share + burned share
 
 CPMM trading
-  creator fee → recorded CPMM pool creator
-  LP fee      → platform Fee Key holder for the locked share
+  creator fee → accrued creator bucket
+              → protocol share at collection
+              → remainder to recorded pool creator
+
+Locked LP
+  LP fee → current Fee Key holder
 ```
 
 ## Before you launch
 
-- Check the bonding-curve `creator_fee_rate`.
-- Check whether `platform_cp_creator` replaces you as the CPMM creator-of-record.
+- Check the bonding-curve `creator_fee_rate` and the creator/quote-mint vault path.
+- Check whether `platformCpCreator` replaces you as the CPMM creator-of-record.
+- Check the CPMM config's enablement, creator-fee rate, fee-on setting, and creator-fee share rate or override.
 - For migrations executed after the upgrade, do not treat `creatorScale` as a promised creator Fee Key allocation. For earlier migrations, verify the existing Fee Key record.
-- Check the CPMM config's creator-fee rate and fee-on setting.
+- Keep referrals separate: `shareFeeRate` pays a trade referrer's quote-token ATA and does not accrue in the creator vault.
+
+## Verification boundary
+
+CPMM creator-fee behavior above follows the public CPMM program. LaunchLab and LP-Lock implementation source is not publicly available; their claim paths and migration ownership model are documented from the published IDL, SDK, configuration, and migration references.
 
 ## Pointers
 
 - [LaunchLab creator fees](/docs/en/products/launchlab/creator-fees) — technical reference.
 - [LP fee distribution](/docs/en/products/launchlab/tips-and-gotchas/lp-fee-distribution) — effective scale calculation.
-- [CPMM fees](/docs/en/products/cpmm/fees) — post-graduation fee counters and collection.
+- [CPMM fees](/docs/en/products/cpmm/fees) — post-migration fee counters and collection.
 - [LaunchLab platforms](/docs/en/user-flows/launchlab-platforms) — platform settings to review.

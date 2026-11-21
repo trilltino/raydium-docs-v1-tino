@@ -9,7 +9,7 @@ description: "The full account inventory of AMM v4: the program-wide AmmConfig a
 
 ## Inventory
 
-Each pool records on `AmmInfo` the `market` key it was created with. Since the OpenBook removal that key is only a seed for the pool's addresses, and the pool is not bound to any market. The full picture:
+Each pool's `AmmInfo` stores the `market` key supplied at creation. Since the OpenBook removal, the program uses that key only as a seed for the pool's addresses. The pool is not bound to a market.
 
 | Category | Account | Owner | Role |
 |----------|---------|-------|------|

@@ -70,7 +70,7 @@ A reward can be extended (push `end_time` forward, top up the vault) via `AddRew
 
 ## What farms are not
 
-- **Not a fee distributor.** CPMM and CLMM collect trade fees directly into pool state. Farms do not touch pool fees. The only path from pool fees to a token holder is LP-redemption or CLMM's `CollectFee`.
+- **Not a fee distributor.** CPMM and CLMM collect trade fees directly into pool state. Farms do not touch pool fees. Pool-fee paths include LP redemption and CLMM's `DecreaseLiquidity` / `DecreaseLiquidityV2`, including a zero-liquidity call that collects outstanding position fees.
 - **Not automatic.** LP must be explicitly staked to earn farm rewards. LP holders who leave their tokens in their wallet earn nothing from the farm.
 - **Not fungible.** Each `UserStake` account is tied to one `(farm, user)` pair. You cannot transfer your stake to another wallet without unstaking first.
 - **Not compatible with CLMM positions directly.** Farm v6 introduced a CLMM adapter, but in practice CLMM pools use their own built-in reward streams (see [`products/clmm/fees`](/docs/en/products/clmm/fees)) rather than farm emissions.

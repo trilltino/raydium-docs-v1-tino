@@ -21,7 +21,7 @@
 
 ## Style preferences
 
-- Read and apply [UNSLOP.md](UNSLOP.md) when writing or editing prose for this repo. It is a local copy of the [Cursor pstack unslop skill](https://github.com/cursor/plugins/blob/main/pstack/skills/unslop/SKILL.md). Preserve technical meaning, code syntax, and the project conventions in this file.
+- Apply the style preferences in this file and the contribution standards in [CONTRIBUTION_STANDARDS.md](CONTRIBUTION_STANDARDS.md). Preserve technical meaning, code syntax, and the project conventions in this file.
 - Use active voice and second person ("you").
 - Keep sentences concise — one idea per sentence.
 - Use sentence case for headings.

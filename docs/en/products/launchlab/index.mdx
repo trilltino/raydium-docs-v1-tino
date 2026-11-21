@@ -1,11 +1,11 @@
 ---
 title: "LaunchLab"
-description: "Bonding-curve token-launch venue that graduates into a Raydium AMM pool once funding targets are met."
+description: "Bonding-curve token launches that move through funded and migration states before authorized CPMM pool creation."
 ---
 
 ## What it is
 
-LaunchLab is Raydium's token-launch program. A project deploys a token against a bonding curve; buyers trade against the curve until a funding threshold is reached, at which point the remaining curve supply and collected quote tokens are migrated into a Raydium AMM pool (CPMM or CLMM) and trading continues there.
+LaunchLab is Raydium's token-launch program. A project initializes a token against a bonding curve and buyers trade during the `Fund` state. Reaching the funding threshold moves the launch to `Migrate`. The authorized migration wallet then creates a CPMM pool, after which the launch reaches `Trade` and normal pool trading can begin.
 
 **Program ID:** see [reference/program-addresses](/docs/en/reference/program-addresses).
 
@@ -13,25 +13,25 @@ LaunchLab is Raydium's token-launch program. A project deploys a token against a
 
 <CardGroup cols={2}>
   <Card title="Overview" icon="circle-info" href="/docs/en/products/launchlab/overview">
-    Lifecycle of a launch: pre-graduation trading, graduation trigger, post-graduation AMM pool.
+    Launch lifecycle, curve types, fee paths, authorized migration, and post-migration CPMM liquidity.
   </Card>
   <Card title="Bonding curve" icon="chart-line" href="/docs/en/products/launchlab/bonding-curve">
-    The curve formula(s) supported by LaunchLab, worked price examples, and how the graduation threshold is computed.
+    Supported curve formulas, price examples, and funding-threshold calculations.
   </Card>
   <Card title="Accounts" icon="database" href="/docs/en/products/launchlab/accounts">
-    LaunchConfig, LaunchState, vaults, authority PDAs; account states through the launch lifecycle.
+    GlobalConfig, PlatformConfig, PoolState, vaults, and vesting records through the launch lifecycle.
   </Card>
   <Card title="Instructions" icon="terminal" href="/docs/en/products/launchlab/instructions">
-    Initialize, Buy, Sell, Graduate, CollectFees, SetParams. Includes migration-to-pool instruction.
+    Initialization, exact-input/output trades, authorized migration, fee claims, and configuration instructions.
   </Card>
   <Card title="Code demos" icon="code" href="/docs/en/products/launchlab/code-demos">
-    End-to-end: deploy a launch, buy/sell, trigger graduation, verify resulting pool.
+    SDK examples for launching, buying, selling, migration, and verifying the resulting pool.
   </Card>
   <Card title="Platforms" icon="layer-group" href="/docs/en/products/launchlab/platforms">
-    Third-party Platform PDAs — how external teams run their own branded launch environment on top of LaunchLab.
+    PlatformConfig PDAs for branded launch environments, fees, restrictions, and migration settings.
   </Card>
   <Card title="Creator fees" icon="coins" href="/docs/en/products/launchlab/creator-fees">
-    Pre-migration vault, post-migration Fee Key NFT, the 0.1% token-share referral, and how splits are configured per platform.
+    Pre-migration creator vaults, CPMM creator fees, platform Fee Keys, and the current Raydium UI's 1% token-share referral.
   </Card>
 </CardGroup>
 
@@ -39,4 +39,4 @@ LaunchLab is Raydium's token-launch program. A project deploys a token against a
 
 - You are launching a new token on Raydium.
 - You are building a launch-tracking UI or aggregator.
-- You need to understand price formation pre-graduation vs. post-graduation.
+- You need to understand curve pricing, migration states, and post-migration pool mechanics.

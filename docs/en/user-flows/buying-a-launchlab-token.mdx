@@ -1,6 +1,6 @@
 ---
 title: "Buying a LaunchLab token"
-description: "How to find, research, and buy a token on Raydium LaunchLab — including risk factors, slippage settings, and what happens when the bonding curve graduates."
+description: "How to find, research, and buy a token on Raydium LaunchLab, including curve types, fees, slippage, launch states, and migration risks."
 ---
 
 <Warning>
@@ -9,70 +9,95 @@ description: "How to find, research, and buy a token on Raydium LaunchLab — in
 
 ## What LaunchLab tokens are
 
-LaunchLab tokens are issued on a **bonding curve**: a smart-contract-managed price curve where price rises as more tokens are bought and falls when tokens are sold. The curve operates until a graduation threshold is reached, at which point every newly initialized launch migrates to a Raydium CPMM pool and becomes tradable through normal DEX routing.
+LaunchLab tokens trade against a program-managed bonding curve during fundraising. Price behavior depends on the selected curve: constant-product and linear curves change price as supply is bought or sold, while a fixed-price curve keeps its configured price constant.
 
-Before graduation, you can only buy and sell against the curve itself. After graduation, the token trades on Raydium like any other pool.
+Reaching the funding threshold changes the launch to `Migrate`. The authorized migration wallet must then create the CPMM pool before the launch reaches `Trade`. Normal pool trading is not available merely because the threshold has been reached.
 
 ## Before you buy
 
-### Do your own research
+### Verify the token and launch
 
-- Verify the token's mint address matches the one announced by the project in question — scammers routinely create identically-named tokens.
-- Check whether the **mint authority has been revoked**. If it hasn't, the creator could mint new supply and dilute your position. Wallets such as Solflare and explorers such as Solscan display this status.
-- Review the bonding curve progress: how many tokens have been sold, how many are left, and the current price. This is visible on the token's LaunchLab page.
-- Inspect the creator address's history if possible.
+- Verify the token's mint address against a source you trust. Scammers can create tokens with identical names and logos.
+- Verify the quote mint so you know which asset you are spending and which asset any creator or referral fees use.
+- Check the launch state. Curve buys and sells apply in `Fund`; `Migrate` is an intermediate non-trading state; CPMM trading applies after `Trade`.
+- Review the curve type, funding target, amount sold, remaining curve supply, and current quote.
+- Current LaunchLab initialization revokes the base mint authority when it mints the full supply. Verify this on the actual mint rather than treating it as a check to perform only at graduation.
+- For a Token-2022 launch, inspect its extensions, transfer-fee rate and cap, transfer-fee config authority, and withdraw-withheld authority.
+- Inspect creator and platform history if available. No single check establishes that a token is safe.
+
+### Understand the fees
+
+A curve trade can include separate protocol, platform, creator, and referral components:
+
+```text
+protocol_fee = protocol rate × trade amount
+platform_fee = platform rate × trade amount
+creator_fee  = creator rate × trade amount
+referral_fee = share fee rate × trade amount, when a referrer is supplied
+```
+
+The rates use their configured denominators and integer arithmetic. The program rounds each component in base units, so a displayed decimal estimate can differ slightly from the transaction's exact balance changes. Read the quote and confirmation rather than assuming that a referral link changes only the token price.
 
 ### Understand the curve mechanics
 
-Prices on the bonding curve are **not fixed**. Every buy moves the price up; every sell moves it down. A large buy immediately before yours can significantly raise the price you pay (front-running / sandwich risk). Use slippage limits (see below).
+Do not assume every buy raises price or every sell lowers it. That describes price-responsive curves, not fixed-price launches. For price-responsive curves, a large trade can move execution before your transaction lands. Use the quote and slippage bound to limit what you accept.
 
 ## Step-by-step: buying via the UI
 
 1. Navigate to [raydium.io/launchpad](https://raydium.io/launchpad) and find the token you want to buy.
 2. Click the token page to open its detail view.
 3. Connect your wallet if you haven't already.
-4. Enter the amount of SOL (or the quote token) you want to spend.
-5. Review the **estimated tokens received** and the **price impact** shown in the UI.
-6. Adjust your **slippage tolerance** if needed (see below).
+4. Enter the amount of SOL or the supported quote token you want to spend.
+5. Review the **estimated tokens received**, **price impact**, and fee components shown in the UI.
+6. Review the **slippage tolerance**.
 7. Click **Buy** and approve the transaction in your wallet.
-8. After the transaction confirms, the tokens will appear in your wallet.
+8. After the transaction confirms, verify the token balance and actual balance changes.
 
 <Tip>
-  You can sell back to the curve at any time before graduation using the **Sell** button on the same token page. After graduation the token is in a Raydium pool; use the standard Swap interface instead.
+  You can sell back to the curve while the launch remains in `Fund`. A launch in `Migrate` is waiting for authorized migration, not ordinary curve trading. After the launch reaches `Trade`, use the standard Swap interface for its CPMM pool.
 </Tip>
 
 ## Slippage
 
-<Warning>
-  **Set an appropriate slippage tolerance.** Bonding-curve tokens can be volatile. If you set slippage too low, your transaction may fail when price moves between your quote and execution. If you set it too high, you are exposed to sandwich bots. A reasonable starting point for most launches is 1–3%; raise it only if needed on very low-liquidity launches nearing graduation.
-</Warning>
+Slippage tolerance bounds the difference between the quote and the execution you are willing to accept. A low tolerance can cause a transaction to fail when state changes before execution. A high tolerance permits a worse execution within that bound.
 
-Slippage tolerance is the maximum price difference you are willing to accept between the quoted price and the executed price. The LaunchLab UI allows you to set this before confirming your transaction.
+The Raydium LaunchLab UI's default was **2.5%** when checked on 2026-11-19. This is a UI default, not a universally safe setting or a recommendation for every launch. Review the actual minimum-received or maximum-spent bound before signing.
 
-## After graduation
+## After the funding threshold
 
-When the curve's graduation threshold is reached (by any trader), the token migrates to a Raydium AMM pool automatically. At that point:
+The last qualifying trade makes the launch eligible for migration. It does not make any trader an authorized migration caller and does not pay that caller a bounty.
 
-- The bonding curve is closed; no further buys or sells go through it.
+```text
+Fund → funding condition met → Migrate
+                                │ authorized MigrateToCpswap
+                                ▼
+                     CPMM pool created → Trade
+```
+
+After migration:
+
+- Curve trading stays closed.
 - Your tokens remain in your wallet untouched.
-- You can now trade the token on Raydium's Swap page or any aggregator that indexes Raydium pools.
-- Pool migration can take a few minutes to appear in aggregator UIs.
+- Verify the resulting CPMM pool address and mints before trading through another interface.
+- Raydium Swap and aggregators can use the pool after they index it. No fixed indexing or display time is guaranteed.
 
 ## Risks
 
 | Risk | Description |
 |---|---|
-| Liquidity-control risk | LP handling depends on platform and launch settings. Check whether LP is burned, locked, assigned to the creator, or assigned to the platform. |
-| No graduation | If the curve never reaches its threshold, trading remains limited to the curve only. You can still sell back to the curve, but at a potentially lower price than you paid. |
-| Price volatility | Bonding curves are inherently speculative. Price can drop to near zero. |
+| Liquidity-control risk | Check the actual lock and burn records. Current migrations assign the combined locked-LP Fee Key to the configured platform wallet; creator-owned Fee Keys belong to historical migrations under the earlier model. |
+| Migration delay | A launch can meet its threshold and remain in `Migrate` until the authorized wallet executes migration. |
+| No graduation | If the launch never meets its funding condition, it remains on the curve. Selling while still in `Fund` can return less quote than you paid. |
+| Price and execution risk | Prices and available liquidity can change before your transaction executes. Fixed-price curves remove curve-price movement, not the other token and program risks. |
+| Token authority risk | Mint revocation alone does not cover Token-2022 transfer-fee authorities, other extensions, holder concentration, or project control. |
 | Fake tokens | Scammers create look-alike tokens. Verify the mint address independently. |
 | Smart-contract risk | No on-chain program is risk-free. Only use funds you are prepared to put at risk. |
 
 ## Pointers
 
-- [LaunchLab overview](/docs/en/products/launchlab/overview) — how the bonding curve and graduation mechanics work in detail.
+- [LaunchLab overview](/docs/en/products/launchlab/overview) — bonding-curve and migration mechanics.
 - [LaunchLab overview for users](/docs/en/user-flows/launchlab-overview) — product-level flow and safety basics.
 - [Creating a LaunchLab token](/docs/en/user-flows/creating-a-launchlab-token) — the creator's perspective.
-- [How creator fees work](/docs/en/user-flows/how-creator-fees-work) — understand what fees you pay and where they go.
-- [LaunchLab platforms](/docs/en/user-flows/launchlab-platforms) — how platform settings can affect launch behavior.
+- [How creator fees work](/docs/en/user-flows/how-creator-fees-work) — creator fees and where they go.
+- [LaunchLab platforms](/docs/en/user-flows/launchlab-platforms) — how platform settings affect launches.
 - [Trust and safety](/docs/en/getting-started/trust-and-safety) — general guidelines for safe DeFi usage.

@@ -309,8 +309,8 @@ console.log(
 
 See [`reference/fee-comparison`](/docs/en/reference/fee-comparison) for a side-by-side matrix. Summary:
 
-- **AMM v4** uses a fixed 0.25% trade fee with a different LP/protocol split and no fund fee.
-- **CLMM** fees are per-tick-spacing tier, accrued per-position (not per-pool), and claimed via `DecreaseLiquidity` or `CollectFees`.
+- **AMM v4** defaults to a 0.25% trade fee with a different LP/protocol model and no fund fee. The admin can change pool fees with `SetParams`.
+- **CLMM** fees depend on the selected fee tier, accrue per position, and are collected through `DecreaseLiquidity` or `DecreaseLiquidityV2`. There is no standalone `CollectFees` instruction.
 
 ## Where to go next
 

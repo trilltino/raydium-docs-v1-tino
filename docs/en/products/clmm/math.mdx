@@ -162,7 +162,7 @@ At any subsequent touch (increase, decrease, collect), the program:
 3. Adds `Δ × position.liquidity / 2^{64}` to `tokens_fees_owed_{0,1}`.
 4. Updates `fee_growth_inside_last` to the new value.
 
-Tokens actually move out of the vaults only on `CollectFees` / `DecreaseLiquidity`, against `tokens_fees_owed`.
+Tokens move out of the vaults through `DecreaseLiquidity` / `DecreaseLiquidityV2`, which transfers outstanding position fees even when the liquidity argument is zero. There is no standalone fee-collection instruction.
 
 ## Rewards
 
