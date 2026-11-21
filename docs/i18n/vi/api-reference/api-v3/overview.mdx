@@ -91,9 +91,9 @@ Các yêu cầu vượt quá giới hạn sẽ bị từ chối với một lỗ
 
 ### Các cấu hình CLMM dynamic-fee và limit-order
 
-Hai endpoint mới cung cấp dữ liệu calibration cho luồng CLMM `CreateCustomizablePool`:
+Hai endpoint cung cấp dữ liệu hiệu chỉnh cho pool tùy chỉnh và lệnh giới hạn của CLMM:
 
-- `GET /main/clmm-dynamic-config` — danh sách các tầng `DynamicFeeConfig` (filter period, decay period, reduction factor, max numerator, dynamic-fee control). Chuyển `id` của một trong những cái này vào `createCustomizablePool` khi `enableDynamicFee=true`.
+- `GET /main/clmm-dynamic-config` — danh sách các bậc `DynamicFeeConfig` (chu kỳ lọc, chu kỳ suy giảm, hệ số giảm, tử số tối đa, điều khiển phí động). Truyền `id` của một bậc làm `dynamicFeeConfig` cho `createCustomizablePool` để tạo pool chuẩn, hoặc cho `createCustomizablePoolV2` để tạo pool bổ sung có seed index. Truyền tham số này sẽ bật phí động; không có tham số `enableDynamicFee`.
 - `GET /main/clmm-limit-order-config` — cấu hình limit-order cho mỗi pool: cho biết các limit order có được bật hay không, số tiền nhập tối thiểu và `limit_order_admin` off-chain được ủy quyền để settle các đơn hàng đã điền.
 
 Dữ liệu limit-order cho mỗi ví (mở / điền / đóng) nằm trên Temp API; xem [`api-reference/temp-api-v1/overview`](/docs/i18n/vi/api-reference/temp-api-v1/overview).

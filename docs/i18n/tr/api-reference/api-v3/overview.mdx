@@ -91,9 +91,9 @@ Sınırları aşan istekler hata ile reddedilir.
 
 ### CLMM dinamik ücret ve limit sipariş yapılandırmaları
 
-İki yeni uç nokta, CLMM `CreateCustomizablePool` akışı için kalibrasyondaki veriler ortaya koymaktadır:
+İki uç nokta, CLMM özelleştirilebilir havuzları ve limit emirleri için kalibrasyon verisi sunar:
 
-- `GET /main/clmm-dynamic-config` — `DynamicFeeConfig` seviyelerinin listesi (filtre süresi, bozunma süresi, indirgeme faktörü, azami pay, dinamik ücret kontrolü). Bu değerlerden birinin `id`'sini, `enableDynamicFee=true` olduğunda `createCustomizablePool`'a geçirin.
+- `GET /main/clmm-dynamic-config` — `DynamicFeeConfig` seviyelerinin listesi (filtre süresi, sönümlenme süresi, azaltma katsayısı, azami pay, dinamik ücret denetimi). Bir seviyenin `id` değerini `dynamicFeeConfig` olarak, kanonik havuz için `createCustomizablePool` fonksiyonuna veya seed index'li ek bir havuz için `createCustomizablePoolV2` fonksiyonuna geçirin. Bu parametreyi sağlamak dinamik ücretleri etkinleştirir; `enableDynamicFee` parametresi yoktur.
 - `GET /main/clmm-limit-order-config` — havuz başına limit sipariş yapılandırması: limit siparişlerin etkin olup olmadığı, minimum giriş tutarı ve doldurulmuş siparişleri kapatma yetkisine sahip çevrimdışı `limit_order_admin` yöneticisi.
 
 Cüzdan başına limit sipariş verisi (açık / doldurulmuş / kapatılmış) Temp API'de yaşar; bkz. [`api-reference/temp-api-v1/overview`](/docs/i18n/tr/api-reference/temp-api-v1/overview).

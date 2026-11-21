@@ -91,9 +91,9 @@ v2エンドポイントは`nextPageId`を通じてカーソルベースのペー
 
 ### CLMMダイナミックフィーおよびリミットオーダー設定
 
-2つの新しいエンドポイントは、CLMM `CreateCustomizablePool`フロー用のキャリブレーションデータを公開します：
+2 つのエンドポイントが、CLMM のカスタマイズ可能プールと指値注文のキャリブレーションデータを提供します。
 
-- `GET /main/clmm-dynamic-config` — `DynamicFeeConfig`ティアのリスト（フィルター期間、減衰期間、削減係数、最大分子、ダイナミックフィー制御）。`enableDynamicFee=true`の場合、これらの1つの`id`を`createCustomizablePool`に渡します。
+- `GET /main/clmm-dynamic-config` — `DynamicFeeConfig` ティアの一覧（フィルター期間、減衰期間、削減係数、最大分子、ダイナミックフィー制御）。ティアの `id` を `dynamicFeeConfig` として、正規プールなら `createCustomizablePool` に、seed index 付きの追加プールなら `createCustomizablePoolV2` に渡します。このパラメータを渡すとダイナミックフィーが有効になります。`enableDynamicFee` パラメータはありません。
 - `GET /main/clmm-limit-order-config` — プールごとのリミットオーダー設定：リミットオーダーが有効かどうか、最小入力額、および入力されたオーダーを決済する権限を持つオフチェーン`limit_order_admin`キーパー。
 
 ウォレットごとのリミットオーダーデータ（開く/入力された/クローズ）はTemp APIにあります。[`api-reference/temp-api-v1/overview`](/docs/i18n/ja/api-reference/temp-api-v1/overview)を参照してください。

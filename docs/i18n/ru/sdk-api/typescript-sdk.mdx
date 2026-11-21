@@ -10,9 +10,9 @@ description: "@raydium-io/raydium-sdk-v2 полный цикл — устано�
 </Info>
 
 <Info>
-  **Баннер версии.** На этой странице документируется `@raydium-io/raydium-sdk-v2@0.2.64-alpha`, версия, которую используют все примеры кода на этом сайте. SDK находится в статусе pre-1.0, и поверхность типов менялась между релизами — зафиксируйте вашу версию.
+  **Баннер версии.** На этой странице документируется `@raydium-io/raydium-sdk-v2@0.2.85-alpha`, версия, которую используют все примеры кода на этом сайте. SDK находится в статусе pre-1.0, и поверхность типов менялась между релизами — зафиксируйте вашу версию.
 
-  Версия была обновлена с `0.2.42-alpha` на 2026-09-09 вместе с обновлениями программ: `0.2.64-alpha` — текущий релиз SDK. Репозиторий [`raydium-sdk-V2-demo`](https://github.com/raydium-io/raydium-sdk-V2-demo), на который ссылаются страницы с примерами кода, устанавливает `0.2.62-alpha`, поэтому зафиксируйте одну из этих версий, если вы следуете примеру в точности. Примеры на этих страницах были последний раз **выполнены** против `0.2.42-alpha` (2026-04); их сигнатуры вызовов были перепроверены против исходного кода `0.2.64-alpha` на 2026-09-09, но любое несовпадение считайте ошибкой документации и [откройте issue](https://github.com/raydium-io/raydium-docs-v1/issues/new).
+  Закреплённая версия обновлена с `0.2.64-alpha` 2026-11-20. Репозиторий [`raydium-sdk-V2-demo`](https://github.com/raydium-io/raydium-sdk-V2-demo) устанавливает `0.2.85-alpha` в коммите, который используют обновлённые примеры создания пулов. В последний раз демо **запускались** на `0.2.42-alpha` (2026-04). Сигнатуры публичных билдеров повторно проверены по опубликованному пакету `0.2.85-alpha` 2026-11-20. Любое расхождение считайте ошибкой документации и [создайте issue](https://github.com/raydium-io/raydium-docs-v1/issues/new).
 </Info>
 
 ## Установка
@@ -52,8 +52,10 @@ const raydium = await Raydium.load({
 После загрузки объект `raydium` предоставляет десять модульных фасадов плюс клиент API:
 
 ```ts
-raydium.cpmm       // CPMM пулы: createPool, addLiquidity, withdrawLiquidity, swap, ...
-raydium.clmm       // CLMM пулы: createPool, openPositionFromBase, increasePositionFromBase,
+raydium.cpmm       // CPMM pools: createPool with optional creatorFeeOn / InitializeV2,
+                   //             addLiquidity, withdrawLiquidity, swap, ...
+raydium.clmm       // CLMM pools: createPool, customizable pool and V2 builders,
+                   //             openPositionFromBase, increasePositionFromBase,
                    //             decreaseLiquidity, harvestAllRewards, swap, лимитные ордера, ...
 raydium.liquidity  // AMM v4 пулы: computeAmountOut, swap, addLiquidity, removeLiquidity, ...
 raydium.farm       // Farm v3/v5/v6: deposit, withdraw, harvestAllRewards, create,
@@ -107,11 +109,13 @@ const { execute, builder, transaction, instructionTypes, signers, extInfo } =
 
 Почти каждый построитель внутри загружает состояние в цепи: информацию о пуле (для котировок), владение программой токена (для маршрутизации Token-2022 vs SPL), освобождение от аренды аккаунта (для создания ATA) и т. д. SDK агрессивно кэширует, но первый вызов для нового пула включает RPC round-trips. Держите долгоживущий экземпляр `raydium`, чтобы избежать повторной загрузки.
 
-## Дополнения модуля CLMM (последний релиз)
+## Настраиваемые пулы и лимитные ордера CLMM
 
-Фасад CLMM получил поверхности для новых функций динамической комиссии, односторонней комиссии и лимитных ордеров:
+Фасад CLMM предоставляет динамические комиссии, одностороннюю комиссию и лимитные ордера:
 
-- **`raydium.clmm.createCustomizablePool`** — надмножество `createPool`, которое принимает `collectFeeOn` и `dynamicFeeConfig` (`PublicKey` аккаунта конфигурации). Именно передача `dynamicFeeConfig` включает динамические комиссии; отдельного флага `enableDynamicFee` нет, как и `dynamicFeeConfigId`. Классический `createPool` продолжает работать для пулов с комиссией по умолчанию.
+- **`raydium.clmm.createCustomizablePool`** — создаёт канонический настраиваемый пул и принимает `collectFeeOnMint` и `dynamicFeeConfig`. Минт для взимания комиссии должен быть одним из минтов пула; если его опустить, комиссия берётся со входа свопа. Старый параметр `collectFeeOn` устарел и отклоняется.
+- **`raydium.clmm.createCustomizablePoolV2`** — создаёт дополнительный пул на PDA с ненулевым `seed_index`. SDK проверяет первые 100 seed index и выбирает первый свободный. Принимает те же параметры `collectFeeOnMint` и `dynamicFeeConfig`. Если нужен исходный PDA пула, используйте канонический метод.
+- **Динамические комиссии** — включаются передачей `dynamicFeeConfig`. Отдельного флага `enableDynamicFee` или параметра `dynamicFeeConfigId` нет. Классический `createPool` по-прежнему подходит для пулов с комиссией по умолчанию.
 - **`raydium.clmm.openLimitOrder`** — открыть лимитный ордер на одном тике. Принимает `poolInfo`, `baseIn` (направление), `orderTick`, `amount`, а также опционально `tickArrayBitmap`, `noneIndex`, `ownerInfo`. Используйте экспортируемый помощник `getOrderTick({ baseIn, mintADecimal, mintBDecimal, tickSpacing, price })` для квантования тика.
 - **`raydium.clmm.increaseLimitOrder` / `decreaseLimitOrder`** — отрегулировать незаполненную часть существующего ордера. Оба принимают `{ poolInfo, limitOrder, amount }`; `decreaseLimitOrder` добавляет опциональный `slippage`. Уменьшение откатывается на полностью заполненном ордере с `InvalidOrderPhase`.
 - **`raydium.clmm.settleLimitOrder` / `settleAllLimitOrder`** — собрать заполненный выход в ATA владельца. `settleLimitOrder` принимает только `{ limitOrder }` — без `poolInfo`. Вызвать может либо владелец ордера, либо хранитель `limit_order_admin` программы.

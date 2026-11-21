@@ -132,7 +132,7 @@ Les définitions Rust complètes se trouvent dans la source [`raydium-cp-swap`](
 ```rust programs/cp-swap/src/states/pool.rs
 pub struct PoolState {
     pub amm_config: Pubkey,               // lie ce pool à un AmmConfig
-    pub pool_creator: Pubkey,             // qui a exécuté initialize
+    pub pool_creator: Pubkey,             // creator-fee recipient; normally the initialize signer
     pub token_0_vault: Pubkey,            // == vault0 PDA
     pub token_1_vault: Pubkey,            // == vault1 PDA
 
@@ -177,7 +177,8 @@ Ce qu'il faut vraiment lire :
 - **`status`** — un masque de bits contrôlant si `Swap`, `Deposit`, `Withdraw` sont autorisés. Mis à jour par l'admin via `UpdatePoolStatus`. Le SDK vérifie cela avant de construire une transaction ; si vous faites du CPI directement, vérifiez-le vous-même.
 - **`token0_program` / `token1_program`** — le programme de token dans lequel faire du CPI pour chaque vault. L'un peut être le SPL Token classique et l'autre Token-2022 ; ils sont indépendants.
 - **`open_time`** — un timestamp Unix. Les swaps avant cette heure échouent. Les dépôts sont autorisés avant `open_time` pour que le pool puisse être amorcé.
-- **`creator_fee_on` / `enable_creator_fee`** — ensemble contrôlent si le frais de créateur optionnel est actif pour ce pool et de quel côté du swap il est collecté. `enable_creator_fee == false` annule entièrement le chemin des frais de créateur. Quand activé, `creator_fee_on` sélectionne : `0` = prendre le frais du token qui est l'entrée du swap (`BothToken`) ; `1` = prendre le frais de `token_0` uniquement (ignorer sur les swaps `token_1 → token_0`) ; `2` = prendre le frais de `token_1` uniquement. Défini à la création du pool : `Initialize` le stocke toujours désactivé, `InitializeV2` stocke le choix du créateur (ajouté le 2026-10-30), et `InitializeWithPermission` le stocke toujours activé avec le `creator_fee_on` de l'appelant. Ne peut pas changer plus tard.
+- **`pool_creator`** — le destinataire des frais créateur. `Initialize` et `InitializeV2` enregistrent le signataire créateur. `InitializeWithPermission` enregistre le compte créateur fourni séparément. Payer les frais de transaction ne modifie pas ce champ et ne redirige pas les frais créateur.
+- **`creator_fee_on` / `enable_creator_fee`** — déterminent ensemble si les frais créateur optionnels sont actifs et quel token ils utilisent. `enable_creator_fee == false` désactive entièrement le chemin des frais créateur. Lorsqu'ils sont activés, `BothToken` (`0`) prélève les frais sur le token d'entrée du swap. `OnlyToken0` (`1`) utilise toujours token0 : en entrée sur les swaps `token_0 → token_1` et en sortie sur les swaps `token_1 → token_0`. `OnlyToken1` (`2`) fait l'inverse. Défini à la création du pool : `Initialize` le stocke toujours désactivé, `InitializeV2` stocke le choix du créateur (ajouté le 2026-10-30) et `InitializeWithPermission` le stocke toujours activé avec le `creator_fee_on` de l'appelant. Il ne peut pas être modifié ensuite.
 - **`creator_fees_token_{0,1}`** — frais de créateur accumulés, collectés par `CollectCreatorFee` ou `CollectCreatorFeePermissionless`. Les deux chemins remettent les compteurs à zéro, mais depuis la mise à jour creator-fee-share du 2026-09-19 seulement une partie du solde quitte le pool : la part du protocole est **ajoutée à `protocol_fees_token_{0,1}`** et le reste est transféré au créateur. Le chemin sans permission fixe les destinataires aux ATAs canoniques de `pool_creator`. `PoolState` lui-même n'a pas changé — il n'y a pas de compteur séparé pour le montant partagé.
 
 ### `AmmConfig`

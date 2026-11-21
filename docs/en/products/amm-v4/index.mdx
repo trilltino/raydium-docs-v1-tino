@@ -9,7 +9,7 @@ description: "Constant-product AMM. Originally a hybrid design that shared liqui
 
 ## What it is
 
-AMM v4 is Raydium's first-generation pool. It maintains a constant-product invariant (xy=k). The pool was originally designed as a **hybrid AMM**: alongside the curve, it posted a Fibonacci-spaced grid of limit orders onto a bound OpenBook market so that pool liquidity was visible to orderbook takers. **That OpenBook integration has since been removed from the program** (see warning above); AMM v4 today is a pure constant-product AMM. On-chain `AmmInfo` accounts retain their `market` / `open_orders` reference fields for layout compatibility, but the program no longer reads or acts on them.
+AMM v4 is Raydium's first-generation pool. It maintains a constant-product invariant (`x · y = k`). The pool was originally designed as a **hybrid AMM**: alongside the curve, it posted a Fibonacci-spaced grid of limit orders onto a bound OpenBook market so that pool liquidity was visible to orderbook takers. **That OpenBook integration has since been removed from the program** (see warning above); AMM v4 today is a pure constant-product AMM. On-chain `AmmInfo` accounts retain their `market` / `open_orders` reference fields for layout compatibility, but the program no longer reads or acts on them.
 
 It is still the highest-liquidity product on Raydium for many legacy pairs but is **no longer recommended for new pools** — see [CPMM](/docs/en/products/cpmm) for new deployments.
 
@@ -21,22 +21,22 @@ It is still the highest-liquidity product on Raydium for many legacy pairs but i
 
 <CardGroup cols={2}>
   <Card title="Overview" icon="circle-info" href="/docs/en/products/amm-v4/overview">
-    Conceptual model: how AMM v4 couples a constant-product curve to an OpenBook market, and why the design exists.
+    Conceptual model: AMM v4 as a pure constant-product pool. Covers the OpenBook hybrid it started as and why that design existed. The program now rejects every order-book instruction.
   </Card>
   <Card title="Accounts" icon="database" href="/docs/en/products/amm-v4/accounts">
     AmmInfo, TargetOrders, OpenOrders, LP mint, token vaults, market vault signer. Seeds, field layouts, invariants.
   </Card>
   <Card title="Math" icon="function" href="/docs/en/products/amm-v4/math">
-    xy=k invariant, price calculation. The reserve formula is now vault-only; the OpenBook limit-order grid math is retained as historical context.
+    `x · y = k` invariant, price calculation. The reserve formula is now vault-only; the OpenBook limit-order grid math is retained as historical context.
   </Card>
   <Card title="Instructions" icon="terminal" href="/docs/en/products/amm-v4/instructions">
-    Initialize2, Deposit, Withdraw, SwapBaseIn / V2, SwapBaseOut / V2, SetParams, WithdrawPnl. (Order-book instructions such as MonitorStep are removed.)
+    Initialize2, Deposit, Withdraw, SwapBaseIn / V2, SwapBaseOut / V2, SetParams, WithdrawPnl, CreateConfigAccount, UpdateConfigAccount, WithdrawExcessLamports. (Order-book instructions such as MonitorStep are removed.)
   </Card>
   <Card title="Fees" icon="percent" href="/docs/en/products/amm-v4/fees">
     LP fee, protocol fee, trade fee split. Historical PnL handling for orderbook fills (retired).
   </Card>
   <Card title="Code demos" icon="code" href="/docs/en/products/amm-v4/code-demos">
-    TypeScript (raydium-sdk-v2) and Rust CPI examples for deposit, withdraw, and swap.
+    TypeScript (raydium-sdk-v2) examples for swap, deposit, and withdraw, plus Rust CPI sketches for SwapBaseIn and SwapBaseInV2.
   </Card>
 </CardGroup>
 

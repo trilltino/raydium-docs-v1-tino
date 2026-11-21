@@ -91,9 +91,9 @@ Les requêtes dépassant les limites sont rejetées avec une erreur.
 
 ### Configurations CLMM avec frais dynamiques et ordres limités
 
-Deux nouveaux endpoints exposent les données de calibration pour le flux `CreateCustomizablePool` de CLMM :
+Deux endpoints exposent des données de calibrage pour les pools personnalisables et les ordres à cours limité CLMM :
 
-- `GET /main/clmm-dynamic-config` — liste des tiers de `DynamicFeeConfig` (période de filtrage, période de décroissance, facteur de réduction, numérateur maximal, contrôle des frais dynamiques). Transmettez l'`id` de l'un d'eux à `createCustomizablePool` lorsque `enableDynamicFee=true`.
+- `GET /main/clmm-dynamic-config` — liste des niveaux `DynamicFeeConfig` (période de filtre, période de décroissance, facteur de réduction, numérateur maximal, contrôle des frais dynamiques). Passez l'`id` d'un niveau comme `dynamicFeeConfig` à `createCustomizablePool` pour le pool canonique ou à `createCustomizablePoolV2` pour un pool supplémentaire à seed index. Fournir ce paramètre active les frais dynamiques ; il n'existe pas de paramètre `enableDynamicFee`.
 - `GET /main/clmm-limit-order-config` — configuration des ordres limités par pool : si les ordres limités sont activés, le montant minimal en entrée et le keeper `limit_order_admin` hors chaîne autorisé à régler les ordres remplis.
 
 Les données par portefeuille des ordres limités (ouverts / remplis / fermés) se trouvent sur Temp API ; voir [`api-reference/temp-api-v1/overview`](/docs/i18n/fr/api-reference/temp-api-v1/overview).

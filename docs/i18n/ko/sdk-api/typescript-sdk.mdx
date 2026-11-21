@@ -10,9 +10,9 @@ description: "@raydium-io/raydium-sdk-v2 엔드-투-엔드 — 설치, 네 가�
 </Info>
 
 <Info>
-  **버전 배너.** 이 페이지는 `@raydium-io/raydium-sdk-v2@0.2.64-alpha`를 문서화합니다. 이 사이트의 모든 코드 데모가 이 버전을 고정합니다. SDK는 1.0 이전 버전이며 타입 표면이 릴리스 간에 변경되었습니다 — 버전을 고정하세요.
+  **버전 배너.** 이 페이지는 `@raydium-io/raydium-sdk-v2@0.2.85-alpha`를 문서화합니다. 이 사이트의 모든 코드 데모가 이 버전을 고정합니다. SDK는 1.0 이전 버전이며 타입 표면이 릴리스 간에 변경되었습니다 — 버전을 고정하세요.
 
-  버전 고정은 2026-09-09에 `0.2.42-alpha`에서 `0.2.64-alpha`로 업그레이드되었으며, 프로그램 업그레이드와 함께 진행되었습니다. [`raydium-sdk-V2-demo`](https://github.com/raydium-io/raydium-sdk-V2-demo) 저장소는 `0.2.62-alpha`를 설치하므로, 데모를 그대로 따라가는 경우 둘 중 하나를 고정하세요. 이 페이지의 데모는 마지막으로 `0.2.42-alpha` (2026-04)에 대해 **실행**되었습니다. 호출 서명은 2026-09-09에 `0.2.64-alpha` 소스에 대해 다시 확인되었지만, 불일치가 있으면 문서 버그로 취급하고 [이슈를 열어주세요](https://github.com/raydium-io/raydium-docs-v1/issues/new).
+  버전 고정은 2026-11-20에 `0.2.64-alpha`에서 올렸습니다. [`raydium-sdk-V2-demo`](https://github.com/raydium-io/raydium-sdk-V2-demo) 저장소는 업데이트된 풀 생성 예제가 사용하는 커밋에서 `0.2.85-alpha`를 설치합니다. 데모가 마지막으로 **실행**된 버전은 `0.2.42-alpha`(2026-04)입니다. 공개 빌더 시그니처는 2026-11-20에 게시된 `0.2.85-alpha` 패키지 기준으로 다시 확인했습니다. 불일치가 있으면 문서 버그로 간주하고 [이슈를 등록](https://github.com/raydium-io/raydium-docs-v1/issues/new)하세요.
 </Info>
 
 ## 설치
@@ -52,8 +52,10 @@ const raydium = await Raydium.load({
 로드되면 `raydium` 객체는 열 개의 모듈 파사드와 API 클라이언트를 노출합니다:
 
 ```ts
-raydium.cpmm       // CPMM pools: createPool, addLiquidity, withdrawLiquidity, swap, ...
-raydium.clmm       // CLMM pools: createPool, openPositionFromBase, increasePositionFromBase,
+raydium.cpmm       // CPMM pools: createPool with optional creatorFeeOn / InitializeV2,
+                   //             addLiquidity, withdrawLiquidity, swap, ...
+raydium.clmm       // CLMM pools: createPool, customizable pool and V2 builders,
+                   //             openPositionFromBase, increasePositionFromBase,
                    //             decreaseLiquidity, harvestAllRewards, swap, limit orders, ...
 raydium.liquidity  // AMM v4 pools: computeAmountOut, swap, addLiquidity, removeLiquidity, ...
 raydium.farm       // Farm v3/v5/v6: deposit, withdraw, harvestAllRewards, create,
@@ -107,11 +109,13 @@ const { execute, builder, transaction, instructionTypes, signers, extInfo } =
 
 거의 모든 빌더는 내부적으로 온체인 상태를 가져옵니다: 풀 정보 (견적용), 토큰 프로그램 소유권 (Token-2022 vs SPL 라우팅용), 계정 렌트 면제 (ATA 생성용) 등. SDK는 적극적으로 캐시하지만 새로운 풀에 대한 첫 호출은 RPC 왕복을 포함합니다. 재가져오기를 피하려면 오래 지속되는 `raydium` 인스턴스를 유지하세요.
 
-## CLMM 모듈 추가 (최신 릴리스)
+## CLMM 커스터마이즈 가능 풀과 지정가 주문
 
-CLMM 파사드는 새로운 동적 수수료, 단측 수수료, 그리고 지정가 주문 기능을 위한 표면을 얻었습니다:
+CLMM 퍼사드는 동적 수수료, 단방향 수수료, 지정가 주문 기능을 제공합니다.
 
-- **`raydium.clmm.createCustomizablePool`** — `collectFeeOn`과 `dynamicFeeConfig`(구성 계정의 `PublicKey`)를 허용하는 `createPool`의 상위 집합입니다. `dynamicFeeConfig`를 제공하는 것이 곧 동적 수수료를 활성화하는 것이며, 별도의 `enableDynamicFee` 플래그도 `dynamicFeeConfigId`도 없습니다. 클래식 `createPool`은 기본 수수료 풀에 계속 작동합니다.
+- **`raydium.clmm.createCustomizablePool`** — 표준 커스터마이즈 가능 풀을 생성하며 `collectFeeOnMint`와 `dynamicFeeConfig`를 받습니다. 수수료 징수 민트는 풀의 민트 중 하나여야 하며, 생략하면 스왑 입력에서 징수합니다. 이전 매개변수 `collectFeeOn`은 더 이상 사용되지 않으며 거부됩니다.
+- **`raydium.clmm.createCustomizablePoolV2`** — 0이 아닌 `seed_index` PDA에 추가 풀을 생성합니다. SDK는 처음 100개의 seed index를 확인하고 처음으로 사용 가능한 값을 선택합니다. 같은 `collectFeeOnMint`와 `dynamicFeeConfig` 매개변수를 받습니다. 원래의 풀 PDA가 필요하다면 표준 메서드를 사용하세요.
+- **동적 수수료** — `dynamicFeeConfig`를 전달하면 활성화됩니다. 별도의 `enableDynamicFee` 플래그나 `dynamicFeeConfigId`는 없습니다. 기존 `createPool`은 기본 수수료 풀에 계속 사용할 수 있습니다.
 - **`raydium.clmm.openLimitOrder`** — 단일 틱 지정가 주문을 엽니다. `poolInfo`, `baseIn`(방향), `orderTick`, `amount`, 그리고 선택적으로 `tickArrayBitmap`, `noneIndex`, `ownerInfo`를 받습니다. 틱을 양자화하려면 내보내진 `getOrderTick({ baseIn, mintADecimal, mintBDecimal, tickSpacing, price })` 헬퍼를 사용하세요.
 - **`raydium.clmm.increaseLimitOrder` / `decreaseLimitOrder`** — 기존 주문의 미체결 부분을 조정합니다. 둘 다 `{ poolInfo, limitOrder, amount }`를 받으며, `decreaseLimitOrder`는 선택적 `slippage`를 추가합니다. 완전히 체결된 주문에서 감소하면 `InvalidOrderPhase`로 되돌립니다.
 - **`raydium.clmm.settleLimitOrder` / `settleAllLimitOrder`** — 체결된 출력을 소유자의 ATA로 스윕합니다. `settleLimitOrder`는 `{ limitOrder }`만 받으며 `poolInfo`는 받지 않습니다. 주문의 소유자 또는 프로그램의 `limit_order_admin` 키퍼가 호출할 수 있습니다.

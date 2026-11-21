@@ -1,6 +1,6 @@
 ---
 title: "Gemeinsame Infrastruktur"
-description: "Die Grundelemente, die alle Raydium-Programme teilen — Authority-PDAs, AmmConfig-Konten, die Aufteilung der Protokoll-/Fonds-/Creator-Gebühren, Observation-Konten und die öffentliche REST-API-Oberfläche — einmal definiert, damit produktspezifische Kapitel darauf verweisen können."
+description: "Die Grundbausteine, die alle Raydium-Programme teilen — Authority-PDAs, AmmConfig-Konten, die Abrechnung von Handelsgebühr und CPMM-Creator-Gebühr, Observation-Konten und die öffentliche REST-API — einmal hier definiert, damit die Produktkapitel darauf verweisen können."
 ---
 
 <Info>
@@ -17,7 +17,7 @@ description: "Die Grundelemente, die alle Raydium-Programme teilen — Authority
 
 Drei Arten von Sharing durchziehen die Codebasis:
 
-- **Konventions-Sharing.** Jedes Programm verwendet das gleiche PDA-Ableitungsmuster, die gleiche Gebührenaufteilungsform und die gleiche Observation-Account-Idee — aber jedes implementiert sie in seinem eigenen Programm mit seinen eigenen Seeds.
+- **Gemeinsame Konventionen.** Die Programme nutzen dieselben Muster für PDA-Ableitung, Konfigurationskonten, Gebührenabrechnung und Observation-Konten, aber jedes Programm definiert eigene Seeds und eigenes Verhalten. Ähnliche Feldnamen garantieren keine identischen Abrechnungsregeln.
 - **Account-Sharing.** Eine Handvoll Konten sind *buchstäblich* der gleiche Datensatz über viele Pools hinweg (die globale Authority-PDA in CPMM, die AmmConfig-Konten).
 - **Off-Chain-Sharing.** Eine REST-API und ein TypeScript-SDK bedienen alle vier Programme. Integratoren interagieren mit einem HTTP-Host und einem NPM-Paket, unabhängig davon, welches Programm sie letztendlich aufrufen.
 
@@ -77,31 +77,35 @@ AMM v4 hat keine `AmmConfig` — seine Gebührenparameter sind Pro-Pool, bei der
 
 Eine vollständige Tabelle, wer was ändern kann, ist in [`security/admin-and-multisig`](/docs/i18n/de/security/admin-and-multisig). Aktuelle benutzerfreundliche Gebührenaufteilungen sind in [`ray/protocol-fees`](/docs/i18n/de/ray/protocol-fees).
 
-## 3. Die Protokoll- / Fonds- / Creator-Gebührenaufteilung
+## 3. Abrechnung von Handelsgebühr und Creator-Gebühr
 
-Jede CPMM- und CLMM-Swap-Gebühr wird auf bis zu vier Ziele aufgeteilt:
+CPMM und CLMM teilen ihre **Handelsgebühr** zwischen LPs, Protokoll und Fonds auf. CPMM kann zusätzlich eine optionale Creator-Gebühr mit eigenem Satz erheben. Modellieren Sie diese Creator-Gebühr nicht als vierten Anteil der Handelsgebühr:
 
 ```
-                         total swap fee
-                              │
-              ┌───────────────┼───────────────┬──────────────┐
-              ▼               ▼               ▼              ▼
-        LP pool side     Protocol         Fund         Creator
-        (raises k)       treasury         multisig     (LaunchLab pools)
+CPMM / CLMM trade fee
+  ├── LP share
+  ├── Protocol share
+  └── Fund share
+
+CPMM creator fee (independent rate, when enabled)
+  └── Accrued creator bucket
+      ├── Protocol share, applied at collection
+      └── Remainder paid to PoolState.pool_creator
 ```
 
 Mechanisch:
 
-1. **Handelsgebühr sammelt sich im Pool an.** Die Gebühr wird von der Eingabeseite des Swaps entfernt und der *Betrag nach Gebühr* ist das, was die Constant-Product-Mathematik sieht. Das ist das, was „die LP verdient die Gebühr" bedeutet — `k` steigt und damit auch der implizite Pro-LP-Token-Wert.
-2. **Protokoll-/Fonds-/Creator-Anteile werden von dieser LP-seitigen Ansammlung in Pro-Pool-Counter-Konten abgezogen.** Sie sitzen auf dem Pool-Status (`protocol_fees_token{0,1}`, `fund_fees_token{0,1}`, usw.) bis jemand die entsprechende Sammlungsanweisung aufruft. Sie verlassen die Vaults des Pools nicht bis dahin; aus Swap-Perspektive sind sie immer noch „im Pool".
-3. **Sammlung bewegt sie raus.** Protokoll- und Fonds-Pfade erfordern den jeweiligen `protocol_owner` / `fund_owner` Unterzeichner aus `AmmConfig`. CPMM Creator-Gebühren verwenden entweder den vom Creator unterzeichneten `CollectCreatorFee`-Pfad oder `CollectCreatorFeePermissionless`, den jeder Zahler auslösen kann, aber der die Ziele auf die kanonischen ATAs des Creators fixiert.
+1. **Die Handelsgebühr verwendet `trade_fee_rate`.** Der LP-Anteil verbleibt in der Abrechnung des Pools. CPMM nimmt seine Handelsgebühr vom Swap-Input. CLMM unterstützt zusätzlich einseitige Gebührenerhebung auf Pool-Ebene; prüfen Sie daher den Gebührenmodus des Produkts, bevor Sie einen reinen Input-Abzug annehmen.
+2. **Die Creator-Gebühr von CPMM verwendet `creator_fee_rate` unabhängig.** Sie verringert nie die LP-, Protokoll- oder Fondsanteile der Handelsgebühr. `PoolState.creator_fee_on` bestimmt, ob die Creator-Gebühr bei jedem Swap vom Input oder vom Output abgezogen wird. CLMM hat keinen solchen Creator-Gebühren-Bucket nach CPMM-Art.
+3. **Nicht-LP-Anteile sammeln sich in separaten Zählern.** Sie bleiben in den Vaults, werden aber aus den von der Kurve genutzten Reserven herausgerechnet, bis die zugehörige Einzugsanweisung ausgeführt wird.
+4. **Der Einzug legt die Ziele fest.** Protokoll- und Fondspfad erfordern die jeweilige `AmmConfig`-Authority. Der Creator-Einzug bei CPMM erfordert entweder die Signatur des gespeicherten Creators oder nutzt den permissionless Pfad, den jeder Zahler auslösen kann, der die Creator-Ziele aber auf die kanonischen ATAs dieses Creators festlegt. Beide Creator-Pfade wenden beim Einzug den konfigurierten Protokollanteil am Creator-Bucket an.
 
 Ein paar tragende Beobachtungen:
 
-- **Die Aufteilungsprozentsätze sind von der Handelsgebühr, nicht vom Handel.** Eine 0,25%-Handelsgebühr mit einem 12%-Protokoll-Anteil bedeutet, dass das Protokoll `0,25% × 12% = 0,03%` des Handels erhält — nicht 12% des Handels.
-- **Creator-Gebühren sind pro Pool optional und bei der Erstellung festgelegt.** Ein Pool ohne sie hat eine 3-Wege-Aufteilung (LP / Protokoll / Fonds). Bei CPMM leitet ein vierter Slot an den aufgezeichneten Pool-Ersteller weiter. LaunchLab-Graduierungen aktivieren ihn über `InitializeWithPermission`, und seit dem 2026-10-30 kann jeder Ersteller ihn über `InitializeV2` aktivieren. Die Einstellung kann nach der Erstellung nicht geändert werden.
-- **AMM v4 teilt nur auf zwei Wegen auf**, hartcodiert Pro-Pool: LP und Protokoll. Kein Fonds-Slot, kein Creator-Slot.
-- **Fonds vs. Protokoll** — beide sind Protokoll-Treasury-Ziele, aber sie haben unterschiedliche Unterzeichner und unterschiedliche beabsichtigte Verwendungen. `protocol` finanziert historisch Operationen; `fund` ist die längerfristige Treasury. Die Aufteilung zwischen den beiden ist selbst eine abstimmbare.
+- **Die Aufteilungsprozentsätze gelten für die Handelsgebühr, nicht für den gesamten Trade.** Bei 0,25 % Handelsgebühr und 12 % Protokollanteil erhält das Protokoll `0.25% × 12% = 0.03%` des Trades — vor Berücksichtigung einer separaten Creator-Gebühr.
+- **CPMM-Creator-Gebühren sind pro Pool optional und werden bei der Erstellung festgelegt.** LaunchLab-Graduierungen können sie über `InitializeWithPermission` aktivieren. Seit dem 2026-10-30 kann jeder Creator den Pfad über `InitializeV2` aktivieren; das SDK wählt diese Anweisung, wenn `creatorFeeOn` gesetzt ist. Damit sich etwas ansammelt, ist weiterhin ein von null verschiedener `creator_fee_rate` nötig.
+- **AMM v4 nutzt eine verzögerte PnL-Abrechnung.** Sein Anteil `pnl_numerator / pnl_denominator` gilt für das von `calc_take_pnl` berechnete Wachstum, nicht direkt für die Gebühr jedes Swaps. Es hat weder einen Fonds- noch einen Creator-Bucket.
+- **Fonds vs. Protokoll** — beides sind Ziele der Protokoll-Treasury, aber mit unterschiedlichen Signierern und Verwendungszwecken. `protocol` finanziert traditionell den Betrieb; `fund` ist die längerfristige Treasury.
 
 Spezifische Sätze sind in [`reference/fee-comparison`](/docs/i18n/de/reference/fee-comparison) und [`ray/protocol-fees`](/docs/i18n/de/ray/protocol-fees).
 

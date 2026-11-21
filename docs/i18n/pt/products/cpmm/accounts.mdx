@@ -132,7 +132,7 @@ As definições completas em Rust vivem na fonte [`raydium-cp-swap`](https://git
 ```rust programs/cp-swap/src/states/pool.rs
 pub struct PoolState {
     pub amm_config: Pubkey,               // binds this pool to an AmmConfig
-    pub pool_creator: Pubkey,             // who ran initialize
+    pub pool_creator: Pubkey,             // creator-fee recipient; normally the initialize signer
     pub token_0_vault: Pubkey,            // == vault0 PDA
     pub token_1_vault: Pubkey,            // == vault1 PDA
 
@@ -177,7 +177,8 @@ O que realmente ler:
 - **`status`** — um bitmask controlando se `Swap`, `Deposit`, `Withdraw` são permitidos. Atualizado pelo admin via `UpdatePoolStatus`. O SDK verifica isso antes de construir uma transação; se você está fazendo CPI diretamente, verifique você mesmo.
 - **`token0_program` / `token1_program`** — o programa de token para fazer CPI para cada vault. Um pode ser SPL Token clássico e o outro Token-2022; são independentes.
 - **`open_time`** — um timestamp Unix. Swaps antes desta hora falham. Depósitos são permitidos antes de `open_time` para que o pool possa ser semeado.
-- **`creator_fee_on` / `enable_creator_fee`** — juntos controlam se a taxa de criador opcional está ativa para este pool e de qual lado do swap ela é coletada. `enable_creator_fee == false` zera o caminho de taxa de criador inteiramente. Quando habilitado, `creator_fee_on` seleciona: `0` = pegar taxa de qualquer token que seja a entrada do swap (`BothToken`); `1` = pegar taxa de `token_0` apenas (pular em swaps `token_1 → token_0`); `2` = pegar taxa de `token_1` apenas. Definido na criação do pool: `Initialize` sempre o armazena desabilitado, `InitializeV2` armazena a escolha do criador (adicionada em 2026-10-30) e `InitializeWithPermission` sempre o armazena habilitado com o `creator_fee_on` do chamador. Não pode mudar depois.
+- **`pool_creator`** — o destinatário da taxa do criador. `Initialize` e `InitializeV2` registram o signatário criador. `InitializeWithPermission` registra a conta de criador fornecida separadamente. Pagar a taxa da transação não altera este campo nem redireciona as taxas do criador.
+- **`creator_fee_on` / `enable_creator_fee`** — controlam juntos se a taxa opcional do criador está ativa e qual token ela usa. `enable_creator_fee == false` desativa completamente o caminho da taxa do criador. Quando ativada, `BothToken` (`0`) cobra a taxa do token que for a entrada do swap. `OnlyToken0` (`1`) sempre usa token0: na entrada em swaps `token_0 → token_1` e na saída em swaps `token_1 → token_0`. `OnlyToken1` (`2`) faz o inverso. Definido na criação do pool: `Initialize` sempre o armazena desativado, `InitializeV2` armazena a escolha do criador (adicionado em 2026-10-30) e `InitializeWithPermission` sempre o armazena ativado com o `creator_fee_on` de quem chama. Não pode mudar depois.
 - **`creator_fees_token_{0,1}`** — taxas de criador acumuladas, varridas por `CollectCreatorFee` ou `CollectCreatorFeePermissionless`. Ambos os caminhos zeram os contadores completos, mas desde a atualização de compartilhamento de taxa de criador de 2026-09-19 apenas parte do saldo sai do pool: a parte do protocolo é **adicionada a `protocol_fees_token_{0,1}`** e o restante é transferido para o criador. O caminho sem permissão fixa os destinatários para as ATAs canônicas de `pool_creator`. `PoolState` em si não mudou — não há contador separado para o valor compartilhado.
 
 ### `AmmConfig`

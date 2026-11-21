@@ -110,32 +110,36 @@ require!(k_after >= k_before, ErrorCode::InvariantViolation);
 
 ### Соглашение CPMM
 
-Комиссии — это `u64` значения, похожие на базисные пункты, с делителем `1_000_000`. Торговая комиссия делится на `trade_fee_rate` (всего) и затем подразделяется через `protocol_fee_rate`, `fund_fee_rate`, `creator_fee_rate`. На каждом свопе:
+Комиссии — это ставки `u64` со знаменателем `1_000_000`. `protocol_fee_rate` и `fund_fee_rate` делят **торговую комиссию**. `creator_fee_rate` независима: она применяется к объёму свопа и никогда не уменьшает доли торговой комиссии.
+
+Когда обе комиссии берутся со входа, программа округляет их совокупное списание один раз, а затем делит его по ставкам:
 
 ```
-trade_fee     = ceil(Δx · trade_fee_rate   / 1_000_000)
-creator_fee   = ceil(Δx · creator_fee_rate / 1_000_000)   // its own rate on volume,
-                                                          // NOT a slice of trade_fee
-protocol_fee  = floor(trade_fee · protocol_fee_rate / 1_000_000)
-fund_fee      = floor(trade_fee · fund_fee_rate     / 1_000_000)
-lp_fee        = trade_fee − protocol_fee − fund_fee
+total_fee      = ceil(Δx · (trade_fee_rate + creator_fee_rate) / 1_000_000)
+creator_fee    = floor(total_fee · creator_fee_rate / (trade_fee_rate + creator_fee_rate))
+trade_fee      = total_fee − creator_fee
+protocol_fee   = floor(trade_fee · protocol_fee_rate / 1_000_000)
+fund_fee       = floor(trade_fee · fund_fee_rate / 1_000_000)
+lp_fee         = trade_fee − protocol_fee − fund_fee
 ```
 
-Три доли, не относящиеся к LP, накапливаются в отдельных счётчиках (`protocol_fees_*`, `fund_fees_*`, `creator_fees_*`), которые **исключены** из резервов, используемых в инварианте. Вот как комиссии можно снять без перемещения кривой. См. [`products/cpmm/fees`](/docs/i18n/ru/products/cpmm/fees).
+Если `creator_fee_on` выбирает выходной токен, со входа списывается только торговая комиссия. Комиссия создателя тогда равна `ceil(Δy · creator_fee_rate / 1_000_000)` и вычитается из выхода кривой. См. [`products/cpmm/fees`](/docs/i18n/ru/products/cpmm/fees#which-side-of-the-trade-the-fees-are-taken-from).
+
+Три корзины, не относящиеся к LP, накапливаются отдельно и исключаются из резервов, используемых в инварианте. При сборе комиссий создателя настраиваемая доля протокола переносится из корзины создателя в корзину протокола; создателю достаётся только остаток.
 
 ### Соглашение AMM v4
 
-Комиссии — это соотношения `numerator / denominator` с делителем `10_000`. Разделение фиксировано при создании пула и сохраняется в `AmmInfo.fees`:
+Валовая комиссия свопа использует `swap_fee_numerator / swap_fee_denominator`, обычно `25 / 10_000`:
 
 ```
-swap_fee  = ceil(Δx · swap_fee_numerator / swap_fee_denominator)    // напр. 0.25%
-pnl_share = swap_fee · pnl_numerator / pnl_denominator               // 12 / 100 = 12% от swap_fee
-lp_share  = swap_fee − pnl_share                                     // 0.22% от объёма
+gross_fee = ceil(Δx · swap_fee_numerator / swap_fee_denominator)   // 0.25% by default
 ```
 
-`pnl_share` накапливается в `state_data.need_take_pnl_*` и исключается из резервов; `lp_share` остаётся в хранилище. См. [`products/amm-v4/fees`](/docs/i18n/ru/products/amm-v4/fees).
+Программа **не** вычисляет `pnl_numerator / pnl_denominator × gross_fee` при каждом свопе. Вся комиссия сначала остаётся в резервах и увеличивает `k`. Позже `calc_take_pnl` измеряет прирост относительно базы `TargetOrders`, выводит суммы PnL по каждой стороне токенов и применяет к этому приросту `pnl_numerator / pnl_denominator`. По умолчанию эта доля равна `12 / 100`; часто приводимые 0,03% объёма — экономический эквивалент комиссии, а не точное списание с каждого свопа. Целочисленное округление влияет на результат, а PnL учитывается, только если обе суммы по сторонам токенов ненулевые.
 
-Оба соглашения сохраняют инвариант одинаково — различие чисто косметическое (делитель + количество подкатегорий).
+Учтённый PnL накапливается в `state_data.need_take_pnl_*` и исключается из резервов. Остальной прирост остаётся у LP. См. [`products/amm-v4/math`](/docs/i18n/ru/products/amm-v4/math#settlement-step-pnl).
+
+Обе программы исключают учтённые комиссии, не относящиеся к LP, из резервов кривой, но время расчёта и учёт у них различаются.
 
 ## Правила округления
 

@@ -110,32 +110,36 @@ Kiểm tra bất biến giả định phí LP ở lại trong dự trữ. Các s
 
 ### Quy ước CPMM
 
-Phí là tỷ lệ kiểu basis-point `u64` trên mẫu số `1_000_000`. Phí giao dịch được chia thành `trade_fee_rate` (tổng cộng) và sau đó được chia nhỏ thông qua `protocol_fee_rate`, `fund_fee_rate`, `creator_fee_rate`. Trên mỗi swap:
+Phí là các mức `u64` trên mẫu số `1_000_000`. `protocol_fee_rate` và `fund_fee_rate` chia nhỏ **phí giao dịch**. `creator_fee_rate` thì độc lập: nó áp dụng trên khối lượng swap và không bao giờ làm giảm các phần của phí giao dịch.
+
+Khi cả hai loại phí đều lấy từ đầu vào, chương trình làm tròn tổng khoản khấu trừ một lần rồi chia theo tỷ lệ:
 
 ```
-trade_fee     = ceil(Δx · trade_fee_rate   / 1_000_000)
-creator_fee   = ceil(Δx · creator_fee_rate / 1_000_000)   // its own rate on volume,
-                                                          // NOT a slice of trade_fee
-protocol_fee  = floor(trade_fee · protocol_fee_rate / 1_000_000)
-fund_fee      = floor(trade_fee · fund_fee_rate     / 1_000_000)
-lp_fee        = trade_fee − protocol_fee − fund_fee
+total_fee      = ceil(Δx · (trade_fee_rate + creator_fee_rate) / 1_000_000)
+creator_fee    = floor(total_fee · creator_fee_rate / (trade_fee_rate + creator_fee_rate))
+trade_fee      = total_fee − creator_fee
+protocol_fee   = floor(trade_fee · protocol_fee_rate / 1_000_000)
+fund_fee       = floor(trade_fee · fund_fee_rate / 1_000_000)
+lp_fee         = trade_fee − protocol_fee − fund_fee
 ```
 
-Ba phần không phải LP tích luỹ vào các bộ đếm riêng (`protocol_fees_*`, `fund_fees_*`, `creator_fees_*`) được **loại trừ** khỏi dự trữ được sử dụng trong bất biến. Đây là cách phí có thể được lấy ra mà không cần di chuyển đường cong. Xem [`products/cpmm/fees`](/docs/i18n/vi/products/cpmm/fees).
+Khi `creator_fee_on` chọn token đầu ra, chỉ phí giao dịch bị trừ từ đầu vào. Khi đó phí người tạo pool là `ceil(Δy · creator_fee_rate / 1_000_000)` và bị trừ từ đầu ra của đường cong. Xem [`products/cpmm/fees`](/docs/i18n/vi/products/cpmm/fees#which-side-of-the-trade-the-fees-are-taken-from).
+
+Ba bucket không thuộc LP được tích lũy riêng và không được tính vào dự trữ dùng trong bất biến. Khi thu phí người tạo pool, một phần giao thức có thể cấu hình được chuyển từ bucket người tạo pool sang bucket giao thức; chỉ phần còn lại thuộc về người tạo pool.
 
 ### Quy ước AMM v4
 
-Phí là tỷ lệ `numerator / denominator` trên mẫu số `10_000`. Sự chia tách là cố định tại tạo pool và được lưu trữ trên `AmmInfo.fees`:
+Phí swap gộp dùng `swap_fee_numerator / swap_fee_denominator`, thường là `25 / 10_000`:
 
 ```
-swap_fee  = ceil(Δx · swap_fee_numerator / swap_fee_denominator)    // ví dụ: 0.25%
-pnl_share = swap_fee · pnl_numerator / pnl_denominator               // 12 / 100 = 12% của swap_fee
-lp_share  = swap_fee − pnl_share                                     // 0.22% của khối lượng
+gross_fee = ceil(Δx · swap_fee_numerator / swap_fee_denominator)   // 0.25% by default
 ```
 
-`pnl_share` tích luỹ vào `state_data.need_take_pnl_*` và được loại trừ khỏi dự trữ; `lp_share` ở lại trong vault. Xem [`products/amm-v4/fees`](/docs/i18n/vi/products/amm-v4/fees).
+Chương trình **không** tính `pnl_numerator / pnl_denominator × gross_fee` ở mỗi swap. Toàn bộ phí ban đầu nằm lại trong dự trữ và làm tăng `k`. Sau đó, `calc_take_pnl` đo mức tăng so với mốc `TargetOrders`, suy ra số PnL cho từng phía token, rồi áp dụng `pnl_numerator / pnl_denominator` lên mức tăng đó. Với giá trị mặc định, tỷ lệ này là `12 / 100`; con số 0,03% khối lượng thường được nhắc tới là giá trị phí tương đương về kinh tế, không phải khoản khấu trừ chính xác cho mỗi swap. Phép làm tròn số nguyên làm thay đổi kết quả, và chương trình chỉ ghi nhận PnL khi cả hai số tiền ở hai phía token đều khác 0.
 
-Cả hai quy ước đều bảo toàn bất biến theo cách tương tự — sự khác biệt là trực quan (mẫu số + số lượng danh mục con).
+PnL đã ghi nhận được tích lũy vào `state_data.need_take_pnl_*` và không được tính vào dự trữ. LP giữ phần tăng trưởng còn lại. Xem [`products/amm-v4/math`](/docs/i18n/vi/products/amm-v4/math#settlement-step-pnl).
+
+Cả hai chương trình đều loại các khoản phí không thuộc LP đã ghi nhận ra khỏi dự trữ của đường cong, nhưng thời điểm thanh toán và cách hạch toán khác nhau.
 
 ## Quy tắc làm tròn
 

@@ -10,9 +10,9 @@ description: "@raydium-io/raydium-sdk-v2 端到端指南 — 安装、四个模�
 </Info>
 
 <Info>
-  **版本说明。** 本页文档对应 `@raydium-io/raydium-sdk-v2@0.2.64-alpha`，这是本站所有代码示例所使用的版本。SDK 尚未发布 1.0，类型接口在各版本间有所变化 — 请锁定你使用的版本。
+  **版本说明。** 本页文档对应 `@raydium-io/raydium-sdk-v2@0.2.85-alpha`，这是本站所有代码示例所使用的版本。SDK 尚未发布 1.0，类型接口在各版本间有所变化 — 请锁定你使用的版本。
 
-  版本号从 `0.2.42-alpha` 升级到 `0.2.64-alpha`，时间为 2026-09-09，同步了程序升级。`0.2.64-alpha` 是 SDK 的当前发布版本。代码演示页面链接的 [`raydium-sdk-V2-demo`](https://github.com/raydium-io/raydium-sdk-V2-demo) 仓库安装的是 `0.2.62-alpha`，如果你逐字按照演示操作，可以选择锁定其中任一版本。本页的演示最后一次**执行**是针对 `0.2.42-alpha`（2026-04）；其调用签名已在 2026-09-09 针对 `0.2.64-alpha` 源代码重新检查，但如果发现不匹配，请视为文档 bug 并 [提交 issue](https://github.com/raydium-io/raydium-docs-v1/issues/new)。
+  该版本固定已于 2026-11-20 从 `0.2.64-alpha` 升级。[`raydium-sdk-V2-demo`](https://github.com/raydium-io/raydium-sdk-V2-demo) 仓库在更新池创建示例所用的提交中安装的是 `0.2.85-alpha`。这些示例最后一次**执行**是在 `0.2.42-alpha`（2026-04）上。其公开构建器签名已于 2026-11-20 针对已发布的 `0.2.85-alpha` 包重新检查。如有不一致，请视为文档错误并[提交 issue](https://github.com/raydium-io/raydium-docs-v1/issues/new)。
 </Info>
 
 ## 安装
@@ -52,8 +52,10 @@ const raydium = await Raydium.load({
 加载后，`raydium` 对象暴露十个模块门面，外加一个 API 客户端：
 
 ```ts
-raydium.cpmm       // CPMM pools: createPool, addLiquidity, withdrawLiquidity, swap, ...
-raydium.clmm       // CLMM pools: createPool, openPositionFromBase, increasePositionFromBase,
+raydium.cpmm       // CPMM pools: createPool with optional creatorFeeOn / InitializeV2,
+                   //             addLiquidity, withdrawLiquidity, swap, ...
+raydium.clmm       // CLMM pools: createPool, customizable pool and V2 builders,
+                   //             openPositionFromBase, increasePositionFromBase,
                    //             decreaseLiquidity, harvestAllRewards, swap, limit orders, ...
 raydium.liquidity  // AMM v4 pools: computeAmountOut, swap, addLiquidity, removeLiquidity, ...
 raydium.farm       // Farm v3/v5/v6: deposit, withdraw, harvestAllRewards, create,
@@ -106,11 +108,13 @@ const { execute, builder, transaction, instructionTypes, signers, extInfo } =
 
 几乎每个构建器都在内部获取链上状态：池信息（用于报价）、代币程序所有权（用于 Token-2022 vs SPL 路由）、账户租金豁免（用于 ATA 创建）等。SDK 积极缓存，但对新池的首次调用涉及 RPC 往返。保持一个长期存活的 `raydium` 实例以避免重新获取。
 
-## CLMM 模块新增功能（最新版本）
+## CLMM 可定制池和限价单
 
-CLMM 门面获得了新的动态费用、单边费用和限价单功能的接口：
+CLMM facade 提供动态费、单边收费和限价单功能：
 
-- **`raydium.clmm.createCustomizablePool`** — `createPool` 的超集，接受 `collectFeeOn` 和 `dynamicFeeConfig`（配置账户的 `PublicKey`）。传入 `dynamicFeeConfig` 才是启用动态费用的方式；没有单独的 `enableDynamicFee` 标志，也没有 `dynamicFeeConfigId`。经典的 `createPool` 继续用于默认费用池。
+- **`raydium.clmm.createCustomizablePool`** — 创建规范的可定制池，接受 `collectFeeOnMint` 和 `dynamicFeeConfig`。收费铸币地址必须是池的铸币地址之一；省略它则从交换输入收费。旧的 `collectFeeOn` 参数已弃用并会被拒绝。
+- **`raydium.clmm.createCustomizablePoolV2`** — 在 `seed_index` 非零的 PDA 上创建一个额外的池。SDK 会检查前 100 个 seed index 并选择第一个可用的。它接受相同的 `collectFeeOnMint` 和 `dynamicFeeConfig` 参数。如果你需要原有的池 PDA，请改用规范方法。
+- **动态费** — 传入 `dynamicFeeConfig` 即可启用。没有单独的 `enableDynamicFee` 标志或 `dynamicFeeConfigId`。经典的 `createPool` 仍可用于默认费率的池。
 - **`raydium.clmm.openLimitOrder`** — 开设单个 tick 的限价单。接受 `poolInfo`、`baseIn`（方向）、`orderTick`、`amount`，以及可选的 `tickArrayBitmap`、`noneIndex`、`ownerInfo`。使用导出的 `getOrderTick({ baseIn, mintADecimal, mintBDecimal, tickSpacing, price })` 辅助函数来量化 tick。
 - **`raydium.clmm.increaseLimitOrder` / `decreaseLimitOrder`** — 调整现有订单的未成交部分。两者都接受 `{ poolInfo, limitOrder, amount }`；`decreaseLimitOrder` 另有一个可选的 `slippage`。减少操作在完全成交的订单上会以 `InvalidOrderPhase` 回滚。
 - **`raydium.clmm.settleLimitOrder` / `settleAllLimitOrder`** — 将成交输出扫入所有者的 ATA。`settleLimitOrder` 只接受 `{ limitOrder }` —— 没有 `poolInfo`。订单所有者或程序的 `limit_order_admin` keeper 都可以调用它。

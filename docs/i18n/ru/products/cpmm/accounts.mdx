@@ -132,7 +132,7 @@ export function deriveCpmmAccounts(
 ```rust programs/cp-swap/src/states/pool.rs
 pub struct PoolState {
     pub amm_config: Pubkey,               // привязывает этот пул к AmmConfig
-    pub pool_creator: Pubkey,             // кто запустил initialize
+    pub pool_creator: Pubkey,             // creator-fee recipient; normally the initialize signer
     pub token_0_vault: Pubkey,            // == vault0 PDA
     pub token_1_vault: Pubkey,            // == vault1 PDA
 
@@ -177,7 +177,8 @@ pub struct PoolState {
 - **`status`** — битовая маска, контролирующая, разрешены ли `Swap`, `Deposit`, `Withdraw`. Обновляется администратором через `UpdatePoolStatus`. SDK проверяет это перед построением транзакции; если вы CPI'ите напрямую, проверьте это сами.
 - **`token0_program` / `token1_program`** — программа токена для CPI в каждое хранилище. Один может быть классическим SPL Token, а другой Token-2022; они независимы.
 - **`open_time`** — временная метка Unix. Swap'ы до этого времени не удаются. Deposit'ы разрешены до `open_time`, чтобы пул мог быть заполнен.
-- **`creator_fee_on` / `enable_creator_fee`** — вместе контролируют, активна ли опциональная комиссия создателя для этого пула и с какой стороны swap'а она собирается. `enable_creator_fee == false` полностью обнуляет путь комиссии создателя. Когда включено, `creator_fee_on` выбирает: `0` = взять комиссию с любого токена, который является входом swap'а (`BothToken`); `1` = взять комиссию только из `token_0` (пропустить на swap'ах `token_1 → token_0`); `2` = взять комиссию только из `token_1`. Устанавливается при создании пула: `Initialize` всегда сохраняет её выключенной, `InitializeV2` сохраняет выбор создателя (добавлена 2026-10-30), а `InitializeWithPermission` всегда сохраняет её включённой с `creator_fee_on` вызывающего. Не может измениться позже.
+- **`pool_creator`** — получатель комиссии создателя. `Initialize` и `InitializeV2` записывают подписанта-создателя. `InitializeWithPermission` записывает отдельно переданный аккаунт создателя. Оплата комиссии транзакции не меняет это поле и не перенаправляет комиссии создателя.
+- **`creator_fee_on` / `enable_creator_fee`** — вместе определяют, действует ли необязательная комиссия создателя и какой токен она использует. `enable_creator_fee == false` полностью отключает путь комиссии создателя. Когда она включена, `BothToken` (`0`) берёт комиссию с того токена, который является входом свопа. `OnlyToken0` (`1`) всегда использует token0: со входа при свопах `token_0 → token_1` и с выхода при свопах `token_1 → token_0`. `OnlyToken1` (`2`) работает наоборот. Задаётся при создании пула: `Initialize` всегда сохраняет её отключённой, `InitializeV2` сохраняет выбор создателя (добавлено 2026-10-30), а `InitializeWithPermission` всегда сохраняет её включённой с `creator_fee_on` вызывающей стороны. Позже изменить нельзя.
 - **`creator_fees_token_{0,1}`** — накопленные комиссии создателя, собираемые через `CollectCreatorFee` или `CollectCreatorFeePermissionless`. Оба пути обнуляют полные счётчики, но с обновлением creator-fee-share от 2026-09-19 из пула уходит только часть баланса: доля протокола **добавляется к `protocol_fees_token_{0,1}`** и остаток передаётся создателю. Путь без разрешения фиксирует получателей на канонических ATA `pool_creator`. Сам `PoolState` не изменился — нет отдельного счётчика для общей суммы.
 
 ### `AmmConfig`

@@ -110,32 +110,36 @@ require!(k_after >= k_before, ErrorCode::InvariantViolation);
 
 ### CPMM 約定
 
-手續費是 `1_000_000` 分母上的 `u64` 基點類似率。交易手續費分為 `trade_fee_rate`（總計），然後通過 `protocol_fee_rate`、`fund_fee_rate`、`creator_fee_rate` 細分。每次交換時：
+費率是以 `1_000_000` 為分母的 `u64` 值。`protocol_fee_rate` 和 `fund_fee_rate` 細分的是**交易費**。`creator_fee_rate` 是獨立的：它作用於交換量，從不減少交易費中的各份額。
+
+當兩種費用都從輸入中收取時，程式會對合計扣除額只取整一次，然後按費率拆分：
 
 ```
-trade_fee     = ceil(Δx · trade_fee_rate   / 1_000_000)
-creator_fee   = ceil(Δx · creator_fee_rate / 1_000_000)   // its own rate on volume,
-                                                          // NOT a slice of trade_fee
-protocol_fee  = floor(trade_fee · protocol_fee_rate / 1_000_000)
-fund_fee      = floor(trade_fee · fund_fee_rate     / 1_000_000)
-lp_fee        = trade_fee − protocol_fee − fund_fee
+total_fee      = ceil(Δx · (trade_fee_rate + creator_fee_rate) / 1_000_000)
+creator_fee    = floor(total_fee · creator_fee_rate / (trade_fee_rate + creator_fee_rate))
+trade_fee      = total_fee − creator_fee
+protocol_fee   = floor(trade_fee · protocol_fee_rate / 1_000_000)
+fund_fee       = floor(trade_fee · fund_fee_rate / 1_000_000)
+lp_fee         = trade_fee − protocol_fee − fund_fee
 ```
 
-三個非 LP 份額累積到單獨的計數器（`protocol_fees_*`、`fund_fees_*`、`creator_fees_*`）中，這些計數器**排除在**用於不變式的準備金之外。這就是手續費可以不移動曲線的情況下掃出的方式。見 [`products/cpmm/fees`](/docs/i18n/zh-Hant/products/cpmm/fees)。
+當 `creator_fee_on` 選擇輸出代幣時，只有交易費從輸入中扣除。創作者費改為 `ceil(Δy · creator_fee_rate / 1_000_000)`，從曲線輸出中扣除。參見 [`products/cpmm/fees`](/docs/i18n/zh-Hant/products/cpmm/fees#which-side-of-the-trade-the-fees-are-taken-from)。
+
+三個非 LP 費用桶分別累積，並且不計入不變量所用的儲備。收取創作者費時，可設定的協議份額會從創作者費桶移入協議費用桶；只有剩餘部分歸創作者。
 
 ### AMM v4 約定
 
-手續費是 `10_000` 分母上的 `numerator / denominator` 比率。分割在池建立時固定並儲存在 `AmmInfo.fees` 上：
+總交換費使用 `swap_fee_numerator / swap_fee_denominator`，通常為 `25 / 10_000`：
 
 ```
-swap_fee  = ceil(Δx · swap_fee_numerator / swap_fee_denominator)    // 例如 0.25%
-pnl_share = swap_fee · pnl_numerator / pnl_denominator               // 12 / 100 = swap_fee 的 12%
-lp_share  = swap_fee − pnl_share                                     // 0.22% 的交易量
+gross_fee = ceil(Δx · swap_fee_numerator / swap_fee_denominator)   // 0.25% by default
 ```
 
-`pnl_share` 累積到 `state_data.need_take_pnl_*` 並從準備金中排除；`lp_share` 保留在金庫中。見 [`products/amm-v4/fees`](/docs/i18n/zh-Hant/products/amm-v4/fees)。
+程式**不會**在每次交換時計算 `pnl_numerator / pnl_denominator × gross_fee`。全部費用最初都留在儲備中並提高 `k`。之後，`calc_take_pnl` 以 `TargetOrders` 為基線衡量增長，推導出各代幣一側的 PnL 數額，並對該增長套用 `pnl_numerator / pnl_denominator`。預設情況下該比例為 `12 / 100`；常被引用的交易量 0.03% 是經濟上的費用等價值，而不是每筆交換精確扣除的金額。整數取整會影響結果，並且只有當兩側代幣的數額都不為零時，程式才會記入 PnL。
 
-兩個約定以相同方式保留不變式——差異是表面的（分母 + 子類別數量）。
+已記入的 PnL 累積到 `state_data.need_take_pnl_*` 中，並且不計入儲備。其餘增長歸 LP 所有。參見 [`products/amm-v4/math`](/docs/i18n/zh-Hant/products/amm-v4/math#settlement-step-pnl)。
+
+兩個程式都把已記入的非 LP 費用排除在曲線儲備之外，但它們的結算時機和記帳方式不同。
 
 ## 舍入規則
 

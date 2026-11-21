@@ -186,7 +186,7 @@ SDK 的報價器考慮了所有三項，因此 `minimum_amount_out` 以用戶實
 - **創建後無法重新啟用或重新路由。** 使用 `enable_creator_fee = false` 初始化的池將永遠不會收取創作者費；使用特定 `creator_fee_on` 初始化的池無法切換側面。
 - **啟用它不會設定費率。** 啟用費用創建的池收取其層級的 `creator_fee_rate`。預設值為 `0`，因此在這樣的層級上，已啟用的池不會累積任何費用。創建池之前請檢查配置。
 
-創作者費是 Raydium「燒毀與賺取」模式背後的機制：LP 代幣在 [LP Lock](/docs/i18n/zh-Hant/reference/program-addresses) 程序下鎖定，因此創作者無法提取流動性，但累積的創作者費仍可以無限期收集。
+CPMM 創作者費與 Raydium 的 "Burn & Earn" Fee Key 是相互獨立的。Burn & Earn 會把一個 LP 頭寸鎖定在 [LP Lock](/docs/i18n/zh-Hant/reference/program-addresses) 程式下，並把該頭寸的 LP 費用發送給 Fee Key 持有人。CPMM 創作者費流仍然屬於 `PoolState.pool_creator`（扣除收取時的協議份額）；無論鎖定 LP 還是轉讓 Fee Key，都不會轉移這一身分。
 
 ## 創作者費的協議份額
 

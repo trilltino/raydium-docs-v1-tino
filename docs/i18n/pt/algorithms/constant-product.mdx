@@ -110,32 +110,36 @@ A verificação invariante assume que a taxa do LP permanece nas reservas. Difer
 
 ### Convenção CPMM
 
-As taxas são taxas similares a pontos base `u64` em um denominador `1_000_000`. A taxa de trade é dividida em `trade_fee_rate` (total) e depois subdividida via `protocol_fee_rate`, `fund_fee_rate`, `creator_fee_rate`. Em cada swap:
+As taxas são alíquotas `u64` sobre um denominador de `1_000_000`. `protocol_fee_rate` e `fund_fee_rate` subdividem a **taxa de negociação**. `creator_fee_rate` é independente: aplica-se ao volume do swap e nunca reduz as partes da taxa de negociação.
+
+Quando as duas taxas são cobradas da entrada, o programa arredonda a dedução combinada uma única vez e depois a divide de acordo com as alíquotas:
 
 ```
-trade_fee     = ceil(Δx · trade_fee_rate   / 1_000_000)
-creator_fee   = ceil(Δx · creator_fee_rate / 1_000_000)   // its own rate on volume,
-                                                          // NOT a slice of trade_fee
-protocol_fee  = floor(trade_fee · protocol_fee_rate / 1_000_000)
-fund_fee      = floor(trade_fee · fund_fee_rate     / 1_000_000)
-lp_fee        = trade_fee − protocol_fee − fund_fee
+total_fee      = ceil(Δx · (trade_fee_rate + creator_fee_rate) / 1_000_000)
+creator_fee    = floor(total_fee · creator_fee_rate / (trade_fee_rate + creator_fee_rate))
+trade_fee      = total_fee − creator_fee
+protocol_fee   = floor(trade_fee · protocol_fee_rate / 1_000_000)
+fund_fee       = floor(trade_fee · fund_fee_rate / 1_000_000)
+lp_fee         = trade_fee − protocol_fee − fund_fee
 ```
 
-As três partes não-LP acumulam em contadores separados (`protocol_fees_*`, `fund_fees_*`, `creator_fees_*`) que são **excluídos** das reservas usadas no invariante. É assim que as taxas podem ser retiradas sem mover a curva. Veja [`products/cpmm/fees`](/docs/i18n/pt/products/cpmm/fees).
+Quando `creator_fee_on` seleciona o token de saída, apenas a taxa de negociação é deduzida da entrada. A taxa do criador passa a ser `ceil(Δy · creator_fee_rate / 1_000_000)`, deduzida da saída da curva. Veja [`products/cpmm/fees`](/docs/i18n/pt/products/cpmm/fees#which-side-of-the-trade-the-fees-are-taken-from).
+
+Os três buckets que não são de LP se acumulam separadamente e ficam fora das reservas usadas no invariante. Quando as taxas do criador são coletadas, uma parte configurável do protocolo passa do bucket do criador para o bucket do protocolo; apenas o restante vai para o criador.
 
 ### Convenção AMM v4
 
-As taxas são razões `numerator / denominator` em um denominador `10_000`. A divisão é fixa na criação do pool e armazenada em `AmmInfo.fees`:
+A taxa bruta de swap usa `swap_fee_numerator / swap_fee_denominator`, normalmente `25 / 10_000`:
 
 ```
-swap_fee  = ceil(Δx · swap_fee_numerator / swap_fee_denominator)    // ex. 0.25%
-pnl_share = swap_fee · pnl_numerator / pnl_denominator               // 12 / 100 = 12% de swap_fee
-lp_share  = swap_fee − pnl_share                                     // 0.22% do volume
+gross_fee = ceil(Δx · swap_fee_numerator / swap_fee_denominator)   // 0.25% by default
 ```
 
-`pnl_share` acumula em `state_data.need_take_pnl_*` e é excluído das reservas; `lp_share` permanece no cofre. Veja [`products/amm-v4/fees`](/docs/i18n/pt/products/amm-v4/fees).
+O programa **não** calcula `pnl_numerator / pnl_denominator × gross_fee` a cada swap. A taxa inteira fica inicialmente nas reservas e eleva `k`. Depois, `calc_take_pnl` mede o crescimento em relação à base `TargetOrders`, deriva os valores de PnL de cada lado de token e aplica `pnl_numerator / pnl_denominator` a esse crescimento. Com os valores padrão, essa fração é `12 / 100`; os 0,03% do volume frequentemente citados são um equivalente econômico da taxa, não uma dedução exata por swap. O arredondamento inteiro altera o resultado, e o programa só registra PnL quando os valores dos dois lados de token são diferentes de zero.
 
-Ambas as convenções preservam o invariante da mesma forma — a diferença é cosmética (denominador + número de subcategorias).
+O PnL registrado se acumula em `state_data.need_take_pnl_*` e fica fora das reservas. Os LPs retêm o restante do crescimento. Veja [`products/amm-v4/math`](/docs/i18n/pt/products/amm-v4/math#settlement-step-pnl).
+
+Os dois programas excluem das reservas da curva as taxas registradas que não são de LP, mas diferem no momento da liquidação e na contabilidade.
 
 ## Regras de arredondamento
 

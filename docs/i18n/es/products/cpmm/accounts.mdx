@@ -132,7 +132,7 @@ Las definiciones completas de Rust viven en la fuente [`raydium-cp-swap`](https:
 ```rust programs/cp-swap/src/states/pool.rs
 pub struct PoolState {
     pub amm_config: Pubkey,               // binds this pool to an AmmConfig
-    pub pool_creator: Pubkey,             // who ran initialize
+    pub pool_creator: Pubkey,             // creator-fee recipient; normally the initialize signer
     pub token_0_vault: Pubkey,            // == vault0 PDA
     pub token_1_vault: Pubkey,            // == vault1 PDA
 
@@ -177,7 +177,8 @@ Qué leer realmente:
 - **`status`** — una máscara de bits que controla si `Swap`, `Deposit`, `Withdraw` están permitidos. Actualizado por el administrador a través de `UpdatePoolStatus`. El SDK verifica esto antes de construir una transacción; si estás haciendo CPI directamente, verifica tú mismo.
 - **`token0_program` / `token1_program`** — el programa de token en el que hacer CPI para cada bóveda. Uno puede ser SPL Token clásico y el otro Token-2022; son independientes.
 - **`open_time`** — una marca de tiempo Unix. Los swaps antes de esta hora fallan. Los depósitos se permiten antes de `open_time` para que el pool pueda ser sembrado.
-- **`creator_fee_on` / `enable_creator_fee`** — juntos controlan si la comisión de creador opcional está activa para este pool y de qué lado del swap se recopila. `enable_creator_fee == false` anula completamente la ruta de comisión del creador. Cuando está habilitado, `creator_fee_on` selecciona: `0` = tomar comisión de cualquier token que sea la entrada del swap (`BothToken`); `1` = tomar comisión de `token_0` solo (omitir en swaps `token_1 → token_0`); `2` = tomar comisión de `token_1` solo. Se establece en la creación del pool: `Initialize` siempre la almacena deshabilitada, `InitializeV2` almacena la elección del creador (agregada el 2026-10-30), e `InitializeWithPermission` siempre la almacena habilitada con el `creator_fee_on` del llamador. No puede cambiar después.
+- **`pool_creator`** — el destinatario de la comisión del creador. `Initialize` e `InitializeV2` registran al firmante creador. `InitializeWithPermission` registra la cuenta de creador que se le pasa por separado. Pagar la comisión de la transacción no cambia este campo ni redirige las comisiones del creador.
+- **`creator_fee_on` / `enable_creator_fee`** — controlan conjuntamente si la comisión opcional del creador está activa y qué token usa. `enable_creator_fee == false` desactiva por completo la ruta de la comisión del creador. Si está activa, `BothToken` (`0`) cobra la comisión del token que sea la entrada del swap. `OnlyToken0` (`1`) usa siempre token0: de la entrada en swaps `token_0 → token_1` y de la salida en swaps `token_1 → token_0`. `OnlyToken1` (`2`) hace lo contrario. Se fija al crear el pool: `Initialize` siempre la guarda desactivada, `InitializeV2` guarda la elección del creador (añadido el 2026-10-30) e `InitializeWithPermission` siempre la guarda activada con el `creator_fee_on` del llamador. No se puede cambiar después.
 - **`creator_fees_token_{0,1}`** — comisiones de creador acumuladas, barridas por `CollectCreatorFee` o `CollectCreatorFeePermissionless`. Ambas rutas cero los contadores completos, pero desde la actualización de participación de comisión de creador del 2026-09-19 solo parte del saldo sale del pool: la participación del protocolo se **agrega a `protocol_fees_token_{0,1}`** y el resto se transfiere al creador. La ruta sin permiso fija los destinatarios a los ATAs canónicos de `pool_creator`. `PoolState` en sí no cambió — no hay un contador separado para la cantidad compartida.
 
 ### `AmmConfig`

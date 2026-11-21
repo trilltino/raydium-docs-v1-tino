@@ -311,22 +311,23 @@ Luôn truyền `remainingAccounts` mà bước mô phỏng trả về: nếu thi
 
 ## Tạo pool CLMM tùy chỉnh được
 
-`createCustomizablePool` là hàm đầu vào cho phép bật/tắt phí động và phí một phía ngay tại thời điểm tạo pool. Hàm này nhận cùng tham số với `createPool`, cộng thêm **hai** tham số bổ sung:
+Các builder pool tùy chỉnh cung cấp phí động và thu phí một phía. Dùng `createCustomizablePool` cho pool chuẩn của bộ ba `(config, mint0, mint1)`. Dùng `createCustomizablePoolV2` cho một pool bổ sung có PDA chứa `seed_index` khác 0.
+
+Ví dụ này giống bản demo đã cập nhật và tạo một pool V2 bổ sung:
 
 ```ts
-import { CLMM_PROGRAM_ID, CollectFeeOn } from "@raydium-io/raydium-sdk-v2";
+import { CLMM_PROGRAM_ID } from "@raydium-io/raydium-sdk-v2";
 
 const dynamicFeeConfigs = await raydium.api.getClmmDynamicConfigs();    // GET /main/clmm-dynamic-config
 const dynamicFeeConfig  = dynamicFeeConfigs.find((c) => c.index === 0); // chọn một mức hiệu chỉnh
 
-const { execute, extInfo } = await raydium.clmm.createCustomizablePool({
+const { execute, extInfo } = await raydium.clmm.createCustomizablePoolV2({
   programId: CLMM_PROGRAM_ID,
   mint1:     mintA,
   mint2:     mintB,
   ammConfig,
   initialPrice,
-  // Hai tham số bổ sung:
-  collectFeeOn:      CollectFeeOn.TokenOnlyB,   // FromInput | TokenOnlyA | TokenOnlyB
+  collectFeeOnMint:  new PublicKey(mintB.address),
   dynamicFeeConfig:  new PublicKey(dynamicFeeConfig!.id),
   txVersion: TxVersion.V0,
 });
@@ -335,12 +336,15 @@ await execute({ sendAndConfirm: true });
 console.log("Customizable pool:", extInfo.address.id);   // chuỗi base58
 ```
 
+`collectFeeOnMint` phải là một trong hai mint của pool. SDK sắp xếp các mint và ánh xạ lựa chọn của bạn sang chế độ on-chain `Token0Only` hoặc `Token1Only`. Bỏ qua tham số này để dùng `FromInput`. Tham số SDK cũ `collectFeeOn` đã bị loại bỏ và sẽ bị từ chối; enum on-chain `CollectFeeOn` vẫn tồn tại.
+
 <Warning>
-  Không có tham số `enableDynamicFee`, `dynamicFeeConfigId` hay `startTime`.
-  **Chính việc truyền `dynamicFeeConfig` mới bật phí động.** Nếu bỏ tham số này, bạn sẽ nhận được một pool phí tĩnh mà không có bất kỳ lỗi nào. Ngoài ra, các thành viên enum trong SDK là `TokenOnlyA` / `TokenOnlyB`, trong khi enum Rust on-chain viết là `Token0Only` / `Token1Only`. Giá trị số tương ứng là giống nhau (`FromInput` = 0).
+  **V2 thay đổi cách suy ra địa chỉ pool, không chỉ tham số phí.** SDK kiểm tra 100 seed index khác 0 đầu tiên và chọn giá trị còn trống đầu tiên. Đừng dùng V2 nếu bạn định tạo pool chuẩn. Với trường hợp đó, hãy gọi `createCustomizablePool` với cùng các tham số `collectFeeOnMint` và `dynamicFeeConfig`.
+
+  Không có tham số `enableDynamicFee`, `dynamicFeeConfigId` hay `startTime`. **Truyền `dynamicFeeConfig` sẽ bật phí động.** Bỏ qua nó để có pool phí cố định.
 </Warning>
 
-`createPool` vẫn hoạt động cho trường hợp dùng phí mặc định, không có phí động. Hãy dùng `createCustomizablePool` khi bạn cần một trong hai tùy chọn trên. Xem [`products/clmm/instructions`](/docs/i18n/vi/products/clmm/instructions) để biết danh sách tài khoản on-chain.
+`createPool` thông thường vẫn dùng được cho các pool có phí mặc định. Xem [`products/clmm/instructions`](/docs/i18n/vi/products/clmm/instructions) để biết danh sách tài khoản riêng của các lệnh on-chain `CreateCustomizablePool` và `CreateCustomizablePoolV2`.
 
 ## Lệnh giới hạn (Limit orders)
 

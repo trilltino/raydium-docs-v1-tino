@@ -10,9 +10,9 @@ description: "@raydium-io/raydium-sdk-v2 từ đầu đến cuối — cài đ�
 </Info>
 
 <Info>
-  **Biểu ngữ phiên bản.** Trang này tài liệu hóa `@raydium-io/raydium-sdk-v2@0.2.64-alpha`, phiên bản được ghim mà mọi demo mã trên trang này sử dụng. SDK chưa phải phiên bản 1.0 và bề mặt kiểu dữ liệu đã phát triển qua các bản phát hành — hãy ghim phiên bản của bạn.
+  **Biểu ngữ phiên bản.** Trang này tài liệu hóa `@raydium-io/raydium-sdk-v2@0.2.85-alpha`, phiên bản được ghim mà mọi demo mã trên trang này sử dụng. SDK chưa phải phiên bản 1.0 và bề mặt kiểu dữ liệu đã phát triển qua các bản phát hành — hãy ghim phiên bản của bạn.
 
-  Phiên bản được nâng cấp từ `0.2.42-alpha` vào ngày 2026-09-09 cùng với các nâng cấp chương trình: `0.2.64-alpha` là bản phát hành hiện tại của SDK. Kho [`raydium-sdk-V2-demo`](https://github.com/raydium-io/raydium-sdk-V2-demo) mà các trang demo mã liên kết đến cài đặt `0.2.62-alpha`, vì vậy hãy ghim một trong hai nếu bạn đang theo dõi demo một cách chính xác. Các demo trên các trang này được **thực thi** lần cuối cùng với `0.2.42-alpha` (2026-04); chữ ký cuộc gọi của chúng được kiểm tra lại với nguồn `0.2.64-alpha` vào ngày 2026-09-09, nhưng hãy coi bất kỳ sự không khớp nào là lỗi tài liệu và [mở một issue](https://github.com/raydium-io/raydium-docs-v1/issues/new).
+  Phiên bản ghim đã được nâng từ `0.2.64-alpha` vào 2026-11-20. Kho [`raydium-sdk-V2-demo`](https://github.com/raydium-io/raydium-sdk-V2-demo) cài `0.2.85-alpha` tại commit mà các ví dụ tạo pool đã cập nhật sử dụng. Các bản demo được **chạy** lần cuối trên `0.2.42-alpha` (2026-04). Chữ ký builder công khai của chúng đã được kiểm tra lại với gói `0.2.85-alpha` đã phát hành vào 2026-11-20. Hãy coi mọi điểm không khớp là lỗi tài liệu và [mở một issue](https://github.com/raydium-io/raydium-docs-v1/issues/new).
 </Info>
 
 ## Cài đặt
@@ -52,8 +52,10 @@ const raydium = await Raydium.load({
 Sau khi tải, đối tượng `raydium` hiển thị mười module facade cùng với một API client:
 
 ```ts
-raydium.cpmm       // CPMM pools: createPool, addLiquidity, withdrawLiquidity, swap, ...
-raydium.clmm       // CLMM pools: createPool, openPositionFromBase, increasePositionFromBase,
+raydium.cpmm       // CPMM pools: createPool with optional creatorFeeOn / InitializeV2,
+                   //             addLiquidity, withdrawLiquidity, swap, ...
+raydium.clmm       // CLMM pools: createPool, customizable pool and V2 builders,
+                   //             openPositionFromBase, increasePositionFromBase,
                    //             decreaseLiquidity, harvestAllRewards, swap, limit orders, ...
 raydium.liquidity  // AMM v4 pools: computeAmountOut, swap, addLiquidity, removeLiquidity, ...
 raydium.farm       // Farm v3/v5/v6: deposit, withdraw, harvestAllRewards, create,
@@ -109,11 +111,13 @@ Các trường được trả về:
 
 Hầu như mọi builder đều tìm nạp trạng thái on-chain nội bộ: thông tin pool (cho các báo giá), quyền sở hữu chương trình token (cho định tuyến Token-2022 so với SPL), miễn phí thuê tài khoản (cho tạo ATA), v.v. SDK lưu vào bộ nhớ cache một cách tích cực nhưng lệnh gọi đầu tiên cho một pool mới liên quan đến các vòng RPC. Giữ một instance `raydium` lâu dài để tránh tìm nạp lại.
 
-## Bổ sung module CLMM (bản phát hành mới nhất)
+## Pool tùy chỉnh và lệnh giới hạn của CLMM
 
-Facade CLMM đã có các bề mặt cho các tính năng phí động, phí một chiều và lệnh giới hạn mới:
+Facade CLMM cung cấp phí động, phí một phía và lệnh giới hạn:
 
-- **`raydium.clmm.createCustomizablePool`** — siêu tập hợp của `createPool` chấp nhận `collectFeeOn` và `dynamicFeeConfig` (`PublicKey` của tài khoản cấu hình). Việc cung cấp `dynamicFeeConfig` chính là điều bật phí động; không có cờ `enableDynamicFee` riêng và cũng không có `dynamicFeeConfigId`. `createPool` cổ điển tiếp tục hoạt động cho các pool phí mặc định.
+- **`raydium.clmm.createCustomizablePool`** — tạo pool tùy chỉnh chuẩn và nhận `collectFeeOnMint` cùng `dynamicFeeConfig`. Mint thu phí phải là một trong các mint của pool; bỏ qua để thu phí từ đầu vào của swap. Tham số cũ `collectFeeOn` đã bị loại bỏ và sẽ bị từ chối.
+- **`raydium.clmm.createCustomizablePoolV2`** — tạo một pool bổ sung tại PDA có `seed_index` khác 0. SDK kiểm tra 100 seed index đầu tiên và chọn giá trị còn trống đầu tiên. Nó nhận cùng các tham số `collectFeeOnMint` và `dynamicFeeConfig`. Hãy dùng phương thức chuẩn nếu bạn cần PDA pool gốc.
+- **Phí động** — được bật khi truyền `dynamicFeeConfig`. Không có cờ `enableDynamicFee` riêng hay `dynamicFeeConfigId`. `createPool` cổ điển vẫn dùng được cho các pool có phí mặc định.
 - **`raydium.clmm.openLimitOrder`** — mở một lệnh giới hạn tick đơn. Lấy `poolInfo`, `baseIn` (hướng), `orderTick`, `amount`, và tùy chọn `tickArrayBitmap`, `noneIndex`, `ownerInfo`. Dùng trợ giúp được xuất ra `getOrderTick({ baseIn, mintADecimal, mintBDecimal, tickSpacing, price })` để lượng tử hóa tick.
 - **`raydium.clmm.increaseLimitOrder` / `decreaseLimitOrder`** — điều chỉnh phần chưa điền của một lệnh hiện có. Cả hai lấy `{ poolInfo, limitOrder, amount }`; `decreaseLimitOrder` thêm một `slippage` tùy chọn. Giảm sẽ hoàn nguyên trên một lệnh đã điền đầy với `InvalidOrderPhase`.
 - **`raydium.clmm.settleLimitOrder` / `settleAllLimitOrder`** — quét đầu ra đã điền vào ATA của chủ sở hữu. `settleLimitOrder` chỉ lấy `{ limitOrder }` — không có `poolInfo`. Hoặc chủ sở hữu lệnh hoặc keeper `limit_order_admin` của chương trình đều có thể gọi nó.

@@ -316,22 +316,23 @@ Simülasyonun döndürdüğü `remainingAccounts` değerlerini her zaman iletin:
 
 ## Özelleştirilebilir bir CLMM havuzu oluşturma
 
-`createCustomizablePool`, havuz oluşturma anında dinamik ücret ve tek taraflı ücret anahtarlarını sunan giriş noktasıdır. `createPool` ile aynı yapıyı kullanır, ancak buna **iki** ek parametre eklenir:
+Özelleştirilebilir havuz oluşturucuları dinamik ücretleri ve tek taraflı ücret tahsilini sunar. Bir `(config, mint0, mint1)` üçlüsünün kanonik havuzu için `createCustomizablePool` kullanın. PDA'sı sıfırdan farklı bir `seed_index` içeren ek bir havuz için `createCustomizablePoolV2` kullanın.
+
+Bu örnek güncellenmiş demoyu izler ve ek bir V2 havuzu oluşturur:
 
 ```ts
-import { CLMM_PROGRAM_ID, CollectFeeOn } from "@raydium-io/raydium-sdk-v2";
+import { CLMM_PROGRAM_ID } from "@raydium-io/raydium-sdk-v2";
 
 const dynamicFeeConfigs = await raydium.api.getClmmDynamicConfigs();    // GET /main/clmm-dynamic-config
 const dynamicFeeConfig  = dynamicFeeConfigs.find((c) => c.index === 0); // bir kalibrasyon kademesi seçin
 
-const { execute, extInfo } = await raydium.clmm.createCustomizablePool({
+const { execute, extInfo } = await raydium.clmm.createCustomizablePoolV2({
   programId: CLMM_PROGRAM_ID,
   mint1:     mintA,
   mint2:     mintB,
   ammConfig,
   initialPrice,
-  // İki ek parametre:
-  collectFeeOn:      CollectFeeOn.TokenOnlyB,   // FromInput | TokenOnlyA | TokenOnlyB
+  collectFeeOnMint:  new PublicKey(mintB.address),
   dynamicFeeConfig:  new PublicKey(dynamicFeeConfig!.id),
   txVersion: TxVersion.V0,
 });
@@ -340,15 +341,15 @@ await execute({ sendAndConfirm: true });
 console.log("Özelleştirilebilir havuz:", extInfo.address.id);   // base58 dizgisi
 ```
 
+`collectFeeOnMint`, havuzun iki mint'inden biri olmalıdır. SDK mint'leri sıralar ve seçiminizi zincir üstü `Token0Only` veya `Token1Only` moduna eşler. `FromInput` kullanmak için bunu atlayın. Eski `collectFeeOn` SDK parametresi kullanımdan kaldırılmıştır ve reddedilir; zincir üstü `CollectFeeOn` enum'u hâlâ mevcuttur.
+
 <Warning>
-  `enableDynamicFee`, `dynamicFeeConfigId` ve `startTime` parametreleri yoktur.
-  **Dinamik ücretleri etkinleştiren şey `dynamicFeeConfig` parametresinin verilmesidir** — bu parametreyi
-  atlarsanız hata almadan sabit ücretli bir havuz oluşturursunuz. Ayrıca SDK enum üyeleri `TokenOnlyA` /
-  `TokenOnlyB` olarak adlandırılırken, on-chain Rust enum'ı bunları `Token0Only` / `Token1Only` olarak
-  yazar; sayısal değerler eşleşir (`FromInput` = 0).
+  **V2 yalnızca ücret parametresini değil, havuz adresinin türetilmesini de değiştirir.** SDK sıfırdan farklı ilk 100 seed index'i kontrol eder ve ilk uygun olanı seçer. Kanonik havuzu oluşturmak istiyorsanız V2'yi kullanmayın. Bu yol için aynı `collectFeeOnMint` ve `dynamicFeeConfig` parametreleriyle `createCustomizablePool` çağırın.
+
+  `enableDynamicFee`, `dynamicFeeConfigId` veya `startTime` parametresi yoktur. **`dynamicFeeConfig` sağlamak dinamik ücretleri etkinleştirir.** Statik ücretli bir havuz için bunu atlayın.
 </Warning>
 
-Varsayılan ücretli ve dinamik ücret kullanmayan yol için `createPool` çalışmaya devam eder. Bu iki ayardan birine ihtiyacınız olduğunda `createCustomizablePool` kullanın. Zincir üstü hesap listesi için [`products/clmm/instructions`](/docs/i18n/tr/products/clmm/instructions) sayfasına bakın.
+Normal `createPool`, varsayılan ücretli havuzlar için çalışmaya devam eder. Zincir üstü `CreateCustomizablePool` ve `CreateCustomizablePoolV2` talimatlarının ayrı hesap listeleri için [`products/clmm/instructions`](/docs/i18n/tr/products/clmm/instructions) sayfasına bakın.
 
 ## Limit emirleri
 

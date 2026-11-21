@@ -186,8 +186,7 @@ Biaya kreator bersifat opsional dan per-pool. **Tarif** berada di `AmmConfig.cre
 - **Tidak dapat diaktifkan kembali atau dialihkan setelah pembuatan.** Pool yang diinisialisasi dengan `enable_creator_fee = false` tidak akan pernah mengenakan biaya kreator; yang diinisialisasi dengan `creator_fee_on` tertentu tidak dapat beralih sisi.
 - **Mengaktifkannya tidak menetapkan tarif.** Pool yang dibuat dengan biaya diaktifkan mengenakan `creator_fee_rate` dari tingkat biayanya. Defaultnya `0`, sehingga pada tingkat seperti itu pool yang diaktifkan tidak mengakumulasi apa pun. Periksa konfigurasi sebelum Anda membuat pool.
 
-Biaya kreator adalah mekanisme di balik pola "Burn & Earn" Raydium: token LP dikunci di bawah program [LP Lock](/docs/en/reference/program-addresses) sehingga kreator tidak dapat menarik likuiditas, tetapi biaya kreator yang terakumulasi masih dapat dikumpulkan tanpa batas.
-
+Biaya kreator CPMM terpisah dari Fee Key "Burn & Earn" milik Raydium. Burn & Earn mengunci posisi LP di bawah program [LP Lock](/docs/i18n/id/reference/program-addresses) dan mengarahkan biaya LP dari posisi itu ke pemegang Fee Key. Aliran biaya kreator CPMM tetap menjadi milik `PoolState.pool_creator`, dikurangi bagian protokol saat penarikan; mengunci LP maupun mentransfer Fee Key tidak memindahkan penetapan tersebut.
 
 ## Bagian protokol dari biaya kreator
 

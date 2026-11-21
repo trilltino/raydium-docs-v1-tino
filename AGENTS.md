@@ -27,7 +27,7 @@
 - Use sentence case for headings.
 - Bold for UI elements: Click **Settings**.
 - Code formatting for file names, commands, paths, program IDs, and code references.
-- Record the SDK version, program reference, Solana cluster and verification date once in the page or section that introduces the examples. Do not repeat this metadata as comment headers inside code blocks. For Rust excerpts, use the source filename as the code-block title. The current canonical pin is `@raydium-io/raydium-sdk-v2@0.2.64-alpha` (advanced from `0.2.42-alpha` on 2026-09-09); if you bump it, run a global search to keep every code-demo page in lock-step, and leave historical changelog entries on the pin they were verified against.
+- Record the SDK version, program reference, Solana cluster and verification date once in the page or section that introduces the examples. Do not repeat this metadata as comment headers inside code blocks. For Rust excerpts, use the source filename as the code-block title. The current canonical pin is `@raydium-io/raydium-sdk-v2@0.2.85-alpha` (advanced from `0.2.64-alpha` on 2026-11-20); if you bump it, run a global search to keep every code-demo page in lock-step, and leave historical changelog entries on the pin they were verified against.
 
 ## Cross-reference conventions
 

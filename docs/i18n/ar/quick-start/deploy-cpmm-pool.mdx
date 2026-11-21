@@ -104,8 +104,8 @@ console.log(`Tx:       https://solscan.io/tx/${txId}`);
 مثال: إنشاء مجمع SOL/USDC بـ 1 SOL و160 USDC كبذر أولي:
 
 ```bash icon="terminal"
-export MINT_A="So11111111111111111111111111111111111111112"   # wSOL
-export MINT_B="EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"   # USDC
+export MINT_A="So11111111111111111111111111111111111111112"   # wSOL; see reference/program-addresses
+export MINT_B="EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"   # USDC; see reference/program-addresses
 export AMOUNT_A="1000000000"   # 1 SOL (9 decimals)
 export AMOUNT_B="160000000"    # 160 USDC (6 decimals)
 
@@ -134,6 +134,10 @@ Tx:       https://solscan.io/tx/5dQ...
    - زرع الخزائن بـ `AMOUNT_A` و`AMOUNT_B`.
 4. **السعر الأولي** يُحدد بنسبة البذر: `price = AMOUNT_B / AMOUNT_A` بعد تعديل الكسور العشرية. اختر هذا بعناية — ستقوم البوتات بالمراجحة لأي سعر خاطئ في غضون ثوانٍ من فتح المجمع.
 5. **`startTime: new BN(0)`** يفتح التداول فوراً. لتجميع السيولة قبل الفتح للجمهور، عيّن طابع زمني Unix مستقبلي.
+
+يحذف هذا المثال `creatorFeeOn`، لذا يبني SDK التعليمة `Initialize` ويكون مسار رسم المنشئ في المجمع معطّلًا. لتفعيله مع SDK `0.2.85-alpha`، استورد `FeeOn` وأضف `creatorFeeOn: FeeOn.OnlyTokenA` أو `OnlyTokenB` أو `BothToken`. عندئذ يبني SDK التعليمة `InitializeV2`. يوقّع الـ owner الذي ضبطته بصفته المنشئ ويصبح `PoolState.pool_creator`؛ ودفع رسوم المعاملة من حساب آخر لا يعيد توجيه رسوم المنشئ.
+
+يختار `creatorFeeOn` الرمز لا المعدل. يستخدم المجمع `AmmConfig.creator_fee_rate`، والمعدل الصفري لا يراكم شيئًا حتى مع تفعيل المسار. اقرأ الإعداد الحالي قبل الإنشاء. راجع [`products/cpmm/fees`](/docs/i18n/ar/products/cpmm/fees) لسلوك المُدخل/المُخرج والجمع.
 
 ## الأخطاء الشائعة
 

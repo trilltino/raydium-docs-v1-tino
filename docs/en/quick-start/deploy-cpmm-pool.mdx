@@ -98,8 +98,8 @@ console.log(`Tx:       https://solscan.io/tx/${txId}`);
 Example: create a SOL/USDC pool with 1 SOL and 160 USDC seed:
 
 ```bash icon="terminal"
-export MINT_A="So11111111111111111111111111111111111111112"   # wSOL
-export MINT_B="EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"   # USDC
+export MINT_A="So11111111111111111111111111111111111111112"   # wSOL; see reference/program-addresses
+export MINT_B="EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"   # USDC; see reference/program-addresses
 export AMOUNT_A="1000000000"   # 1 SOL (9 decimals)
 export AMOUNT_B="160000000"    # 160 USDC (6 decimals)
 
@@ -128,6 +128,10 @@ Tx:       https://solscan.io/tx/5dQ...
    - seeds the vaults with `AMOUNT_A` and `AMOUNT_B`.
 4. The **initial price** is set by the seed ratio: `price = AMOUNT_B / AMOUNT_A` after decimal adjustment. Pick this carefully — bots will arbitrage any mispricing within seconds of the pool opening.
 5. **`startTime: new BN(0)`** opens trading immediately. To stage liquidity before opening to the public, set a future Unix timestamp.
+
+This example omits `creatorFeeOn`, so the SDK builds `Initialize` and the pool's creator-fee path is disabled. To opt in with SDK `0.2.85-alpha`, import `FeeOn` and add `creatorFeeOn: FeeOn.OnlyTokenA`, `OnlyTokenB`, or `BothToken`. The SDK then builds `InitializeV2`. Your configured owner signs as creator and becomes `PoolState.pool_creator`; paying transaction fees from another account does not redirect creator fees.
+
+`creatorFeeOn` selects the token, not the rate. The pool uses `AmmConfig.creator_fee_rate`, and a zero rate accrues nothing even when the path is enabled. Read the current config before creation. See [`products/cpmm/fees`](/docs/en/products/cpmm/fees) for input/output behavior and collection.
 
 ## Common errors
 

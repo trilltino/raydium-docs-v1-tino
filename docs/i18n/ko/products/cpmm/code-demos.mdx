@@ -10,7 +10,7 @@ description: "모든 CPMM 작업을 위한 엔드-투-엔드 TypeScript 예제 �
 </Info>
 
 <Info>
-  **버전 정보.** 모든 TypeScript 데모는 `@raydium-io/raydium-sdk-v2@0.2.64-alpha`를 대상으로 하며, `0.2.42-alpha` (2026-04)에 대해 마지막으로 실행되었고, 2026-09-09에 Solana mainnet-beta에 대해 `0.2.64-alpha` 소스에 대해 호출 서명을 다시 확인했습니다. Rust CPI 스켈레톤은 `master` 브랜치의 `raydium-cp-swap`을 대상으로 하며, Anchor `1.0.2`를 사용합니다. 프로그램 ID는 [`reference/program-addresses`](/docs/i18n/ko/reference/program-addresses)의 상수에서 가져옵니다.
+  **버전 안내.** 모든 TypeScript 데모는 Solana mainnet-beta의 `@raydium-io/raydium-sdk-v2@0.2.85-alpha`를 대상으로 합니다. 마지막 실행은 `0.2.42-alpha`(2026-04)에서 이루어졌고, 호출 시그니처는 2026-11-20에 게시된 `0.2.85-alpha` 패키지 기준으로 다시 확인했습니다. Rust CPI 스켈레톤은 `master`의 `raydium-cp-swap`, Anchor `1.0.2`를 대상으로 합니다. 프로그램 ID는 [`reference/program-addresses`](/docs/i18n/ko/reference/program-addresses)의 상수에서 가져옵니다.
 </Info>
 
 ## 사전 요구사항
@@ -49,13 +49,16 @@ const raydium = await Raydium.load({
 ```ts
 import { PublicKey } from "@solana/web3.js";
 import BN from "bn.js";
-import { CREATE_CPMM_POOL_PROGRAM, CREATE_CPMM_POOL_FEE_ACC }
-  from "@raydium-io/raydium-sdk-v2";
+import {
+  CREATE_CPMM_POOL_PROGRAM,
+  CREATE_CPMM_POOL_FEE_ACC,
+  FeeOn,
+} from "@raydium-io/raydium-sdk-v2";
 // (모든 풀 PDA를 한 번에 필요로 하면 내보낸 헬퍼는 `getCreatePoolKeys`입니다.
 //  `getCpmmPdas`는 없습니다.)
 
-const mintA = new PublicKey("So11111111111111111111111111111111111111112"); // wSOL
-const mintB = new PublicKey("EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"); // USDC
+const mintA = new PublicKey("So11111111111111111111111111111111111111112"); // wSOL; see reference/program-addresses
+const mintB = new PublicKey("EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"); // USDC; see reference/program-addresses
 
 // 1. 수수료 구성을 선택합니다. index=0은 0.25% 티어입니다.
 const feeConfigs = await raydium.api.getCpmmConfigs();
@@ -75,6 +78,7 @@ const { execute, extInfo } = await raydium.cpmm.createPool({
   mintBAmount:     new BN(   160_000_000),  // 160 USDC (SOL당 160)
   startTime:       new BN(0),               // 즉시 개시
   feeConfig,
+  creatorFeeOn:    FeeOn.OnlyTokenA,
   associatedOnly:  false,
   ownerInfo:       { useSOLBalance: true },
   txVersion:       TxVersion.V0,
@@ -93,8 +97,12 @@ SDK가 조용히 처리하는 몇 가지 사항:
 - 각 측면에 대해 올바른 토큰 프로그램 (SPL Token vs Token-2022)을 선택합니다.
 
 <Note>
-  **`createPool`은 `Initialize`를 빌드하므로 풀의 크리에이터 수수료는 꺼져 있습니다.** 크리에이터 수수료가 활성화된 풀을 생성하려면 `InitializeV2`를 사용하세요 (2026-10-30 프로그램 업그레이드에서 추가됨). 처음 19개 계정은 `Initialize`와 일치합니다. `rent`를 제외하고 인자 `creator_fee_on: Option<CreatorFeeOn>`을 하나 더 받습니다. 이 페이지의 `0.2.64-alpha` 고정 버전은 이 명령어보다 이전입니다. 사용 중인 SDK 버전에 빌더가 포함될 때까지는 갱신된 IDL에서 인코딩하세요. [`products/cpmm/instructions`](/docs/i18n/ko/products/cpmm/instructions#initializev2)를 참고하세요.
+  **`creatorFeeOn`을 지정하면 `createPool`이 `InitializeV2`를 빌드합니다.** 생략하면 기존 `Initialize` 명령을 빌드하며 크리에이터 수수료는 비활성화됩니다. `FeeOn.OnlyTokenA`, `OnlyTokenB`, `BothToken`은 수수료를 받을 토큰을 선택할 뿐 수수료율이나 수령인을 설정하지 않습니다. SDK는 민트를 정렬할 때도 사용자가 고른 A/B 선택을 유지합니다.
 </Note>
+
+SDK owner로 설정한 지갑이 크리에이터로 서명하며 `PoolState.pool_creator`에 기록됩니다. 이 지갑은 풀의 렌트, 풀 생성 수수료, 초기 유동성도 지불합니다. 트랜잭션 `feePayer`를 따로 지정해도 기록된 크리에이터가 바뀌거나 크리에이터 수수료가 다른 곳으로 가지 않습니다. 일반 회수에는 기록된 크리에이터의 서명이 필요합니다. 무권한 회수는 다른 지불자가 실행할 수 있지만 크리에이터 몫은 해당 크리에이터의 표준 ATA로만 전송됩니다.
+
+수수료율은 `AmmConfig.creator_fee_rate`에서 가져옵니다. 이 값이 0이면 크리에이터 수수료 경로를 활성화해도 아무것도 누적되지 않습니다. 회수 시 프로그램은 설정된 프로토콜 몫을 프로토콜 버킷으로 옮기고 나머지를 크리에이터에게 지급합니다. [`products/cpmm/fees`](/docs/i18n/ko/products/cpmm/fees) 및 [`products/cpmm/instructions`](/docs/i18n/ko/products/cpmm/instructions#initializev2)를 참고하세요.
 
 확인 후 다음을 사용하여 라이브 풀 상태를 가져올 수 있습니다:
 
@@ -245,7 +253,7 @@ await execute({ sendAndConfirm: true });
 
 출처: [`src/cpmm/collectCreatorFee.ts`](https://github.com/raydium-io/raydium-sdk-V2-demo/blob/master/src/cpmm/collectCreatorFee.ts), [`src/cpmm/collectAllCreatorFee.ts`](https://github.com/raydium-io/raydium-sdk-V2-demo/blob/master/src/cpmm/collectAllCreatorFee.ts)
 
-프로토콜 및 펀드 수집은 권한 제어됩니다. 크리에이터 수수료는 두 가지 경로가 있습니다: 크리에이터가 서명하는 `CollectCreatorFee`와 누구나 호출할 수 있지만 크리에이터의 정규 ATA로만 전송할 수 있는 `CollectCreatorFeePermissionless`입니다. `0.2.64-alpha`는 두 크리에이터 경로 모두에 대한 모듈 수준 빌더를 제공합니다:
+프로토콜 및 펀드 수집은 권한 제어됩니다. 크리에이터 수수료는 두 가지 경로가 있습니다: 크리에이터가 서명하는 `CollectCreatorFee`와 누구나 호출할 수 있지만 크리에이터의 정규 ATA로만 전송할 수 있는 `CollectCreatorFeePermissionless`입니다. `0.2.85-alpha`는 두 크리에이터 경로 모두에 대한 모듈 수준 빌더를 제공합니다:
 
 ```ts
 // 크리에이터 서명
@@ -267,7 +275,7 @@ await raydium.cpmm.collectMultiCreatorFees({ poolInfoList, txVersion: TxVersion.
 ```
 
 <Warning>
-  **두 크리에이터 명령어 모두 2026-09-19 프로그램 업그레이드에서 계정 목록이 변경되었습니다.** 각각 이제 `["creator_fee_share", creator, ammConfig]`에서 `creator_fee_share` PDA를 가지며, 권한 없는 명령어는 `amm_config`도 가집니다 — 둘 다 **`system_program` 뒤에 추가되며** 삽입되지 않으므로 이미 있던 계정들은 위치를 유지합니다. 업그레이드 이전 SDK 릴리스에 고정된 빌더는 더 짧은 목록을 내보내고 트랜잭션은 누락된 계정으로 인해 거부됩니다. 업그레이드된 프로그램에 대해 이 헬퍼를 사용하기 전에 설치한 버전이 새 계정을 포함하는지 확인하고, IDL에서 클라이언트를 생성하는 경우 IDL을 새로고침하세요.
+  **두 크리에이터 명령 모두 2026-09-19 프로그램 업그레이드에서 계정 목록이 변경되었습니다.** 각 명령은 이제 `["creator_fee_share", creator, ammConfig]`에 있는 `creator_fee_share` PDA를 받으며, 무권한 버전은 `amm_config`도 추가로 받습니다. 두 계정 모두 중간에 삽입되지 않고 **`system_program` 뒤에 추가**되므로 기존 계정의 위치는 유지됩니다. `0.2.85-alpha` 빌더는 두 계정을 모두 추가합니다. `0.2.64-alpha`는 더 짧은 목록을 생성하며, 프로그램은 계정 누락으로 해당 트랜잭션을 거부합니다. IDL에서 클라이언트를 생성한다면 IDL을 새로 고치세요.
 
   PDA를 전달하는 것은 생성된 적이 없는 경우에도 필수입니다 — PDA를 파생하고 전달하세요; 프로그램은 계정이 비어 있을 때 `AmmConfig.creator_fee_share_rate`로 폴백합니다.
 </Warning>

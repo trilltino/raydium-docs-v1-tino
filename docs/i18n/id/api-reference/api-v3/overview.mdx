@@ -91,9 +91,9 @@ Permintaan yang melampaui batas ditolak dengan error.
 
 ### Konfigurasi dynamic-fee dan limit-order CLMM
 
-Dua endpoint baru mengekspos data kalibrasi untuk alur `CreateCustomizablePool` CLMM:
+Dua endpoint menyediakan data kalibrasi untuk pool CLMM yang dapat dikustomisasi dan order limit:
 
-- `GET /main/clmm-dynamic-config` — daftar tier `DynamicFeeConfig` (periode filter, periode decay, faktor reduksi, numerator maksimum, kontrol dynamic-fee). Lewatkan `id` salah satunya ke `createCustomizablePool` ketika `enableDynamicFee=true`.
+- `GET /main/clmm-dynamic-config` — daftar tingkatan `DynamicFeeConfig` (periode filter, periode peluruhan, faktor pengurangan, pembilang maksimum, kontrol biaya dinamis). Berikan `id` sebuah tingkatan sebagai `dynamicFeeConfig` ke `createCustomizablePool` untuk pool kanonis atau ke `createCustomizablePoolV2` untuk pool tambahan dengan seed index. Memberikan parameter ini mengaktifkan biaya dinamis; tidak ada parameter `enableDynamicFee`.
 - `GET /main/clmm-limit-order-config` — konfigurasi limit-order per-pool: apakah limit order diaktifkan, jumlah input minimum, dan penjaga `limit_order_admin` off-chain yang berwenang untuk menyelesaikan pesanan terisi.
 
 Data limit-order per-dompet (terbuka / terisi / ditutup) berada di Temp API; lihat [`api-reference/temp-api-v1/overview`](/docs/i18n/id/api-reference/temp-api-v1/overview).

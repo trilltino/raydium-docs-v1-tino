@@ -1,6 +1,6 @@
 ---
 title: "Paylaşılan altyapı"
-description: "Her Raydium programının paylaştığı ilkel öğeler — yetki PDA'ları, AmmConfig hesapları, protokol/fon/yaratıcı ücret bölünmesi, gözlem hesapları ve genel REST API yüzeyi — bir kez tanımlanmış olup ürüne özgü bölümler buraya geri başvurabilir."
+description: "Tüm Raydium programlarının paylaştığı temel öğeler — yetki PDA'ları, AmmConfig hesapları, işlem ücreti ve CPMM yaratıcı ücreti muhasebesi, gözlem hesapları ve herkese açık REST API — ürün bölümlerinin geri başvurabilmesi için burada bir kez tanımlanır."
 ---
 
 <Info>
@@ -17,7 +17,7 @@ description: "Her Raydium programının paylaştığı ilkel öğeler — yetki 
 
 Kod tabanında üç tür paylaşım çalışır:
 
-- **Kural paylaşımı.** Her program aynı PDA-türetme desenini, aynı ücret-bölünme şeklini ve aynı gözlem-hesabı fikrini kullanır — ancak her biri bunu kendi programında kendi tohumlarıyla uygular.
+- **Ortak kurallar.** Programlar PDA türetme, yapılandırma hesabı, ücret muhasebesi ve gözlem hesabı kalıplarını yeniden kullanır, ancak her program kendi seed'lerini ve davranışını tanımlar. Benzer alan adları aynı uzlaşma kurallarını garanti etmez.
 - **Hesap paylaşımı.** Bir avuç hesap birçok havuz arasında *tam anlamıyla* aynı kayıttır (CPMM'deki genel yetki PDA'sı, AmmConfig hesapları).
 - **Zincir dışı paylaşım.** Bir REST API ve bir TypeScript SDK dört programın tümünü destekler. Entegratörler hangi programa çağrı yapacaklarından bağımsız olarak bir HTTP ana bilgisayarı ve bir NPM paketi ile etkileşim kurar.
 
@@ -77,31 +77,35 @@ AMM v4'ün `AmmConfig`'i yoktur — ücret parametreleri havuz başınadır, olu
 
 Kimin neyi değiştirebileceğinin tam tablosu [`security/admin-and-multisig`](/docs/i18n/tr/security/admin-and-multisig) içindedir. Mevcut kullanıcı tarafından görülen ücret bölünmeleri [`ray/protocol-fees`](/docs/i18n/tr/ray/protocol-fees) içindedir.
 
-## 3. Protokol / fon / yaratıcı ücret bölünmesi
+## 3. İşlem ücreti ve yaratıcı ücreti muhasebesi
 
-Her CPMM ve CLMM swap ücreti çıkış yolunda dört hedefe kadar bölünür:
+CPMM ve CLMM **işlem ücretini** LP'ler, protokol ve fon arasında paylaştırır. CPMM ayrıca ayrı bir oranla isteğe bağlı bir yaratıcı ücreti alabilir. Bu yaratıcı ücretini işlem ücretinin dördüncü dilimi gibi modellemeyin:
 
 ```
-                         toplam swap ücreti
-                              │
-              ┌───────────────┼───────────────┬──────────────┐
-              ▼               ▼               ▼              ▼
-        LP havuz tarafı   Protokol         Fon         Yaratıcı
-        (k'yi yükseltir)  hazinesi        multisig    (LaunchLab havuzları)
+CPMM / CLMM trade fee
+  ├── LP share
+  ├── Protocol share
+  └── Fund share
+
+CPMM creator fee (independent rate, when enabled)
+  └── Accrued creator bucket
+      ├── Protocol share, applied at collection
+      └── Remainder paid to PoolState.pool_creator
 ```
 
 Mekanik olarak:
 
-1. **İşlem ücreti havuza tahakkuk eder.** Ücret swap'ın giriş tarafından çıkarılır ve *ücret sonrası* miktar sabit-ürün matematiğinin gördüğü şeydir. Bu "LP ücret kazanır" anlamına gelir — `k` yükselir ve dolayısıyla zımni LP token başına değer de yükselir.
-2. **Protokol/fon/yaratıcı kısımları bu LP tarafı tahakkuktan havuz başına sayaç hesaplarına düşülür.** Bunlar havuz durumunda (`protocol_fees_token{0,1}`, `fund_fees_token{0,1}`, vb.) oturur ve birisi ilgili toplama talimatını çağırana kadar. Bunlar havuzun kasalarından o zamana kadar çıkmaz; swap'ın perspektifinden hala "havuzda"dırlar.
-3. **Toplama bunları dışarı çıkarır.** Protokol ve fon yolları `AmmConfig`'den ilgili `protocol_owner` / `fund_owner` imzalayıcısını gerektirir. CPMM yaratıcı ücretleri yaratıcı tarafından imzalanan `CollectCreatorFee` yolunu veya herhangi bir ödeyicinin tetikleyebileceği ancak hedefleri yaratıcının kanonik ATA'larına sabitleyen `CollectCreatorFeePermissionless`'i kullanır.
+1. **İşlem ücreti `trade_fee_rate` kullanır.** LP payı havuzun muhasebesinde kalır. CPMM işlem ücretini swap girdisinden alır. CLMM ayrıca havuz düzeyinde tek taraflı ücret tahsilini destekler; bu yüzden yalnızca girdiden kesinti yapıldığını varsaymadan önce ürünün ücret modunu kontrol edin.
+2. **CPMM'nin yaratıcı ücreti `creator_fee_rate` değerini bağımsız olarak kullanır.** İşlem ücretindeki LP, protokol veya fon paylarını asla azaltmaz. `PoolState.creator_fee_on`, her swap'te yaratıcı ücretinin girdiden mi çıktıdan mı düşüleceğini belirler. CLMM'de CPMM tarzı bu yaratıcı ücreti kovası yoktur.
+3. **LP dışı paylar ayrı sayaçlarda birikir.** Kasalarda kalırlar ancak ilgili tahsilat talimatı çalışana kadar eğrinin kullandığı rezervlerin dışında tutulurlar.
+4. **Tahsilat varış noktalarını belirler.** Protokol ve fon yolları ilgili `AmmConfig` yetkisini gerektirir. CPMM yaratıcı tahsilatı ya kayıtlı yaratıcının imzasını gerektirir ya da herhangi bir ödeyicinin tetikleyebildiği ama yaratıcı varış noktalarını o yaratıcının kanonik ATA'larına sabitleyen izinsiz yolu kullanır. Her iki yaratıcı yolu da tahsilat anında yaratıcı kovasına protokolün yapılandırılmış payını uygular.
 
 Birkaç yük taşıyan gözlem:
 
-- **Bölünme yüzdeleri işlem ücretinin dışındadır, işlemin dışında değil.** 0,25% işlem ücreti ve 12% protokol payı ile protokol `0,25% × 12% = 0,03%` işlemin — işlemin 12%'si değil.
-- **Yaratıcı ücretleri havuz başına isteğe bağlıdır ve oluşturma sırasında sabitlenir.** Bunlara sahip olmayan bir havuz 3 yönlü bölünmeye (LP / protokol / fon) sahiptir. CPMM'de dördüncü bir yuva, kayıtlı havuz yaratıcısına yönlendirilir. LaunchLab mezuniyetleri bunu `InitializeWithPermission` aracılığıyla etkinleştirir ve 2026-10-30'dan bu yana herhangi bir yaratıcı bunu `InitializeV2` aracılığıyla etkinleştirebilir. Ayar oluşturmadan sonra değiştirilemez.
-- **AMM v4 yalnızca iki yönlü bölünür**, havuz başına sabit kodlanmış: LP ve protokol. Fon yuvası yok, yaratıcı yuvası yok.
-- **Fon vs protokol** — her ikisi de protokol-hazinesi hedefleridir, ancak farklı imzalayıcılara ve farklı amaçlanan kullanımlara sahiptirler. `protokol` tarihsel olarak operasyonları finanse eder; `fon` daha uzun vadeli hazinedir. İkisi arasındaki bölünme kendisi ayarlanabilirdir.
+- **İşlem ücreti dağılım yüzdeleri tüm işleme değil, işlem ücretine uygulanır.** %0,25 işlem ücreti ve %12 protokol payıyla protokol işlemin `0.25% × 12% = 0.03%` kadarını alır; bu, ayrı bir yaratıcı ücreti hesaba katılmadan önceki değerdir.
+- **CPMM yaratıcı ücretleri havuz bazında isteğe bağlıdır ve oluşturma sırasında sabitlenir.** LaunchLab mezuniyetleri bunu `InitializeWithPermission` ile etkinleştirebilir. 2026-10-30'dan beri her yaratıcı bu yolu `InitializeV2` ile etkinleştirebilir; `creatorFeeOn` tanımlandığında SDK bu talimatı seçer. Herhangi bir birikim olması için yine de sıfırdan farklı bir `creator_fee_rate` gerekir.
+- **AMM v4 ertelenmiş PnL uzlaşması kullanır.** `pnl_numerator / pnl_denominator` oranı her swap ücretine doğrudan değil, `calc_take_pnl` tarafından hesaplanan büyümeye uygulanır. Fon veya yaratıcı kovası yoktur.
+- **Fon ve protokol** — ikisi de protokol hazinesine giden varış noktalarıdır ancak farklı imzalayıcılara ve kullanım amaçlarına sahiptir. `protocol` geçmişte operasyonları finanse etmiştir; `fund` daha uzun vadeli hazinedir.
 
 Spesifik oranlar [`reference/fee-comparison`](/docs/i18n/tr/reference/fee-comparison) ve [`ray/protocol-fees`](/docs/i18n/tr/ray/protocol-fees) içindedir.
 

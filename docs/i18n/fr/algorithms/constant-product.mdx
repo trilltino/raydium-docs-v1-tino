@@ -110,32 +110,36 @@ La vérification de l'invariant suppose que les frais des LP restent dans les r�
 
 ### Convention CPMM
 
-Les frais sont des taux similaires aux points de base `u64` sur un dénominateur `1_000_000`. Les frais de transaction sont divisés en `trade_fee_rate` (total) puis subdivisés via `protocol_fee_rate`, `fund_fee_rate`, `creator_fee_rate`. À chaque swap :
+Les frais sont des taux `u64` sur un dénominateur de `1_000_000`. `protocol_fee_rate` et `fund_fee_rate` subdivisent les **frais de trading**. `creator_fee_rate` est indépendant : il s'applique au volume du swap et ne réduit jamais les parts des frais de trading.
+
+Lorsque les deux frais sont prélevés sur l'entrée, le programme arrondit une seule fois la déduction combinée, puis la répartit selon les taux :
 
 ```
-trade_fee     = ceil(Δx · trade_fee_rate   / 1_000_000)
-creator_fee   = ceil(Δx · creator_fee_rate / 1_000_000)   // its own rate on volume,
-                                                          // NOT a slice of trade_fee
-protocol_fee  = floor(trade_fee · protocol_fee_rate / 1_000_000)
-fund_fee      = floor(trade_fee · fund_fee_rate     / 1_000_000)
-lp_fee        = trade_fee − protocol_fee − fund_fee
+total_fee      = ceil(Δx · (trade_fee_rate + creator_fee_rate) / 1_000_000)
+creator_fee    = floor(total_fee · creator_fee_rate / (trade_fee_rate + creator_fee_rate))
+trade_fee      = total_fee − creator_fee
+protocol_fee   = floor(trade_fee · protocol_fee_rate / 1_000_000)
+fund_fee       = floor(trade_fee · fund_fee_rate / 1_000_000)
+lp_fee         = trade_fee − protocol_fee − fund_fee
 ```
 
-Les trois parts non-LP s'accumulent dans des compteurs distincts (`protocol_fees_*`, `fund_fees_*`, `creator_fees_*`) qui sont **exclus** des réserves utilisées dans l'invariant. C'est ainsi que les frais peuvent être prélevés sans modifier la courbe. Voir [`products/cpmm/fees`](/docs/i18n/fr/products/cpmm/fees).
+Lorsque `creator_fee_on` sélectionne le token de sortie, seuls les frais de trading sont déduits de l'entrée. Les frais créateur valent alors `ceil(Δy · creator_fee_rate / 1_000_000)` et sont déduits de la sortie de la courbe. Voir [`products/cpmm/fees`](/docs/i18n/fr/products/cpmm/fees#which-side-of-the-trade-the-fees-are-taken-from).
+
+Les trois buckets non-LP s'accumulent séparément et sont exclus des réserves utilisées dans l'invariant. Lors de la collecte des frais créateur, une part configurable du protocole passe du bucket créateur au bucket protocole ; seul le reste va au créateur.
 
 ### Convention AMM v4
 
-Les frais sont des ratios `numerator / denominator` sur un dénominateur `10_000`. La répartition est fixée à la création du pool et stockée sur `AmmInfo.fees` :
+Les frais de swap bruts utilisent `swap_fee_numerator / swap_fee_denominator`, normalement `25 / 10_000` :
 
 ```
-swap_fee  = ceil(Δx · swap_fee_numerator / swap_fee_denominator)    // par ex. 0.25%
-pnl_share = swap_fee · pnl_numerator / pnl_denominator               // 12 / 100 = 12% de swap_fee
-lp_share  = swap_fee − pnl_share                                     // 0.22% du volume
+gross_fee = ceil(Δx · swap_fee_numerator / swap_fee_denominator)   // 0.25% by default
 ```
 
-`pnl_share` s'accumule dans `state_data.need_take_pnl_*` et est exclue des réserves ; `lp_share` reste dans le coffre. Voir [`products/amm-v4/fees`](/docs/i18n/fr/products/amm-v4/fees).
+Le programme ne calcule **pas** `pnl_numerator / pnl_denominator × gross_fee` à chaque swap. La totalité des frais reste d'abord dans les réserves et fait croître `k`. Plus tard, `calc_take_pnl` mesure la croissance par rapport à la référence `TargetOrders`, en déduit des montants de PnL pour chaque côté de token et applique `pnl_numerator / pnl_denominator` à cette croissance. Par défaut, cette fraction vaut `12 / 100` ; les 0,03 % du volume souvent cités sont un équivalent économique des frais, pas une déduction exacte par swap. L'arrondi entier modifie le résultat, et le programme ne comptabilise le PnL que si les montants des deux côtés de token sont non nuls.
 
-Les deux conventions préservent l'invariant de la même manière — la différence est cosmétique (dénominateur + nombre de sous-catégories).
+Le PnL comptabilisé s'accumule dans `state_data.need_take_pnl_*` et est exclu des réserves. Les LP conservent le reste de la croissance. Voir [`products/amm-v4/math`](/docs/i18n/fr/products/amm-v4/math#settlement-step-pnl).
+
+Les deux programmes excluent des réserves de la courbe les frais non-LP comptabilisés, mais leur moment de règlement et leur comptabilité diffèrent.
 
 ## Règles d'arrondi
 

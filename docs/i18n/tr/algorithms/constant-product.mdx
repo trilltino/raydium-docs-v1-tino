@@ -110,32 +110,36 @@ Değişmez kontrolü, LP ücretinin rezervlerde kaldığını varsayar. Farklı 
 
 ### CPMM kuralı
 
-Ücretler, `1_000_000` paydası üzerinde `u64` baz puan benzeri oranlarıdır. İşlem ücreti `trade_fee_rate` (toplam) olarak bölünür ve ardından `protocol_fee_rate`, `fund_fee_rate`, `creator_fee_rate` aracılığıyla alt bölümlere ayrılır. Her swapda:
+Ücretler `1_000_000` paydalı `u64` oranlardır. `protocol_fee_rate` ve `fund_fee_rate` **işlem ücretini** alt bölümlere ayırır. `creator_fee_rate` bağımsızdır: swap hacmine uygulanır ve işlem ücreti paylarını asla azaltmaz.
+
+Her iki ücret de girdiden alındığında program toplam kesintiyi bir kez yuvarlar, ardından oranlara göre böler:
 
 ```
-trade_fee     = ceil(Δx · trade_fee_rate   / 1_000_000)
-creator_fee   = ceil(Δx · creator_fee_rate / 1_000_000)   // kendi oranı hacim üzerinde,
-                                                          // trade_fee'nin bir dilimi DEĞİL
-protocol_fee  = floor(trade_fee · protocol_fee_rate / 1_000_000)
-fund_fee      = floor(trade_fee · fund_fee_rate     / 1_000_000)
-lp_fee        = trade_fee − protocol_fee − fund_fee
+total_fee      = ceil(Δx · (trade_fee_rate + creator_fee_rate) / 1_000_000)
+creator_fee    = floor(total_fee · creator_fee_rate / (trade_fee_rate + creator_fee_rate))
+trade_fee      = total_fee − creator_fee
+protocol_fee   = floor(trade_fee · protocol_fee_rate / 1_000_000)
+fund_fee       = floor(trade_fee · fund_fee_rate / 1_000_000)
+lp_fee         = trade_fee − protocol_fee − fund_fee
 ```
 
-Üç LP olmayan pay, ayrı sayaçlara (`protocol_fees_*`, `fund_fees_*`, `creator_fees_*`) birikir ve değişmezde kullanılan rezervlerden **hariç tutulur**. Ücretler eğriyi hareket ettirmeden nasıl temizlenebileceğinin bu yoludur. Bkz. [`products/cpmm/fees`](/docs/i18n/tr/products/cpmm/fees).
+`creator_fee_on` çıktı token'ını seçtiğinde girdiden yalnızca işlem ücreti düşülür. Yaratıcı ücreti bu durumda `ceil(Δy · creator_fee_rate / 1_000_000)` olur ve eğri çıktısından düşülür. Bkz. [`products/cpmm/fees`](/docs/i18n/tr/products/cpmm/fees#which-side-of-the-trade-the-fees-are-taken-from).
+
+LP dışı üç kova ayrı ayrı birikir ve değişmezde kullanılan rezervlerin dışında tutulur. Yaratıcı ücretleri tahsil edildiğinde yapılandırılabilir bir protokol payı yaratıcı kovasından protokol kovasına aktarılır; yaratıcıya yalnızca kalan kısım gider.
 
 ### AMM v4 kuralı
 
-Ücretler, `10_000` paydası üzerinde `numerator / denominator` oranlarıdır. Bölünme havuz oluşturma sırasında sabitlenir ve `AmmInfo.fees` üzerinde depolanır:
+Brüt swap ücreti `swap_fee_numerator / swap_fee_denominator` kullanır; normalde `25 / 10_000`:
 
 ```
-swap_fee  = ceil(Δx · swap_fee_numerator / swap_fee_denominator)    // örn. 0.25%
-pnl_share = swap_fee · pnl_numerator / pnl_denominator               // 12 / 100 = swap_fee'nin %12'si
-lp_share  = swap_fee − pnl_share                                     // hacmin %0.22'si
+gross_fee = ceil(Δx · swap_fee_numerator / swap_fee_denominator)   // 0.25% by default
 ```
 
-`pnl_share`, `state_data.need_take_pnl_*` içine birikir ve rezervlerden hariç tutulur; `lp_share` kasada kalır. Bkz. [`products/amm-v4/fees`](/docs/i18n/tr/products/amm-v4/fees).
+Program her swap'te `pnl_numerator / pnl_denominator × gross_fee` hesaplamaz. Ücretin tamamı başta rezervlerde kalır ve `k` değerini artırır. Daha sonra `calc_take_pnl`, `TargetOrders` tabanına göre büyümeyi ölçer, token tarafı PnL tutarlarını türetir ve bu büyümeye `pnl_numerator / pnl_denominator` uygular. Varsayılanlarda bu oran `12 / 100`'dür; sık anılan hacmin %0,03'ü ekonomik bir ücret eşdeğeridir, swap başına kesin bir kesinti değildir. Tam sayı yuvarlaması sonucu değiştirir ve program PnL'i yalnızca her iki token tarafı tutarı da sıfırdan farklıysa kaydeder.
 
-Her iki kural da değişmezi aynı şekilde korur — fark kozmetiktir (payda + alt kategori sayısı).
+Kaydedilen PnL `state_data.need_take_pnl_*` içinde birikir ve rezervlerin dışında tutulur. Büyümenin geri kalanı LP'lerde kalır. Bkz. [`products/amm-v4/math`](/docs/i18n/tr/products/amm-v4/math#settlement-step-pnl).
+
+Her iki program da kaydedilmiş LP dışı ücretleri eğri rezervlerinin dışında tutar, ancak uzlaşma zamanlamaları ve muhasebeleri farklıdır.
 
 ## Yuvarlama kuralları
 

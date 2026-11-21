@@ -1,6 +1,6 @@
 ---
 title: "Cơ sở hạ tầng dùng chung"
-description: "Các nguyên thủy mà mọi chương trình Raydium chia sẻ — PDA quyền, tài khoản AmmConfig, phân chia phí giao thức/quỹ/người tạo, tài khoản quan sát, và bề mặt REST API công khai — được định nghĩa một lần để các chương về từng sản phẩm có thể tham chiếu lại."
+description: "Các thành phần dùng chung của mọi chương trình Raydium — PDA quyền hạn, tài khoản AmmConfig, cách hạch toán phí giao dịch và phí người tạo pool CPMM, tài khoản quan sát và REST API công khai — được định nghĩa một lần ở đây để các chương sản phẩm tham chiếu lại."
 ---
 
 <Info>
@@ -17,7 +17,7 @@ description: "Các nguyên thủy mà mọi chương trình Raydium chia sẻ �
 
 Ba kiểu chia sẻ chạy xuyên suốt codebase:
 
-- **Chia sẻ quy ước.** Mọi chương trình đều sử dụng cùng một mẫu dẫn xuất PDA, cùng một hình dạng phân chia phí và cùng một ý tưởng tài khoản quan sát — nhưng mỗi chương trình triển khai chúng trong chương trình riêng của mình với các seed riêng.
+- **Dùng chung quy ước.** Các chương trình tái sử dụng các mẫu suy ra PDA, tài khoản cấu hình, hạch toán phí và tài khoản quan sát, nhưng mỗi chương trình tự định nghĩa seed và hành vi của mình. Tên trường giống nhau không đảm bảo quy tắc thanh toán giống nhau.
 - **Chia sẻ tài khoản.** Một số tài khoản là *chính xác* cùng một bản ghi trên nhiều pool (PDA quyền toàn cầu trong CPMM, các tài khoản AmmConfig).
 - **Chia sẻ ngoài chuỗi.** Một REST API và một SDK TypeScript phục vụ cả bốn chương trình. Những người tích hợp tương tác với một máy chủ HTTP và một gói NPM bất kể chương trình nào mà họ cuối cùng gọi.
 
@@ -77,31 +77,35 @@ AMM v4 không có `AmmConfig` — các tham số phí của nó là cho mỗi po
 
 Một bảng hoàn chỉnh về ai có thể thay đổi cái gì nằm trong [`security/admin-and-multisig`](/docs/i18n/vi/security/admin-and-multisig). Phân chia phí hiện tại hướng tới người dùng nằm trong [`ray/protocol-fees`](/docs/i18n/vi/ray/protocol-fees).
 
-## 3. Phân chia phí giao thức / quỹ / người tạo
+## 3. Hạch toán phí giao dịch và phí người tạo pool
 
-Mỗi phí swap CPMM và CLMM được chia thành tối đa bốn điểm đích trên đường đi:
+CPMM và CLMM chia **phí giao dịch** cho LP, giao thức và quỹ. CPMM còn có thể thu thêm phí người tạo pool (tùy chọn) theo một mức riêng. Đừng mô hình hóa phí người tạo pool như phần thứ tư của phí giao dịch:
 
 ```
-                         total swap fee
-                              │
-              ┌───────────────┼───────────────┬──────────────┐
-              ▼               ▼               ▼              ▼
-        LP pool side     Protocol         Fund         Creator
-        (raises k)       treasury         multisig     (LaunchLab pools)
+CPMM / CLMM trade fee
+  ├── LP share
+  ├── Protocol share
+  └── Fund share
+
+CPMM creator fee (independent rate, when enabled)
+  └── Accrued creator bucket
+      ├── Protocol share, applied at collection
+      └── Remainder paid to PoolState.pool_creator
 ```
 
 Về mặt cơ học:
 
-1. **Phí giao dịch tích lũy vào pool.** Phí được loại bỏ khỏi phía đầu vào của swap và *số tiền sau phí* là những gì toán học sản phẩm hằng số thấy. Đây là ý nghĩa của "LP kiếm phí" — `k` tăng lên và giá trị token ngụ ý trên mỗi LP cũng vậy.
-2. **Các phần giao thức/quỹ/người tạo được khấu trừ từ tích lũy phía LP đó vào các tài khoản bộ đếm cho mỗi pool.** Chúng nằm trên trạng thái pool (`protocol_fees_token{0,1}`, `fund_fees_token{0,1}`, v.v.) cho đến khi ai đó gọi lệnh thu thập tương ứng. Chúng không rời khỏi các kho của pool cho đến lúc đó; từ quan điểm của swap, chúng vẫn "trong pool".
-3. **Thu thập di chuyển chúng ra.** Các đường dẫn giao thức và quỹ yêu cầu người ký `protocol_owner` / `fund_owner` tương ứng từ `AmmConfig`. CPMM sử dụng các phí người tạo hoặc đường dẫn `CollectCreatorFee` được ký bởi người tạo hoặc `CollectCreatorFeePermissionless`, mà bất kỳ người trả tiền nào cũng có thể kích hoạt nhưng cố định các điểm đích thành ATA chính tắc của người tạo.
+1. **Phí giao dịch dùng `trade_fee_rate`.** Phần của LP vẫn nằm trong sổ sách của pool. CPMM lấy phí giao dịch từ đầu vào của swap. CLMM còn hỗ trợ thu phí một phía ở cấp pool, vì vậy hãy kiểm tra chế độ phí của sản phẩm trước khi giả định phí chỉ bị trừ từ đầu vào.
+2. **Phí người tạo pool của CPMM dùng `creator_fee_rate` một cách độc lập.** Nó không bao giờ làm giảm phần của LP, giao thức hay quỹ trong phí giao dịch. `PoolState.creator_fee_on` quyết định phí người tạo pool bị trừ từ đầu vào hay đầu ra ở mỗi swap. CLMM không có bucket phí người tạo pool kiểu CPMM này.
+3. **Các phần không thuộc LP được tích lũy trong các bộ đếm riêng.** Chúng vẫn nằm trong vault nhưng không được tính vào dự trữ mà đường cong sử dụng cho tới khi lệnh thu phí tương ứng chạy.
+4. **Việc thu phí xác định nơi nhận.** Các đường của giao thức và quỹ cần quyền tương ứng trong `AmmConfig`. Việc thu phí người tạo pool của CPMM hoặc cần chữ ký của người tạo pool đã ghi, hoặc dùng đường không cần quyền — bất kỳ người thanh toán nào cũng kích hoạt được nhưng nơi nhận được cố định là các ATA chuẩn của người tạo pool đó. Cả hai đường đều áp dụng phần giao thức đã cấu hình trên bucket người tạo pool tại thời điểm thu phí.
 
 Một vài quan sát mang tính quyết định:
 
-- **Các phần trăm phân chia là ngoài phí giao dịch, không phải ngoài giao dịch.** Phí giao dịch 0,25% với cổ phần giao thức 12% có nghĩa là giao thức nhận `0,25% × 12% = 0,03%` của giao dịch — không phải 12% của giao dịch.
-- **Phí người tạo là tùy chọn cho từng pool và cố định khi tạo.** Một pool không có chúng có phân chia ba chiều (LP / giao thức / quỹ). Trên CPMM, một khe thứ tư được định tuyến cho người tạo pool đã được ghi lại. Các tốt nghiệp LaunchLab bật nó thông qua `InitializeWithPermission`, và kể từ 2026-10-30 bất kỳ người tạo nào cũng có thể bật nó thông qua `InitializeV2`. Cài đặt này không thể thay đổi sau khi tạo.
-- **AMM v4 chỉ chia hai chiều**, được mã hóa cứng cho mỗi pool: LP và giao thức. Không có khe quỹ, không có khe người tạo.
-- **Quỹ so với giao thức** — cả hai đều là điểm đích kho giao thức, nhưng chúng có những người ký khác nhau và những mục đích sử dụng khác nhau. `protocol` về mặt lịch sử tài trợ hoạt động; `fund` là kho dài hạn hơn. Phân chia giữa hai cái này chính nó là có thể điều chỉnh được.
+- **Tỷ lệ chia phí giao dịch áp dụng cho phí giao dịch, không phải toàn bộ giao dịch.** Phí giao dịch 0,25% với phần giao thức 12% nghĩa là giao thức nhận `0.25% × 12% = 0.03%` của giao dịch, chưa tính bất kỳ phí người tạo pool riêng nào.
+- **Phí người tạo pool của CPMM được bật tùy chọn theo từng pool và cố định khi tạo.** Các lần tốt nghiệp LaunchLab có thể bật nó qua `InitializeWithPermission`. Từ 2026-10-30, bất kỳ người tạo pool nào cũng có thể bật đường này qua `InitializeV2`; SDK chọn lệnh đó khi `creatorFeeOn` được khai báo. Vẫn cần `creator_fee_rate` khác 0 thì mới có gì được tích lũy.
+- **AMM v4 dùng cơ chế thanh toán PnL trì hoãn.** Tỷ lệ `pnl_numerator / pnl_denominator` của nó áp dụng cho phần tăng trưởng do `calc_take_pnl` tính, chứ không trực tiếp cho phí của từng swap. Nó không có bucket quỹ hay bucket người tạo pool.
+- **Quỹ và giao thức** — cả hai đều là đích của kho bạc giao thức, nhưng có người ký và mục đích sử dụng khác nhau. `protocol` trước nay dùng để chi trả vận hành; `fund` là kho bạc dài hạn hơn.
 
 Các tỷ lệ cụ thể nằm trong [`reference/fee-comparison`](/docs/i18n/vi/reference/fee-comparison) và [`ray/protocol-fees`](/docs/i18n/vi/ray/protocol-fees).
 

@@ -104,8 +104,8 @@ console.log(`Tx:       https://solscan.io/tx/${txId}`);
 Contoh: buat pool SOL/USDC dengan seed 1 SOL dan 160 USDC:
 
 ```bash icon="terminal"
-export MINT_A="So11111111111111111111111111111111111111112"   # wSOL
-export MINT_B="EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"   # USDC
+export MINT_A="So11111111111111111111111111111111111111112"   # wSOL; see reference/program-addresses
+export MINT_B="EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"   # USDC; see reference/program-addresses
 export AMOUNT_A="1000000000"   # 1 SOL (9 decimals)
 export AMOUNT_B="160000000"    # 160 USDC (6 decimals)
 
@@ -134,6 +134,10 @@ Tx:       https://solscan.io/tx/5dQ...
    - menginisialisasi vault dengan `AMOUNT_A` dan `AMOUNT_B`.
 4. **Harga awal** ditetapkan oleh rasio seed: `price = AMOUNT_B / AMOUNT_A` setelah penyesuaian desimal. Pilih ini dengan hati-hati — bot akan melakukan arbitrase terhadap setiap kesalahan harga dalam hitungan detik setelah pool dibuka.
 5. **`startTime: new BN(0)`** membuka perdagangan segera. Untuk menyelenggarakan likuiditas sebelum dibuka untuk publik, tetapkan timestamp Unix di masa depan.
+
+Contoh ini menghilangkan `creatorFeeOn`, sehingga SDK membangun `Initialize` dan jalur biaya kreator pool dinonaktifkan. Untuk mengaktifkannya dengan SDK `0.2.85-alpha`, impor `FeeOn` dan tambahkan `creatorFeeOn: FeeOn.OnlyTokenA`, `OnlyTokenB`, atau `BothToken`. SDK lalu membangun `InitializeV2`. Owner yang Anda konfigurasi menandatangani sebagai kreator dan menjadi `PoolState.pool_creator`; membayar biaya transaksi dari akun lain tidak mengalihkan biaya kreator.
+
+`creatorFeeOn` memilih token, bukan tarif. Pool memakai `AmmConfig.creator_fee_rate`, dan tarif nol tidak mengakumulasi apa pun meskipun jalurnya aktif. Baca konfigurasi saat ini sebelum membuat pool. Lihat [`products/cpmm/fees`](/docs/i18n/id/products/cpmm/fees) untuk perilaku input/output dan penarikan.
 
 ## Kesalahan umum
 

@@ -132,7 +132,7 @@ Các định nghĩa Rust đầy đủ nằm trong nguồn [`raydium-cp-swap`](ht
 ```rust programs/cp-swap/src/states/pool.rs
 pub struct PoolState {
     pub amm_config: Pubkey,               // liên kết pool này với một AmmConfig
-    pub pool_creator: Pubkey,             // ai đã chạy initialize
+    pub pool_creator: Pubkey,             // creator-fee recipient; normally the initialize signer
     pub token_0_vault: Pubkey,            // == vault0 PDA
     pub token_1_vault: Pubkey,            // == vault1 PDA
 
@@ -177,7 +177,8 @@ Những gì thực sự cần đọc:
 - **`status`** — một bitmask kiểm soát xem `Swap`, `Deposit`, `Withdraw` có được phép hay không. Được cập nhật bởi quản trị viên thông qua `UpdatePoolStatus`. SDK kiểm tra điều này trước khi xây dựng giao dịch; nếu bạn đang CPI trực tiếp, hãy kiểm tra nó yourself.
 - **`token0_program` / `token1_program`** — chương trình token để CPI vào cho mỗi vault. Một có thể là SPL Token cổ điển và cái kia là Token-2022; chúng độc lập.
 - **`open_time`** — một dấu thời gian Unix. Swap trước thời điểm này sẽ thất bại. Deposit được phép trước `open_time` để pool có thể được seeded.
-- **`creator_fee_on` / `enable_creator_fee`** — cùng nhau kiểm soát xem phí người tạo tùy chọn có hoạt động cho pool này hay không và nó được thu từ phía nào của swap. `enable_creator_fee == false` loại bỏ hoàn toàn đường dẫn phí người tạo. Khi được bật, `creator_fee_on` chọn: `0` = lấy phí từ bất kỳ token nào là đầu vào swap (`BothToken`); `1` = lấy phí từ `token_0` chỉ (bỏ qua trên swap `token_1 → token_0`); `2` = lấy phí từ `token_1` chỉ. Được đặt khi tạo pool: `Initialize` luôn lưu nó ở trạng thái tắt, `InitializeV2` lưu lựa chọn của người tạo (được thêm vào 2026-10-30), và `InitializeWithPermission` luôn lưu nó ở trạng thái bật với `creator_fee_on` của người gọi. Không thể thay đổi sau.
+- **`pool_creator`** — người nhận phí người tạo pool. `Initialize` và `InitializeV2` ghi lại người ký với tư cách người tạo pool. `InitializeWithPermission` ghi lại tài khoản người tạo pool được truyền riêng. Việc trả phí giao dịch không thay đổi trường này và không chuyển hướng phí người tạo pool.
+- **`creator_fee_on` / `enable_creator_fee`** — cùng quyết định phí người tạo pool (tùy chọn) có hiệu lực hay không và dùng token nào. `enable_creator_fee == false` tắt hoàn toàn đường phí người tạo pool. Khi được bật, `BothToken` (`0`) lấy phí từ token đầu vào của swap. `OnlyToken0` (`1`) luôn dùng token0: lấy từ đầu vào ở các swap `token_0 → token_1` và từ đầu ra ở các swap `token_1 → token_0`. `OnlyToken1` (`2`) làm ngược lại. Được đặt khi tạo pool: `Initialize` luôn lưu ở trạng thái tắt, `InitializeV2` lưu lựa chọn của người tạo pool (thêm vào 2026-10-30), và `InitializeWithPermission` luôn lưu ở trạng thái bật với `creator_fee_on` của bên gọi. Không thể thay đổi sau đó.
 - **`creator_fees_token_{0,1}`** — phí người tạo tích lũy, được quét bởi `CollectCreatorFee` hoặc `CollectCreatorFeePermissionless`. Cả hai đường dẫn đều xóa các bộ đếm đầy đủ, nhưng kể từ bản nâng cấp creator-fee-share ngày 2026-09-19, chỉ một phần số dư rời khỏi pool: phần chia của giao thức được **thêm vào `protocol_fees_token_{0,1}`** và phần còn lại được chuyển đến người tạo. Đường dẫn không có quyền sửa đổi các người nhận thành các ATA chính tắc của `pool_creator`. `PoolState` chính nó không thay đổi — không có bộ đếm riêng cho số tiền được chia sẻ.
 
 ### `AmmConfig`

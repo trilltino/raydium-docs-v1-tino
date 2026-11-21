@@ -1,135 +1,96 @@
 ---
 title: "Transfer hooks"
-description: "How a Token-2022 transfer hook runs, how its accounts resolve, who can change its rule, and what a hooked token needs to work on Raydium."
+description: "How a Token-2022 transfer hook runs, how its accounts resolve, how to write and test a rule, which authorities can change it, and how a hooked token moves through Raydium pools."
 ---
 
-<Info>
-  A transfer hook is a program that a Token-2022 mint points at. Token-2022 calls it on every checked transfer, and an error from the hook cancels the whole transfer. A hook sees accounts and amounts, not people, and a mint with a hook is not automatically usable on Raydium.
-</Info>
-
 <Note>
-  The examples use the community `raydium-transfer-hook` kit. The kit is unaudited and private. The excerpts on this page are enough to follow it, and only [Test it](#test-it) needs repository access. Hook behavior depends on the deployed program, the cluster and the caller. Recheck each Raydium operation when any of them changes.
+  The examples use the `raydium-transfer-hook` kit. Its [hook host guide](https://github.com/trilltino/raydium-transfer-hook/blob/main/hook-host/GUIDE.md) documents the `test-scenario` CLI behind the commands on this page, and opens with a table that maps each task to its command.
 </Note>
 
-## What a hook can and cannot do
+The Transfer Hook extension and Transfer Hook Interface introduce the ability to create Mint Accounts that execute custom instruction logic on every token transfer. A hook keeps a token's rules in force when the token trades in a pool. Swaps, liquidity deposits and withdrawals, and fee and reward claims all move the token through Token-2022, so the hook runs on each of them. Send hooked tokens with `TransferChecked`. The token's mint account records which hook to call, and `TransferChecked` is the transfer instruction that includes the mint. A plain `Transfer` leaves the mint out, so Token-2022 rejects it.
 
-A hook is a rule that runs inside a transfer. Use one for limits, pauses, eligibility or vesting that the token must enforce even when it trades in a pool.
+## How Token-2022 calls the hook
 
-| A hook can | A hook cannot |
-|---|---|
-| Reject the transfer, which rolls back the whole transaction. | Change the transfer. Token-2022 has already moved the tokens. |
-| Read the accounts, the amount and the post-transfer balances. | See who is really acting or why. It sees addresses, not people. |
-| Update its own policy state through declared writable accounts. | Run on mint, burn or authority-change instructions. |
+In a CPMM or CLMM swap, deposit or withdrawal, the pool program calls Token-2022, and Token-2022 calls the hook's `Execute(amount)` from the [Transfer Hook interface](https://www.solana-program.com/docs/transfer-hook-interface). Each call is a cross-program invocation (CPI): one program calling another in the same transaction. Token-2022 moves the tokens, sets a `transferring` flag on both accounts, calls the hook, then clears both flags once the hook returns. The hook sees balances after the move. If it errors, the whole operation rolls back, and the transaction fee is still charged. The hook can't use the sender's signature. It sees addresses, not who traded, and the pool's PDA signs payouts from the vault. `hook-kit` checks that each call comes from a real transfer with the expected accounts. It then hands the amount and balances to the hook's rule: the function that accepts or rejects the transfer. See [A complete rule: the transfer limit](#a-complete-rule-the-transfer-limit).
 
-Send hooked tokens with `TransferChecked`. Token-2022 needs the mint to find the hook. A self-transfer can return without invoking the hook, so a successful self-transfer does not show that your policy ran.
+## Accounts the hook receives
 
-A hook cannot read amounts on a confidential-transfer mint, because those balances are hidden. The kit's templates refuse such mints at setup. Mint, burn and authority changes skip the hook, so a rule that depends on supply also depends on who can still mint.
+The `Execute` handler is the function in a hook program that runs its rule. The transaction holds a `TransferChecked`, and Token-2022 calls the handler from inside that transfer. Token-2022 can only pass on accounts it was given, so every account in the table below must already be in the transaction. In the kit, each template declares its extras once, as the `EXTRA_ACCOUNT_META_LIST` constant. The template's `initialize` writes that list on-chain, and `hook-kit` checks every incoming account against it before the rule runs.
 
-## How a transfer reaches the hook
-
-The [Transfer Hook interface](https://www.solana-program.com/docs/transfer-hook-interface) defines `Execute(amount)`. Token-2022 calls it with a cross-program invocation (CPI): one program calling another inside the same transaction. The callee is the hook program selected by the mint's TransferHook extension.
-
-```mermaid
-sequenceDiagram
-  participant C as Caller
-  participant T as Token-2022
-  participant H as Hook
-  C->>T: TransferChecked and resolved hook accounts
-  Note over T: Authorize and apply extension rules<br/>Move tokens and set transferring flags
-  T->>H: CPI Execute(amount)
-  Note over H: Validate accounts and declared extras<br/>Run policy
-  alt Policy accepts
-    H-->>T: Ok
-    Note over T: Clear transferring flags
-    T-->>C: Success, transaction can commit
-  else Policy rejects
-    H-->>T: Error
-    T-->>C: Propagate failure, transaction rolls back
-  end
-```
-
-Token-2022 authorizes the transfer and moves the tokens first. It then sets a `transferring` flag on both token accounts and calls the hook. The hook sees post-transfer balances.
-
-A hook error rolls back the transaction, including earlier successful instructions in it. Transaction fees still apply.
-
-The hook's fixed accounts are read-only and unsigned. Token-2022 checks the owner or delegate before it calls the hook. That signer privilege does not carry into `Execute`. The authority can differ from the source account's owner, and neither address identifies a person.
-
-## Accounts and the metadata list
-
-`Execute` receives four transfer accounts, then the metadata list, then any declared extras:
-
-| Position | Account | Purpose |
+| Position | Account | What the hook does with it |
 |---|---|---|
-| 0 | Source token account | Holds the balance after the debit. |
-| 1 | Mint | Identifies the token and selected hook. |
-| 2 | Destination token account | Holds the balance after the credit. |
-| 3 | Owner or delegate | Authority already checked by Token-2022; unsigned here. |
-| 4 | Extra-account metadata-list PDA | Describes the hook's additional accounts. |
-| 5+ | Declared extra accounts | Policy configuration, credentials or other dependencies. |
+| 0 | Source token account | Reads the sender's balance after the debit. |
+| 1 | Mint | Confirms the mint points at this hook. |
+| 2 | Destination token account | Reads the receiver's balance after the credit. |
+| 3 | Owner or delegate | Reads the authority. Token-2022 already checked it, and it arrives unsigned. |
+| 4 | Extra-account metadata list | Lists the extras the hook needs. |
+| 5+ | Declared extras | Hold the hook's policy configuration, credentials or other state. |
 
-The list lives at a program-derived address (PDA): an address with no private key that only its owning program can sign for. See [PDAs and CPIs](/docs/en/solana-fundamentals/pdas-and-cpis). Its seeds are `["extra-account-metas", mint]` under the hook program.
+At setup, the hook program writes the metadata list to a program-derived address (PDA) at `["extra-account-metas", mint]`. A PDA has no private key, and only its owning program can sign for it. See [PDAs and CPIs](/docs/en/solana-fundamentals/pdas-and-cpis). Each entry is a fixed address or one derived from seeds such as instruction data, earlier accounts or their data. See the interface's [extra-account configuration](https://www.solana-program.com/docs/transfer-hook-interface/configuring-extra-accounts). The Starter declares one extra: a read-only configuration PDA at position 5, derived from `["hook-config", mint]`, that stores its limit.
 
-The list stores each extra account in type-length-value (TLV) form. An entry can be a fixed key, a key derived from instruction data, or a key and data taken from an earlier account. See the interface's [extra-account configuration](https://www.solana-program.com/docs/transfer-hook-interface/configuring-extra-accounts).
+The kit's `resolve_transfer` builds a ready `TransferChecked` with the extras attached. This part of it, from `hook-host/src/transfers/accounts.rs`, reads the hook program from the mint, then appends the extras that `resolve_hook_account_metas` works out with the SPL helper `add_extra_account_metas_for_execute`:
 
-The Starter declares one extra: a read-only configuration PDA at position 5, derived from `["hook-config", mint]`. It stores the limit used below.
+```rust accounts.rs
+    let (decimals, hook_program_id) = if request.token_program_id == TOKEN_PROGRAM_ID {
+        (Mint::unpack(&mint_account.data)?.decimals, None)
+    } else {
+        let mint = StateWithExtensions::<Mint>::unpack(&mint_account.data)?;
+        let extension_types = mint.get_extension_types()?;
+        let hook_program_id = if extension_types.contains(&ExtensionType::TransferHook) {
+            Option::<Pubkey>::from(mint.get_extension::<TransferHook>()?.program_id)
+        } else {
+            None
+        };
 
-Your client resolves these accounts, because Token-2022 cannot look them up over RPC. The `@solana/spl-token` helper reads the mint, finds the hook, reads the list and appends the extras:
+        (mint.base.decimals, hook_program_id)
+    };
+    let mut transfer_instruction = instruction::transfer_checked(
+        &request.token_program_id,
+        &request.source_token_account,
+        &request.mint,
+        &request.destination_token_account,
+        &request.authority,
+        &[],
+        request.amount,
+        decimals,
+    )?;
 
-```ts
-import {
-  createTransferCheckedWithTransferHookInstruction,
-  TOKEN_2022_PROGRAM_ID,
-} from "@solana/spl-token";
+    if let Some(hook_program_id) = hook_program_id {
+        let list_address = spl_transfer_hook_interface::get_extra_account_metas_address(
+            &request.mint,
+            &hook_program_id,
+        );
+        let list_account = fetch_account(list_address)
+            .await?
+            .ok_or(ClientError::MissingAccount(list_address))?;
 
-const instruction = await createTransferCheckedWithTransferHookInstruction(
-  connection,
-  sourceTokenAccount,
-  mint,
-  destinationTokenAccount,
-  owner.publicKey,
-  500n,            // raw units
-  decimals,
-  [],              // multisig signers
-  "confirmed",
-  TOKEN_2022_PROGRAM_ID,
-);
-```
+        require_owner(list_address, &list_account, hook_program_id)?;
 
-An on-chain caller must forward the same accounts into its own CPI. See [Hook tokens on Raydium](#hook-tokens-on-raydium).
+        let fetch_account = &fetch_account;
+        let mint_data = &mint_account.data;
+        let list_data = &list_account.data;
+        let extras = resolve_hook_account_metas(hook_program_id, request, |address| async move {
+            if address == request.mint {
+                Ok(Some(mint_data.clone()))
+            } else if address == list_address {
+                Ok(Some(list_data.clone()))
+            } else {
+                Ok(fetch_account(address).await?.map(|account| account.data))
+            }
+        })
+        .await?;
 
-## A complete rule: the transfer limit
-
-The Starter's whole policy is one comparison. Its `RuleParams` holds a single `limit`, and setup rejects a zero limit:
-
-```rust rule.rs
-pub fn enforce_transfer_limit(
-    rule_params: &RuleParams,
-    transfer_context: &TransferContext,
-) -> Result<(), TransferHookStarterError> {
-    if transfer_context.amount > rule_params.limit {
-        return Err(TransferHookStarterError::TransferExceedsLimit);
+        transfer_instruction.accounts.extend(extras);
     }
-    Ok(())
-}
 ```
 
-With a limit of 500, the rule gives these outcomes:
+TypeScript clients use `createTransferCheckedWithTransferHookInstruction` from `@solana/spl-token`, or `getTransferCheckedWithTransferHookInstructionAsync` from `@solana-program/token-2022` with Kit and web3.js v3. On a mint with a transfer fee, the same plain `TransferChecked` works. Token-2022 withholds the fee itself, and the hook sees the amount before the fee.
 
-| Raw amount | Outcome |
-|---|---|
-| 499 | Allowed. |
-| 500 | Allowed: the boundary is inclusive. |
-| 501 | Rejected with `TransferExceedsLimit`. |
+That covers a direct send. In a swap, deposit or withdrawal, the Raydium pool program makes the transfer and passes the extras on itself. See [Transfers inside a pool](#transfers-inside-a-pool).
 
-The rule compares validated values. It does not parse accounts, resolve metadata or record anything.
+## Inside the Execute handler
 
-On a mint with six decimals, 500 raw units are 0.0005 tokens. A per-transfer cap does not stop someone from splitting a large transfer into small ones or using several wallets.
-
-## What the shared validation protects
-
-Your rule never parses accounts. `hook-kit` is a Rust library compiled into your hook program. It validates the `Execute` accounts first, then hands the rule a `TransferContext`: the amount, the account addresses, the post-transfer balances and any Token-2022 transfer fee. The amount is the amount before the fee, and the destination receives the amount minus the fee. A `TransferContext` is a Rust value for one invocation, not an on-chain account.
-
-The validation checks that:
+The handler does two things: `hook-kit` validates the accounts, then the rule decides. `hook-kit` is a Rust library compiled into the hook program. It checks that:
 
 - The mint selects this hook program.
 - Both token accounts belong to the mint, and both `transferring` flags are set. A direct call to `Execute` therefore fails.
@@ -137,46 +98,135 @@ The validation checks that:
 - The fixed accounts are read-only and unsigned, and the extras match their declared privileges.
 - The metadata PDA has the right address, owner and exact canonical bytes.
 
-The Starter's `execute.rs` calls the validation, then the rule. This excerpt needs that file's imports and Anchor account constraints:
+If every check passes, `hook-kit` returns a `TransferContext`: the amount, the account addresses, the post-transfer balances and any Token-2022 transfer fee. This is the Starter's handler from `instructions/execute.rs`. It checks that both token accounts and the mint belong to a token program, validates the accounts, checks the config version, then applies the rule. It relies on the imports and Anchor account struct in the same file:
 
 ```rust execute.rs
-let transfer_hook_config = accounts.transfer_hook_config.to_account_info();
-let transfer_context = accounts
-    .execute_account_infos(accounts.transfer_hook_config.extra_account_meta_list_bump)
-    .validate(
-        ctx.program_id,
-        amount,
-        &[&transfer_hook_config],
-        ctx.remaining_accounts,
-        &EXTRA_ACCOUNT_META_LIST,
+pub fn execute(ctx: Context<Execute>, amount: u64) -> Result<()> {
+    let accounts = &ctx.accounts;
+
+    validate_token_interface_owner(&accounts.source_token_account)?;
+    validate_token_interface_owner(&accounts.mint)?;
+    validate_token_interface_owner(&accounts.destination_token_account)?;
+
+    let transfer_hook_config = accounts.transfer_hook_config.to_account_info();
+    let transfer_context = accounts
+        .execute_account_infos(accounts.transfer_hook_config.extra_account_meta_list_bump)
+        .validate(
+            ctx.program_id,
+            amount,
+            &[&transfer_hook_config],
+            ctx.remaining_accounts,
+            &EXTRA_ACCOUNT_META_LIST,
+        )?;
+
+    require_eq!(
+        accounts.transfer_hook_config.version,
+        TRANSFER_HOOK_CONFIG_VERSION,
+        TransferHookStarterError::UnsupportedVersion
+    );
+
+    rule::enforce_transfer_limit(
+        &accounts.transfer_hook_config.rule_params,
+        &transfer_context,
     )?;
+
+    Ok(())
+}
 ```
 
-After a configuration-version check, the handler applies the rule:
+The shared checks don't replace each template's own Anchor account constraints, setup authority, state writes or errors.
 
-```rust execute.rs
-rule::enforce_transfer_limit(
-    &accounts.transfer_hook_config.rule_params,
-    &transfer_context,
-)?;
+## A complete rule: the transfer limit
+
+The Starter's rule rejects any transfer above a set `limit`. `initialize` sets the limit once and stores it in the hook's config account, the extra at `["hook-config", mint]`. On each transfer, the handler reads it back and passes it in as `rule_params`. From `rule.rs`:
+
+```rust rule.rs
+#[derive(AnchorSerialize, AnchorDeserialize, InitSpace, Clone, Copy, Debug, PartialEq, Eq)]
+pub struct RuleParams {
+    pub limit: u64,
+}
+
+pub fn validate_rule_params(rule_params: &RuleParams) -> Result<(), TransferHookStarterError> {
+    if rule_params.limit == 0 {
+        return Err(TransferHookStarterError::InvalidRuleParams);
+    }
+
+    Ok(())
+}
+
+pub fn enforce_transfer_limit(
+    rule_params: &RuleParams,
+    transfer_context: &TransferContext,
+) -> Result<(), TransferHookStarterError> {
+    if transfer_context.amount > rule_params.limit {
+        return Err(TransferHookStarterError::TransferExceedsLimit);
+    }
+
+    Ok(())
+}
 ```
 
-Each template still owns its setup authority, state writes and error behavior. Keep its Anchor account constraints. The shared validation does not replace them.
+- `validate_rule_params` runs once, in `initialize`, and refuses a limit of zero.
+- `limit` is a `u64` because Token-2022 stores every amount as a `u64` count of raw units: a whole number, never negative, with no decimals. The limit and the transfer amount share a type, so the comparison needs no conversion.
+- The `&` in `&RuleParams` and `&TransferContext` means the rule borrows them read-only. It can read the limit and the transfer but cannot change either.
+- `hook-kit` builds the `TransferContext` after it validates the accounts, so `transfer_context.amount` is the real amount being moved.
+- The function returns a `Result`. `Ok(())` lets the transfer through. `Err(TransferExceedsLimit)` fails the hook, so Token-2022 fails the transfer and the transaction rolls back.
+
+With a `limit` of 500, 499 and 500 raw units pass and 501 fails with `TransferExceedsLimit`.
+
+### Richer parameters
+
+The Starter's parameters hold one `u64`, but a config account can hold any fixed-size data a rule needs. The kit's other templates use these shapes:
+
+| Type | What it enables |
+|---|---|
+| `u64` amount | Caps a holder's balance, not only a single transfer. |
+| `i64` Unix timestamp | Releases tokens on a vesting schedule. Solana's clock reports time as `i64`. |
+| `u16` or `u32` basis points | Caps a share of supply. One basis point is 0.01%. |
+| `bool` | Switches a rule or an exception on or off. |
+| `Pubkey` | Names the pool vault or credential issuer the rule trusts. |
+| `enum` | Picks one mode from a fixed set. |
+| `Vec` with a maximum length | Lists approved venues, or a schedule that tightens over time. |
+
+### Rules that involve a pool
+
+In a swap, one side of each hooked transfer is a pool vault owned by the pool's PDA, so on that side the hook sees the vault, not the trader. A transfer on its own does not say whether it is part of a trade or which venue made it. A rule can only compare the addresses it receives with addresses it was configured to trust. [Transfers inside a pool](#transfers-inside-a-pool) lists the authority the hook sees in each operation.
+
+- A rule that treats buys and sells differently identifies them by registered vault addresses.
+- Pausing transfers blocks exits as well as buys. Letting holders sell or withdraw during a pause needs an explicit exception, such as the Tranche credit template's `allow_halted_exit` flag.
+- Owner-keyed rules need `ImmutableOwner` on the destination. Without it, `SetAuthority` can move the account to an unchecked wallet without a transfer.
+- A counter over vault outflows counts the transfers the hook saw. It does not count trades, transactions or bundles.
 
 ## Test it
 
-The Starter ships with native tests, a JSON scenario and a one-command runner. These commands need access to the private kit repository and the build tools in its contributing guide. LiteSVM runs the compiled program inside your test, so it needs no wallet, SOL or validator.
+The Starter ships with native tests, a JSON scenario and a one-command runner. These commands need access to the private kit repository and the build tools in its contributing guide. Each `test-scenario` command below has a fuller walkthrough in the [hook host guide](https://github.com/trilltino/raydium-transfer-hook/blob/main/hook-host/GUIDE.md#pick-a-path), and `test-scenario --help` lists them all.
+
+The tests run at two levels:
+
+- **Native tests** call the rule function directly as ordinary Rust. They check the limit's boundaries with no blockchain involved.
+- **The scenario** runs under LiteSVM, a lightweight Solana runtime that lives inside the test process. LiteSVM loads the compiled hook and Token-2022, creates the mint and token accounts in memory, and sends real `TransferChecked` transactions. That tests the full path: Token-2022 calls the hook, `hook-kit` validates the accounts, and the rule accepts or rejects. Every account and balance lives in memory, so the run needs no wallet, SOL, network or validator, and each run starts from a clean state.
+
+The steps below go from the narrowest test to the broadest: the rule on its own, then a full transfer in memory, then a real cluster, then the pool paths. Each step covers something the previous one leaves out. Only the Devnet step spends SOL.
+
+### 1. Check the rule
 
 ```bash
 git clone https://github.com/trilltino/raydium-transfer-hook.git
 cd raydium-transfer-hook
 cargo test --locked -p transfer-hook-starter --lib
+```
+
+These are the Starter's native unit tests. They call `enforce_transfer_limit` directly as ordinary Rust with a limit of 500, and check that 499 and 500 pass, 501 fails with `TransferExceedsLimit`, the largest `u64` values do not overflow, and a limit of zero is refused at setup. No transaction or account is involved, so a failure at this step points to the rule's logic rather than to account handling.
+
+### 2. Run a full transfer in LiteSVM
+
+```bash
 cargo install --path hook-host --features cluster --bin test-scenario --locked
 test-scenario check --program-dir templates/simple/transfer-hook-starter \
   --scenario hook-host/examples/starter.json
 ```
 
-The native tests check the rule's boundaries. `check` builds a private copy of the Starter with its own program ID, then runs the JSON scenario through Token-2022 under LiteSVM. These steps are an excerpt of the scenario:
+The first command installs the CLI with every feature. The guide's [install section](https://github.com/trilltino/raydium-transfer-hook/blob/main/hook-host/GUIDE.md#install-the-tool) lists smaller builds and the commands each one enables. `check` builds a private copy of the Starter with its own program ID, then runs the JSON scenario under LiteSVM. The guide's [scenario vocabulary](https://github.com/trilltino/raydium-transfer-hook/blob/main/hook-host/GUIDE.md#scenario-vocabulary) lists every step type a scenario can hold. Each step in the scenario is a transfer with an expected result, or a check on a balance:
 
 ```json starter.json
     {
@@ -210,126 +260,177 @@ The native tests check the rule's boundaries. `check` builds a private copy of t
     }
 ```
 
-Add `--report <file>` to save the result, or `--url devnet` to deploy the copy and repeat the cases on Devnet.
+### 3. Confirm the rollback
 
-Rollback matters as much as the rejection. The kit's typed example checks that a rejected 501 leaves both balances unchanged, and that an accepted first instruction rolls back with a rejected second one.
+A rejected transfer has to leave no trace. The kit's typed example, `hook-host/examples/starter.rs`, checks this in LiteSVM: a rejected 501 leaves both balances unchanged, and when one transaction holds an accepted transfer followed by a rejected one, the accepted transfer is undone too. A small relay program repeats the check through a calling program. The example also sends hostile account sets, such as a missing config account, a config owned by the wrong program, extras out of order and a counterfeit config, and checks that each is refused. The guide's [Run Starter](https://github.com/trilltino/raydium-transfer-hook/blob/main/hook-host/GUIDE.md#run-starter) section has the build and run commands.
 
-The kit's [host guide](https://github.com/trilltino/raydium-transfer-hook/blob/main/hook-host/GUIDE.md) covers the next steps: [testing your own program](https://github.com/trilltino/raydium-transfer-hook/blob/main/hook-host/GUIDE.md#test-your-own-hook-from-a-json-scenario) from a generated scenario, [dry-running a transfer](https://github.com/trilltino/raydium-transfer-hook/blob/main/hook-host/GUIDE.md#create-a-hooked-mint-and-dry-run-a-transfer) on an existing mint, Devnet runs and pool tests.
+### 4. Repeat on Devnet
 
-## Who can change the rule
+Adding `--url devnet` to the `check` command deploys the same private copy to Devnet, repeats the cases there, then closes the program and returns its rent deposit. The Devnet run starts only after the LiteSVM run passes, so a hook that fails locally spends no SOL. `--report <file>` saves the results to a file. The guide's [Devnet wallets and test SOL](https://github.com/trilltino/raydium-transfer-hook/blob/main/hook-host/GUIDE.md#devnet-wallets-and-test-sol) section covers the wallet the run pays from.
 
-Before you trade or provide liquidity for a hooked token, find out who can change its behavior after you deposit. Four parties can:
+### 5. Dry-run a transfer on the deployed mint
 
-| Party | Can change | How to check |
-|---|---|---|
-| Mint's transfer-hook authority | Which program the mint calls, through the `Update` instruction of the TransferHook extension. | `getTransferHook`, or `test-scenario inspect` |
-| Hook program's upgrade authority | The hook's code. | `solana program show <HOOK_PROGRAM_ID>` |
-| Mint authority | The supply, by minting. Hooks do not run on mint, so a rule that depends on supply is weak while this authority exists. | Read the mint's authority field |
-| The hook's own configuration authority | The hook's parameters, if it has any. | The template's setup and update instructions |
-
-The extra-account list is not a fifth party. In the kit, every template implements the standard `UpdateExtraAccountMetaList` instruction without an authority check, and it accepts only the canonical list the program computes for the mint. Anyone can repair a stale list. Nobody can use it to change what the hook accepts. A hook outside the kit can gate that instruction differently, so check it.
-
-Read the first one from a client:
-
-```ts
-import { getMint, getTransferHook, TOKEN_2022_PROGRAM_ID } from "@solana/spl-token";
-
-const mintInfo = await getMint(connection, mint, "confirmed", TOKEN_2022_PROGRAM_ID);
-const hook = getTransferHook(mintInfo);
-
-console.log("hook program:", hook?.programId.toBase58());
-console.log("can repoint it:", hook?.authority.toBase58());
+```bash
+test-scenario simulate --mint <MINT> --source <SOURCE> --destination <DESTINATION> --amount 500 \
+  --url devnet --idl idls/transfer_hook_starter.json
 ```
 
-An authority of `11111111111111111111111111111111` means none: it is revoked. The rule is fixed only when every party above is revoked or is someone you trust.
+`simulate` resolves the hook's extras from the mint's list and dry-runs the transfer with no signature and no SOL. It prints the hook program and each extra account, then reports whether the transfer would succeed and how much compute it used, or names the error if it would fail. Because it reads the mint's live account data, it is a useful last check before signing a real transfer. See the guide's [dry-run walkthrough](https://github.com/trilltino/raydium-transfer-hook/blob/main/hook-host/GUIDE.md#create-a-hooked-mint-and-dry-run-a-transfer).
 
-Read the hook program from the mint on every send. Never cache it, because the authority can repoint it between two transfers.
+### 6. Test the pool paths
 
-The kit's `initialize` needs the Transfer Hook authority to sign, so revoke that authority after setup, not before. The authority can also remove the hook with `SetAuthority` on the hook program ID. Neither change makes a transfer fail, so senders and custodians should watch the mints they hold for them.
+In a swap, deposit or withdrawal, the pool program makes the transfer and passes the hook's extras on every leg, so a passing direct transfer does not show that these work. The guide's [Test with CPMM and CLMM](https://github.com/trilltino/raydium-transfer-hook/blob/main/hook-host/GUIDE.md#test-with-cpmm-and-clmm) section adds swap and liquidity steps to a JSON scenario and runs them with `test-scenario amm` against forks of the official Raydium CPMM and CLMM programs. It also covers [testing a custom program](https://github.com/trilltino/raydium-transfer-hook/blob/main/hook-host/GUIDE.md#test-your-own-hook-from-a-json-scenario) from a generated scenario.
+
+## Authorities after launch
+
+On Solana, an authority is the address an account records as the only signer allowed to make a particular change, such as minting more tokens or upgrading a program. Revoking an authority sets it to none, so nobody can make that change again, and a revoked authority cannot be restored. A hooked token can still change after launch for as long as any of four authorities is held. Before the token reaches a pool, each one is either revoked or left with a known holder. The table lists them in the order they are revoked:
+
+| Authority | What it can change | Revoked when |
+|---|---|---|
+| Mint authority | The supply. Hooks do not run on mint, so a supply-based rule is weak while this authority exists. | The supply is final. |
+| Mint's transfer-hook authority | Which hook program the mint calls, or whether it calls one at all, through the TransferHook extension's `Update` instruction. Repointing or removing the hook ends enforcement without any transfer failing. | Setup is complete. Revoking it keeps the current hook program in place for good. |
+| Hook program's upgrade authority | The hook's code. | Testing is complete and no fixes are planned. |
+| Hook's config authority | The rule's settings, such as a limit or a pause flag. The Starter has none: its limit is fixed at `initialize`. | The settings should never change again. |
+
+Each authority controls one layer, and revoking it fixes only that layer. A mint whose transfer-hook authority is revoked still runs upgradeable code if the upgrade authority is held, and the code can still read mutable settings if a config authority is held. Keeping an authority under a multisig or a governance program, rather than revoking it, keeps the power to change that layer, so its holder stays part of what LPs and traders have to trust. `SetAuthority` with the `TransferHookProgramId` type moves or revokes the transfer-hook authority itself. It does not change which hook program runs.
+
+These authorities matter most once the token sits in a Raydium pool. CPMM and CLMM check a mint only when the pool is created, never at swap time, so a later change applies at once to every swap, deposit and withdrawal. A repointed or upgraded hook, or a paused config, can reject transfers out of the pool vault, which stops LPs from withdrawing and traders from selling. A held mint authority can mint new tokens and sell them into the pool. This is why registering a hook mint for a pool is a trust decision about these same authorities. See [Admission](#admission).
+
+Other mint controls act on the same pool, outside the hook. A freeze authority can freeze the pool's vault. A permanent delegate can move tokens out of it. A transfer-fee authority can schedule a new fee rate for a later epoch, and a pause authority can stop all transfers. CPMM and CLMM admit permanent-delegate and pausable mints only through the per-mint registry. See [Token-2022 support](/docs/en/reference/token-2022-support#why-each-excluded-extension-is-excluded).
+
+The order comes from `initialize`, which checks the first two. Revoking either one at the wrong time makes setup fail:
+
+1. **Mint authority, first when the template needs it.** Several templates, including Circulating cap, Creator commitment, Credential gate and Trader eligibility, refuse `initialize` while the mint authority still exists, because their rule depends on a fixed supply.
+2. **Transfer-hook authority, after `initialize`.** `initialize` needs this authority to sign and fails with `HookAuthorityUnavailable` if it is already gone. Authenticated periods is the one exception: it expects the authority to be revoked before setup.
+3. **Upgrade and config authorities, when the code and settings are final.** Setup does not check these two. The upgrade authority is revoked with `solana program set-upgrade-authority <HOOK_PROGRAM_ID> --final`.
+
+Revoking the transfer-hook authority does not stop the hook. The kit's conformance tests check that every template keeps enforcing its rule, and can still repair its list, after this authority is gone.
+
+`test-scenario inspect --mint <MINT>` shows who holds each mint authority. When [`test-scenario new-mint`](https://github.com/trilltino/raydium-transfer-hook/blob/main/hook-host/GUIDE.md#create-a-hooked-mint-and-dry-run-a-transfer) creates a test mint, `--revoke-mint-authority` and `--revoke-hook-authority` revoke those authorities as part of setup. `--revoke-hook-authority` runs `initialize` first, so it needs `--init-idl`.
+
+The extra-account list is not a fifth authority. Each kit template accepts only the canonical list for its mint, so anyone can repair a stale list but nobody can use it to change what the hook accepts. A hook built outside the kit may restrict or open that instruction differently, so its update rules need checking on their own.
 
 ## Hook tokens on Raydium
 
+This section covers a hooked token once it trades on Raydium: which pools accept it, how to check it, how its transfers run inside a pool, what it costs and how failures show up.
+
 ### Admission
 
-A hook belongs to a mint, and Raydium admits mints separately. CPMM and CLMM accept five Token-2022 extensions, and TransferHook is not one of them. Pool creation for a hook mint reverts with `NotSupportMint` unless an admin has registered the mint. See the [extension allow-list](/docs/en/reference/token-2022-support#cpmm-and-clmm-extension-allow-list) and the [per-mint registry](/docs/en/reference/token-2022-support#the-one-bypass-the-per-mint-registry).
+A hook belongs to a mint, and each Raydium program decides separately which mints it accepts:
 
-Registering a mint does not vet its hook. The hook runs on every transfer and can make swaps fail. The kit's pool tests run against community integration forks, which are separate from official Raydium deployments.
+| Program | Hooked mint |
+|---|---|
+| CPMM, CLMM | Accepted only after an admin registers the mint. TransferHook is not on the [extension allow-list](/docs/en/reference/token-2022-support#cpmm-and-clmm-extension-allow-list), so pool creation otherwise fails with [`NotSupportMint`](/docs/en/reference/error-codes#cpmm-standard-amm-errors). |
+| AMM v4, Stable AMM | Not accepted. Both take classic SPL Token mints only. |
+| LaunchLab | Never as the base mint. A hooked quote mint is possible only if an admin binds it to a config, and its hook then runs on every buy, sell and fee claim in pools quoted in it. See [LaunchLab quote mints](/docs/en/reference/token-2022-support#launchlab-quote-mints). |
 
-### Forwarding extras
+Registering a mint does not vet its hook, and CPMM and CLMM check the mint only at pool creation. See the [per-mint registry](/docs/en/reference/token-2022-support#the-one-bypass-the-per-mint-registry).
 
-Admission is not enough. Every transfer leg needs the hook's extras: swaps, liquidity deposits and withdrawals, and fee and reward transfers. Resolve them with each leg's actual mint, authority and amount.
+### Check a hooked token
 
-A program that moves hooked tokens by CPI must forward the extras itself. This excerpt of the kit's `cpi.rs` shows the pattern with the public `spl-transfer-hook-interface` helper:
+Before trading or providing liquidity, these checks show which of the [four authorities](#authorities-after-launch) are still held:
 
-```rust cpi.rs
-    let hook_program_id = {
-        let mint_data = mint.try_borrow_data()?;
+| Authority | How to check |
+|---|---|
+| Mint's transfer-hook authority | [`test-scenario inspect`](https://github.com/trilltino/raydium-transfer-hook/blob/main/hook-host/GUIDE.md#create-a-hooked-mint-and-dry-run-a-transfer), which runs the code below |
+| Hook program's upgrade authority | `solana program show <HOOK_PROGRAM_ID>`, which lists the upgrade authority, or none once the program is final |
+| Mint authority | The mint's `mint_authority` field |
+| Hook's config authority | The template's setup and update instructions |
 
-        transfer_hook::get_program_id(&StateWithExtensions::<Mint>::unpack(&mint_data)?)
+`test-scenario inspect` runs the kit's `hook-host/src/cli_workflows/inspect.rs`. After fetching the mint over RPC and unpacking it, it reads the hook like this:
+
+```rust inspect.rs
+    let hook = match state.get_extension::<TransferHook>() {
+        Ok(extension) => {
+            let program = Option::<Pubkey>::from(extension.program_id);
+            let list = match program {
+                Some(program) => Some(extra_list(mint, program, &mut fetch).await?),
+                None => None,
+            };
+
+            Some(HookReport {
+                program,
+                authority: Option::<Pubkey>::from(extension.authority),
+                list,
+            })
+        }
+        Err(_) => None,
     };
-
-    if let Some(hook_program_id) = hook_program_id {
-        add_extra_accounts_for_execute_cpi(
-            &mut instruction,
-            &mut account_infos,
-            &hook_program_id,
-            source_token_account.clone(),
-            mint.clone(),
-            destination_token_account.clone(),
-            authority.clone(),
-            amount,
-            additional_accounts,
-        )?;
-    }
-
-    invoke_signed(&instruction, &account_infos, signer_seeds)?;
 ```
 
-Test LaunchLab setup and graduation separately. A passing direct transfer does not establish any pool path.
+The extension stores both fields as optional addresses, with all-zero bytes meaning unset, and `Option::<Pubkey>::from` turns that into `None`. `extra_list` also reads the hook's extra-account list, so the report shows the accounts every transfer will need:
 
-### Rules around pool vaults
+| Report | What it means |
+|---|---|
+| `hook` is `None` | The mint has no TransferHook extension, so transfers never call a hook. Mint extensions are fixed at creation, so one cannot be added later. |
+| `program` is `None` | The extension exists, but no hook runs. The authority can switch one on at any time. |
+| `program` and `authority` both set | The hook runs, and the authority can repoint or remove it. The authority may be a single key, a multisig or a governance program. |
+| `program` set, `authority` is `None` | The hook program is fixed for good. Its code and settings can still change if their own authorities are held. |
 
-In a swap, one side of each hooked transfer is a pool vault. The vault's owner is the pool program, not the trader, so the hook sees the vault and not the person trading. A rule that treats buys and sells differently has to identify venues by registered vault addresses.
+In TypeScript, `getTransferHook` from `@solana/spl-token` reads the same two fields. There an unset field decodes as `PublicKey.default`, which prints as `11111111111111111111111111111111`. That string is also the System Program's address, so it means "unset" only when read from these fields.
 
-- Decide how exits are treated. Pausing transfers blocks exits as well as buys.
-- Owner-keyed rules need `ImmutableOwner` on the destination. Without it, `SetAuthority` can move the account to an unchecked wallet without a transfer.
-- A counter over vault outflows counts the transfers the hook saw. It does not count trades, transactions or bundles.
+While the transfer-hook authority is held, it can repoint or remove the hook at any time without any transfer failing. Wallets and custodians read the hook program from the mint on every send for that reason, instead of caching it.
 
-### Sending a hooked token
+### Transfers inside a pool
 
-Simulate the transfer before you sign it. `test-scenario simulate` resolves the hook's extras from the mint's list and dry-runs the transfer with no signature and no SOL. It names the error if the transfer would fail, and it prints a suggested compute limit.
+Only transfers of the hooked token run the hook, and each one runs it with its own extras, amount and authority:
 
-Use the helper for your client library. Legacy web3.js uses `createTransferCheckedWithTransferHookInstruction` from `@solana/spl-token`, shown above. Kit and web3.js v3 use `getTransferCheckedWithTransferHookInstructionAsync` from `@solana-program/token-2022`.
+| Operation | Hooked transfer | Authority the hook sees |
+|---|---|---|
+| Buy the token | Vault to trader | The pool's PDA |
+| Sell the token | Trader to vault | The trader |
+| Add liquidity | LP to vault | The LP |
+| Remove liquidity | Vault to LP | The pool's PDA |
+| Fee and reward claims | Vault to recipient | The pool's PDA |
 
-On a mint with a transfer fee, send a plain `TransferChecked`. Token-2022 withholds the fee itself, and the hook sees the amount before the fee.
+CPMM and CLMM take those extras through hook-aware versions of their instructions. Each one adds a `u16` count per transfer, and the extras follow in `remaining_accounts` as one slice per transfer, in the same order as the counts. A slice must be empty for a mint without a hook and non-empty for a mint with one, or the instruction fails with `InvalidHookAccountFraming`. Both programs create pool vaults with `ImmutableOwner`, so owner-keyed rules work on vaults.
+
+| Program | Hook-aware instructions |
+|---|---|
+| CPMM | `swap_base_input_v2`, `swap_base_output_v2`, `deposit_v2`, `withdraw_v2`, `initialize_v2`, `initialize_with_permission_v2`, and the `_v2` fee collections: `collect_protocol_fee_v2`, `collect_fund_fee_v2`, `collect_creator_fee_v2` and `collect_creator_fee_permissionless_v2`. |
+| CLMM | `swap_v3`, `open_position_v3`, `open_position_with_token22_nft_v3`, `increase_liquidity_v3`, `decrease_liquidity_v3` to `v5`, the `_v2` limit-order instructions, `collect_protocol_fee_v2`, `collect_fund_fee_v2` and the `_v2` reward instructions. `swap_v3` also counts its tick-array and bitmap accounts, which come before the two hook slices. |
+
+<Note>
+  The hook-aware instructions are part of the hook-enabled CPMM and CLMM programs that the kit's pool tests run, in LiteSVM and on Devnet. Before integrating on a cluster, confirm that the program deployed there exposes them.
+</Note>
+
+A program that moves the token itself, such as a router, passes the extras on with `add_extra_accounts_for_execute_cpi` from the [Transfer Hook interface](https://www.solana-program.com/docs/transfer-hook-interface). Wallets, dapps, custodians and routers that send the token can follow the guide's [Integrating a hook token](https://github.com/trilltino/raydium-transfer-hook/blob/main/hook-host/GUIDE.md#integrating-a-hook-token) checklist.
 
 ### Cost
 
-A hook adds accounts to the transaction, compute to the instruction and one CPI level. Check the account and size limits in [Transactions and fees](/docs/en/solana-fundamentals/transactions-and-fees). Measure the compute against a plain transfer.
-
-Token-2022 calls the hook by CPI, so a Raydium swap reaches the hook two levels below Raydium: Raydium, then Token-2022, then the hook. Using the counting in [PDAs and CPIs](/docs/en/solana-fundamentals/pdas-and-cpis#cpi-depth-limit), that leaves Raydium at most two levels below the top-level instruction. Every router or aggregator above Raydium uses part of that budget.
+Token-2022 calls the hook by CPI, so a Raydium swap reaches the hook two levels below Raydium: Raydium, then Token-2022, then the hook. Using the counting in [PDAs and CPIs](/docs/en/solana-fundamentals/pdas-and-cpis#cpi-depth-limit), that leaves Raydium at most two levels below the top-level instruction, and every router or aggregator above Raydium uses part of that budget. The hook also cannot call back into the pool program that started the transfer, because Solana rejects re-entrant CPIs. Each hooked transfer adds accounts and compute. A hooked Starter transfer stays within the kit's 35,000 compute-unit ceiling, and `test-scenario simulate` reports what a real transfer uses. Account and size limits are in [Transactions and fees](/docs/en/solana-fundamentals/transactions-and-fees).
 
 ### When a transfer fails
 
 | Symptom | Likely cause | Fix |
 |---|---|---|
-| A policy error such as `TransferExceedsLimit` | The rule refused the transfer. | Read the hook's error. The transaction rolled back, including earlier instructions in it. |
-| An account-count or account-validation error on a send | The client left out the hook program, the list or an extra. | Resolve the extras from the list. A client that omits them cannot send the token. |
-| A transfer that used to work now fails with an account-validation error | The hook program or its extras changed. | Re-read the mint, re-resolve the extras and rebuild the transaction. Do not resubmit the old one. |
-| `TransferNotInProgress` on a direct call to `Execute` | Only Token-2022 sets the `transferring` flags. | Expected. Test through a real transfer. |
-| A swap works for plain tokens but fails for the hooked token | The integrating program did not forward the extras on every leg. | Forward them for each leg, with that leg's amount and authority. |
-| `NotSupportMint` when creating a pool | The mint's TransferHook extension is not admitted. | See [Admission](#admission). |
+| A policy error such as `TransferExceedsLimit` | The rule refused the transfer. | Read the hook's error. The whole transaction rolled back. |
+| An account-count or account-validation error | The extras are missing, or the hook or its list changed after the transaction was built. | Re-read the mint, resolve the extras again and rebuild the transaction. |
+| `InvalidHookAccountFraming` from CPMM or CLMM | The hook counts don't match the remaining accounts, or a slice is empty for a hooked mint or filled for a plain one. | Resolve each transfer's extras and pass the counts in the same order as the slices. |
+| A swap works for plain tokens but fails for the hooked token | The swap used an instruction without hook accounts, or a program in the path did not pass them on. | Use the hook-aware instruction and pass the extras for each transfer, with that transfer's amount and authority. |
+| `NotSupportMint` when creating a pool | The mint is not registered. | See [Admission](#admission). |
 
-`TransferExceedsLimit` comes from the Starter, and each template defines its own policy errors. Account and setup errors come from the shared kit and start at code `0x8001`. They include `TransferNotInProgress`, `InvalidExecuteAccountCount`, `IncorrectHookProgram` and `InvalidExtraAccountMetaList`.
+Policy errors such as `TransferExceedsLimit` come from each template. Account and setup errors come from the shared kit, start at code `0x8001`, and include `InvalidExecuteAccountCount`, `IncorrectHookProgram` and `InvalidExtraAccountMetaList`. For errors from the CLI or the build itself, see the guide's [troubleshooting table](https://github.com/trilltino/raydium-transfer-hook/blob/main/hook-host/GUIDE.md#troubleshooting).
 
-## Before you ship
+## Operational considerations
 
-- Name the controller, the issuer and the upgrade authority. Decide which to revoke, and revoke the Transfer Hook authority only after setup. See [Who can change the rule](#who-can-change-the-rule).
-- Verify hook selection, Token-2022 ownership, mint bindings and both `transferring` flags. See [What the shared validation protects](#what-the-shared-validation-protects).
-- Keep the canonical metadata, the account order and count, and the signer and writable privileges. Forward the extras on every CPI transfer leg.
-- Separate the transfer authority from the token-account owner. Use `ImmutableOwner` where the policy depends on the owner. Consider mint, burn and authority changes separately.
-- Test zero, limits, arithmetic extremes, self-transfer, entry, exit and the extension combinations you support. Check exact errors and rollback.
-- Report native, LiteSVM, cluster and pool results separately. Assert every state change you promise.
+- A hook enforces its rule on `TransferChecked` transfers only. Minting, burning and authority changes skip it.
+- What the hook enforces depends on four layers that change separately: the program the mint calls, that program's code, its settings and the supply. Revoking one authority fixes only its own layer.
+- Freeze, permanent-delegate, transfer-fee and pause authorities can still affect the token and its pools, whatever the hook does.
+- Every transfer needs the hook's extras resolved from the mint's list. One missing or misordered account fails the whole transaction.
+- Admission to a CPMM or CLMM pool and hook support are separate. A registered mint still needs the hook-aware instructions on every swap, deposit, withdrawal and claim.
+- Results from LiteSVM, Devnet and the forked pools each prove a different thing, and none of them stands in for a check on the cluster the token will trade on.
+
+### Before shipping
+
+A hook is ready to ship when each of these holds:
+
+- **Authorities.** Each of the four authorities in [Authorities after launch](#authorities-after-launch) has a known holder, and the ones meant to be permanent are revoked. They are revoked in the order setup needs: the mint authority before `initialize` where the template requires it, and the transfer-hook authority after.
+- **Account checks.** The handler confirms that the mint selects this hook, that both token accounts belong to the mint and are owned by a token program, and that both `transferring` flags are set. In the kit, `hook-kit` and the template's Anchor constraints cover these. See [Inside the Execute handler](#inside-the-execute-handler).
+- **Extra-account list.** The on-chain list matches the canonical one, and the accounts keep their order, count, and signer and writable flags. Every program that moves the token by CPI passes the extras on for each transfer. See [Transfers inside a pool](#transfers-inside-a-pool).
+- **Who the rule sees.** The authority on a transfer can be a delegate rather than the account's owner, so a rule keyed on owners reads the token account's owner, not the authority. Destination accounts carry `ImmutableOwner` where the rule depends on the owner, because without it an account can change owner without any transfer.
+- **Test coverage.** Tests cover a zero amount, values at and around each limit, the largest `u64` values, a self-transfer, moves into and out of a pool, administrative changes such as a repointed hook, and every supported mint-extension combination. Each rejection is checked for its exact error and for a full rollback. See [Test it](#test-it).
+- **Reporting.** Native, LiteSVM, Devnet and pool results are reported separately. Every state change the hook promises has an assertion behind it.
 
 ## Pointers
 
@@ -337,10 +438,12 @@ Token-2022 calls the hook by CPI, so a Raydium swap reaches the hook two levels 
 - [`solana-fundamentals/transactions-and-fees`](/docs/en/solana-fundamentals/transactions-and-fees): transaction size, accounts and compute.
 - [`solana-fundamentals/spl-token-and-token-2022`](/docs/en/solana-fundamentals/spl-token-and-token-2022): the other Token-2022 extensions.
 - [`reference/token-2022-support`](/docs/en/reference/token-2022-support): which mints CPMM and CLMM admit.
+- [`algorithms/token-2022-transfer-fees`](/docs/en/algorithms/token-2022-transfer-fees): how transfer fees are calculated.
 
 Sources:
 
 - [Token-2022 overview](https://www.solana-program.com/docs/token-2022).
 - [Transfer Hook interface](https://www.solana-program.com/docs/transfer-hook-interface).
 - [Solana transfer hook guide](https://solana.com/docs/tokens/extensions/transfer-hook) and [integration guide](https://solana.com/docs/tokens/extensions/transfer-hook-integration).
-- [`raydium-transfer-hook`](https://github.com/trilltino/raydium-transfer-hook) kit and its [README](https://github.com/trilltino/raydium-transfer-hook/blob/main/README.md). Both require repository access.
+- [`TransferHook` in `spl-token-2022-interface` 3.1.2](https://docs.rs/spl-token-2022-interface/3.1.2/spl_token_2022_interface/extension/transfer_hook/struct.TransferHook.html).
+- [`raydium-transfer-hook`](https://github.com/trilltino/raydium-transfer-hook) kit, its [README](https://github.com/trilltino/raydium-transfer-hook/blob/main/README.md) and its [hook host guide](https://github.com/trilltino/raydium-transfer-hook/blob/main/hook-host/GUIDE.md), and the hook-enabled CPMM and CLMM programs in [`raydium-hook-contracts`](https://github.com/trilltino/raydium-hook-contracts). All require repository access.

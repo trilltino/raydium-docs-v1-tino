@@ -1,0 +1,280 @@
+---
+title: "AMM v4 docs updates"
+description: "Every correction to the AMM v4 chapter, grouped by why it was needed, with the old and new wording and links to the changed section and to the source behind it."
+---
+
+- 11.20.26 · **[AMM v4 chapter](/docs/en/products/amm-v4):** Corrects all seven AMM v4 pages. No upstream PR has been opened. The changes are in this checkout.
+
+**In short.** AMM v4 is Raydium's original pool program. Two upgrades changed it: in **July 2026** Raydium removed its link to the **OpenBook** order book, and in **September 2026** it rebuilt the program for Solana 3.0. The docs still described the old program in places. Readers and integrators got wrong answers about how fees are taken, which accounts to pass, what the SDK sends and what a swap costs. This pass brings every AMM v4 page in line with the program as it runs today.
+
+**How to read this page.** Each change links to the section it touched and to the source that supports it. **Was** quotes the old wording and **Now** quotes the new wording, both exactly; "…" marks a cut.
+
+**How it was checked.**
+
+- **Verified** against public source pinned to a commit: `raydium-amm` at [`9c54069`](https://github.com/raydium-io/raydium-amm/tree/9c54069c6bd86d52cd6622705b98c274ee33ba4a) (current) and [`c613c87`](https://github.com/raydium-io/raydium-amm/tree/c613c87c41edbe21112c9b8341774a70009c6d7b) (the last version with OpenBook, marked "old" below), `raydium-cp-swap` at [`3d69122`](https://github.com/raydium-io/raydium-cp-swap/tree/3d69122790e97cd6aff24e8ba95940793773f58c), and the TypeScript SDK at [`32a184e`](https://github.com/raydium-io/raydium-sdk-V2/tree/32a184eb0aea15ddbb485e24a1a73d3723fd94d6) and as the published `0.2.85-alpha` package, the docs' current pin. The AMM v4 SDK claims also hold in `0.2.64-alpha`, except the V1-transaction behaviour, which `0.2.64-alpha` does not have.
+- **On-chain:** the deployed AMM v4 program was last deployed at slot 445763204 on 10 September 2026, the day of the Solana 3.0 rebuild commit. Its binary contains none of the removed order-book handlers and includes the path that rejects order-book instructions.
+- **Measured** on mainnet through a Triton One RPC on 20 November 2026: 400 recent transactions per watched address, five blocks either side of the AMM v4 redeploy, and the five highest-TVL API pages of standard pools.
+- **Not verified:** the raydium.io web app (only a public copy of its code from June 2025 was available), the AMM Routing program's code (Raydium hasn't published it, so only its mainnet transactions were checked), and Devnet or other clusters.
+
+## The OpenBook link is gone
+
+AMM v4 was originally designed to place buy and sell orders on an **OpenBook** market, an on-chain order book. Raydium deleted that code in July 2026. The program still **accepts** the old market accounts so existing integrations keep working, but it **reads nothing from them**. Several pages still described the order book as live, which sent integrators after accounts and behaviour that no longer matter.
+
+- **[Landing page, Overview card](/docs/en/products/amm-v4#chapter-contents):** the program now rejects every order-book instruction. Source: [instruction.rs L480–483](https://github.com/raydium-io/raydium-amm/blob/9c54069c6bd86d52cd6622705b98c274ee33ba4a/program/src/instruction.rs#L480-L483)
+  - **Was:** "Conceptual model: how AMM v4 couples a constant-product curve to an OpenBook market, and why the design exists."
+  - **Now:** "Conceptual model: AMM v4 as a pure constant-product pool. Covers the OpenBook hybrid it started as and why that design existed. The program now rejects every order-book instruction."
+- **[Accounts, Inventory](/docs/en/products/amm-v4/accounts#inventory):** a pool is not tied to a market. The `market` key only seeds its addresses. Source: [processor.rs L592–594](https://github.com/raydium-io/raydium-amm/blob/9c54069c6bd86d52cd6622705b98c274ee33ba4a/program/src/processor.rs#L592-L594)
+  - **Was:** "An AMM v4 pool records one bound market on `AmmInfo` at creation."
+  - **Now:** "Each pool records on `AmmInfo` the `market` key it was created with. Since the OpenBook removal that key is only a seed for the pool's addresses, and the pool is not bound to any market."
+- **[Instructions, `Initialize2`](/docs/en/products/amm-v4/instructions#initialize2):** the same correction for pool creation, plus how extra accounts are treated. Source: [processor.rs L592–594](https://github.com/raydium-io/raydium-amm/blob/9c54069c6bd86d52cd6622705b98c274ee33ba4a/program/src/processor.rs#L592-L594) · [L622–673](https://github.com/raydium-io/raydium-amm/blob/9c54069c6bd86d52cd6622705b98c274ee33ba4a/program/src/processor.rs#L622-L673)
+  - **Was:** "Bootstrap a new AMM v4 pool bound to an existing OpenBook market." … "Any other length is parsed positionally against the legacy layout and will fail."
+  - **Now:** "The `market` account is only a seed for the pool's PDAs, so it doesn't need to be an OpenBook market." … "Exactly 19 accounts selects the list above." … "21 accounts work, and accounts after the 21st are ignored. A count of 20, or below 19, fails"
+- **[Accounts, The OpenBook wiring](/docs/en/products/amm-v4/accounts#the-openbook-wiring):** removes a code sample that decoded market accounts the program ignores, using two helpers (`OpenBookMarket`, `u64ToBytes`) that are never defined, and puts the order grid in the past tense. Source: [processor.rs L1865–1877](https://github.com/raydium-io/raydium-amm/blob/9c54069c6bd86d52cd6622705b98c274ee33ba4a/program/src/processor.rs#L1865-L1877) · [old processor.rs L6051–6127](https://github.com/raydium-io/raydium-amm/blob/c613c87c41edbe21112c9b8341774a70009c6d7b/program/src/processor.rs#L6051-L6127)
+  - **Was:** `const marketDecoded = OpenBookMarket.decode(marketAccountData);` and "The AMM's `amm_open_orders` is an OpenBook-owned account holding the pool's limit-order state on this market"
+  - **Now:** "The program reads these slots into unused `_`-prefixed variables and never inspects them, so there is nothing to decode." and "Before the removal, `amm_open_orders` was the OpenBook account holding the pool's limit orders on its market"
+- **[Accounts, `AmmInfo`](/docs/en/products/amm-v4/accounts#amminfo):** new pools store blank keys in the legacy fields. Source: [processor.rs L972–974](https://github.com/raydium-io/raydium-amm/blob/9c54069c6bd86d52cd6622705b98c274ee33ba4a/program/src/processor.rs#L972-L974)
+  - **Was:** `pub open_orders: Pubkey,   // pool's OpenOrders on OpenBook`
+  - **Now:** `pub open_orders: Pubkey,   // legacy; Pubkey::default() on pools created since the removal`
+- **[Accounts, Inventory](/docs/en/products/amm-v4/accounts#inventory):** the legacy accounts use the program's own names, and there is no AMM v4 IDL. Source: [state.rs L655–659](https://github.com/raydium-io/raydium-amm/blob/9c54069c6bd86d52cd6622705b98c274ee33ba4a/program/src/state.rs#L655-L659) · [instruction.rs L869–878](https://github.com/raydium-io/raydium-amm/blob/9c54069c6bd86d52cd6622705b98c274ee33ba4a/program/src/instruction.rs#L869-L878)
+  - **Was:** "Note: \"serum\" is kept as the prefix in AMM v4's IDL and field names for backward compatibility." with rows such as `serum_market` and `serum_bids`
+  - **Now:** "The program names these accounts with a `market` prefix" … "Raydium publishes no AMM v4 IDL" with rows such as `market` and `market_bids`
+- **[Overview, Why CPMM is the recommended default](/docs/en/products/amm-v4/overview#why-cpmm-is-the-recommended-default):** OpenBook is no longer a difference between the two programs. Source: [Cargo.toml L24–30](https://github.com/raydium-io/raydium-amm/blob/9c54069c6bd86d52cd6622705b98c274ee33ba4a/program/Cargo.toml#L24-L30)
+  - **Was:** "CPMM drops the OpenBook dependency. The tradeoffs:"
+  - **Now:** "Neither program depends on OpenBook: AMM v4 dropped it in the 2026-07 upgrade. CPMM is the default for these reasons:"
+- **Source lists** on [Overview](/docs/en/products/amm-v4/overview#where-to-go-next), [Accounts](/docs/en/products/amm-v4/accounts#what-to-read-where) and [Instructions](/docs/en/products/amm-v4/instructions#where-to-go-next): they cited OpenBook, which the program no longer calls. Source: [processor.rs L1865–1877](https://github.com/raydium-io/raydium-amm/blob/9c54069c6bd86d52cd6622705b98c274ee33ba4a/program/src/processor.rs#L1865-L1877)
+  - **Was:** "OpenBook program repository for the counterparty accounts this page references", "OpenBook / Serum protocol for the counterparty accounts" and "OpenBook program" … "account validations on the market side"
+  - **Now:** the Overview cites "[`raydium-io/raydium-amm`](https://github.com/raydium-io/raydium-amm) for the program source", and the other two lines are removed.
+- **[Math, Order-book interaction](/docs/en/products/amm-v4/math#order-book-interaction-historical):** the retired grid is described as it really worked. Source: [old processor.rs L4848](https://github.com/raydium-io/raydium-amm/blob/c613c87c41edbe21112c9b8341774a70009c6d7b/program/src/processor.rs#L4848) · [L4923–4968](https://github.com/raydium-io/raydium-amm/blob/c613c87c41edbe21112c9b8341774a70009c6d7b/program/src/processor.rs#L4923-L4968) · [L5791](https://github.com/raydium-io/raydium-amm/blob/c613c87c41edbe21112c9b8341774a70009c6d7b/program/src/processor.rs#L5791) · [L2516](https://github.com/raydium-io/raydium-amm/blob/c613c87c41edbe21112c9b8341774a70009c6d7b/program/src/processor.rs#L2516) · [state.rs L614](https://github.com/raydium-io/raydium-amm/blob/9c54069c6bd86d52cd6622705b98c274ee33ba4a/program/src/state.rs#L614)
+  - **Was:** "the `build_orders` grid logic", "number of price levels per side", "base unit of size per level", "cumulative fee counters since last `TakePnl`" and "walking out from the current curve price in constant-ratio steps"
+  - **Now:** "the `do_plan_orderbook` grid logic", "the price range the grid spanned, as a percentage of the current price", "`amount_wave` could be set with `SetParams`, but the grid never read it", "lifetime fee counters, never reset, and not grid inputs" and "placed the levels at **additive Fibonacci steps** from the curve price, outside a fixed spread"
+- **Same section:** the grid is described in the past tense.
+  - **Was:** "Integrators rarely need to compute the grid"
+  - **Now:** "Integrators rarely needed to compute the grid, because the Raydium keeper maintained it."
+- **[Fees, The one published tier](/docs/en/products/amm-v4/fees#the-one-published-tier):** `min_separate` no longer does anything except pass a validity check. Source: [state.rs L455–461](https://github.com/raydium-io/raydium-amm/blob/9c54069c6bd86d52cd6622705b98c274ee33ba4a/program/src/state.rs#L455-L461) · [old processor.rs L4923–4944](https://github.com/raydium-io/raydium-amm/blob/c613c87c41edbe21112c9b8341774a70009c6d7b/program/src/processor.rs#L4923-L4944)
+  - **Was:** "Internal precision floor used by the fee-split rounding logic."
+  - **Now:** "Only validated (numerator below denominator) since the OpenBook removal. It formerly widened the order grid's bid/ask spread, together with `trade_fee`."
+- **[Instructions, `SetParams`](/docs/en/products/amm-v4/instructions#setparams):** two more removed settings. Source: [old state.rs L372–391](https://github.com/raydium-io/raydium-amm/blob/c613c87c41edbe21112c9b8341774a70009c6d7b/program/src/state.rs#L372-L391)
+  - **Was:** "`AmmOwner`, `LastOrderDistance`, `UpdateOpenOrder` were removed"
+  - **Now:** "`AmmOwner`, `LastOrderDistance`, `SetSwitchTime`, `ClearOpenTime` and `UpdateOpenOrder` were removed"
+
+## The protocol fee is not split per swap
+
+The docs said each swap splits its default **0.25% fee** on the spot: 0.22% to liquidity providers and 0.03% to the protocol. The program does not do that. The **whole fee stays in the pool** and grows its reserves. With the default parameters, the protocol takes its **12% share of that growth later**, when someone deposits, withdraws or sweeps fees. This matters to anyone who reads the pool's fee counters, quotes from its reserves or tracks what liquidity providers earn: the counters lag behind, and the pool's `k` shrinks a little each time the protocol takes its share.
+
+- **[Math, Settlement step](/docs/en/products/amm-v4/math#settlement-step-pnl):** rewritten around `calc_take_pnl`, the routine that books the protocol's share. Source: [processor.rs L159–281](https://github.com/raydium-io/raydium-amm/blob/9c54069c6bd86d52cd6622705b98c274ee33ba4a/program/src/processor.rs#L159-L281) · [L1495–1532](https://github.com/raydium-io/raydium-amm/blob/9c54069c6bd86d52cd6622705b98c274ee33ba4a/program/src/processor.rs#L1495-L1532)
+  - **Was:** "The 0.03% protocol share accrues into `state_data.need_take_pnl_coin` and `state_data.need_take_pnl_pc`." … "so `TakePnl` does not move the curve."
+  - **Now:** "Swaps don't book the protocol fee. The whole fee stays in the reserves and raises `k`." … "If either rounds to zero, nothing is booked." … "The reduction is set by `pnl_numerator / pnl_denominator`, which is 12% under the default parameters. Paying out PnL booked earlier doesn't change `k`."
+- **[Math, Fee convention](/docs/en/products/amm-v4/math#fee-convention):** the share is taken later, from growth. Source: [processor.rs L199–254](https://github.com/raydium-io/raydium-amm/blob/9c54069c6bd86d52cd6622705b98c274ee33ba4a/program/src/processor.rs#L199-L254)
+  - **Was:** "This share accrues to the PnL counters and is swept by `WithdrawPnl`."
+  - **Now:** "under the default parameters, `pnl_numerator / pnl_denominator = 12 / 100`. This fraction is applied to the pool growth calculated by `calc_take_pnl`, rather than directly to individual swap fees. The commonly quoted `0.03%` protocol share is an economic fee equivalent, not an exact per-swap deduction."
+- **[Fees, How the split is realised](/docs/en/products/amm-v4/fees#how-the-split-is-realised):** the same correction on the Fees page, which also said the share came out of one token only. Source: [processor.rs L228–266](https://github.com/raydium-io/raydium-amm/blob/9c54069c6bd86d52cd6622705b98c274ee33ba4a/program/src/processor.rs#L228-L266)
+  - **Was:** "On each swap, the pool charges the gross trade fee off the input amount, then apportions:" … "`pnl_portion` increments `AmmInfo.state_data.need_take_pnl_coin` or `need_take_pnl_pc` depending on which side is the swap input."
+  - **Now:** "A swap doesn't split the fee." … "With the default parameters, it books 12% of the growth into `need_take_pnl_coin` **and** `need_take_pnl_pc`, in proportion to the reserves, and leaves the other 88% in the pool for LPs."
+- **[Math, Worked example](/docs/en/products/amm-v4/math#worked-example):** the swap books no fee share, so `k` after the swap is higher than the example said. The old figure is what `k` falls to after the later settlement, which the example now shows as a second step. Source: [processor.rs L199–254](https://github.com/raydium-io/raydium-amm/blob/9c54069c6bd86d52cd6622705b98c274ee33ba4a/program/src/processor.rs#L199-L254)
+  - **Was:** `pnl_share = 2_500_000 * 12 / 100 = 300_000    (goes to protocol via need_take_pnl_coin)` and `≈ 2.000_004_396E24`
+  - **Now:** `≈ 2.000_004_995E24`, then `pnl_pc   = (1_998_006_988_030 − 1_998_004_493_014) * 12 / 100  = 299_401` and "In this example, the protocol's economic fee equivalent is about 0.6 pc. Settlement takes it in both tokens, not as `300_000` coin."
+- **[Accounts, `TargetOrders`](/docs/en/products/amm-v4/accounts#targetorders):** this account holds the baseline the share is measured from. Source: [state.rs L94–95](https://github.com/raydium-io/raydium-amm/blob/9c54069c6bd86d52cd6622705b98c274ee33ba4a/program/src/state.rs#L94-L95) · [L152–178](https://github.com/raydium-io/raydium-amm/blob/9c54069c6bd86d52cd6622705b98c274ee33ba4a/program/src/state.rs#L152-L178)
+  - **Was:** "Legacy target-orders account. Still referenced by `WithdrawPnl` (as account #10) but no grid is built."
+  - **Now:** "Holds `calc_pnl_x` / `calc_pnl_y`, the baseline the protocol fee is measured from. `Deposit`, `Withdraw` and `WithdrawPnl` read and rewrite it." It also has a new section of its own.
+- **[Accounts, `AmmInfo`](/docs/en/products/amm-v4/accounts#amminfo):** what the unswept-fee counter really tracks, and the instruction's real name. Source: [processor.rs L245–254](https://github.com/raydium-io/raydium-amm/blob/9c54069c6bd86d52cd6622705b98c274ee33ba4a/program/src/processor.rs#L245-L254) · [L1528–1529](https://github.com/raydium-io/raydium-amm/blob/9c54069c6bd86d52cd6622705b98c274ee33ba4a/program/src/processor.rs#L1528-L1529)
+  - **Was:** "delta between gross accrued fees and what's been swept. `TakePnl` zeroes these."
+  - **Now:** "protocol fee owed but not yet swept. Only `calc_take_pnl` adds to it" … "`WithdrawPnl` pays it out and resets it to zero."
+- **[Fees, Collection](/docs/en/products/amm-v4/fees#collection):** who may sweep, where the fees go, and what the sweep does to the pool. Source: [processor.rs L1406–1411](https://github.com/raydium-io/raydium-amm/blob/9c54069c6bd86d52cd6622705b98c274ee33ba4a/program/src/processor.rs#L1406-L1411) · [L1447–1456](https://github.com/raydium-io/raydium-amm/blob/9c54069c6bd86d52cd6622705b98c274ee33ba4a/program/src/processor.rs#L1447-L1456) · [L1495–1536](https://github.com/raydium-io/raydium-amm/blob/9c54069c6bd86d52cd6622705b98c274ee33ba4a/program/src/processor.rs#L1495-L1536)
+  - **Was:** "The admin (Raydium multisig) calls `WithdrawPnl` to sweep `need_take_pnl_*` into the pool-level \"PnL owner\" accounts configured on the program's `AmmConfig`" … "The operation does not move the curve"
+  - **Now:** "The signer must be the program admin (`amm_owner`) or the `pnl_owner` stored on the program-wide `AmmConfig`. The caller supplies the two destination token accounts" … "When step 1 books new PnL, it takes those tokens out of the curve's reserves, so **`k` shrinks**." … "Paying out PnL booked earlier doesn't change `k`"
+- **[Instructions, `WithdrawPnl`](/docs/en/products/amm-v4/instructions#withdrawpnl):** the same corrections on the Instructions page. There is no separate `TakePnl` instruction, so the heading drops the name.
+  - **Was:** "`WithdrawPnl` / `TakePnl`" … "it reads `need_take_pnl_*` and moves those exact amounts" … "Admin multisig." … "No change to reserves since accrued PnL was already excluded from the invariant."
+  - **Now:** "`WithdrawPnl`" … "first realises PnL (`calc_take_pnl`), then moves the updated `need_take_pnl_*` amounts" … "The program admin (`amm_owner`) or `AmmConfig.pnl_owner`." … "When the realisation step books new PnL, it takes those tokens out of the curve's reserves, so `k` shrinks."
+- **[Fees, `total_pnl_*` counters](/docs/en/products/amm-v4/fees#total_pnl_-counters-historical):** these retired counters recorded pool growth, not profit from OpenBook fills. Source: [old processor.rs L407–418](https://github.com/raydium-io/raydium-amm/blob/c613c87c41edbe21112c9b8341774a70009c6d7b/program/src/processor.rs#L407-L418)
+  - **Was:** "These PnL events settled into the pool vaults during `MonitorStep` and the program credited them to `state_data.total_pnl_{coin,pc}`" … "earning maker rebates", and in the page description "PnL generation from OpenBook fills"
+  - **Now:** "`calc_take_pnl` also added the full growth amounts, before applying `pnl_numerator / pnl_denominator` (12% by default), to `total_pnl_pc` and `total_pnl_coin` each time it realised PnL." The maker-rebate claims are removed.
+- **[Fees, LP fee redemption](/docs/en/products/amm-v4/fees#lp-fee-redemption):** fees and protocol PnL change the reserves behind an LP token, not its market value. Source: [processor.rs L257–262](https://github.com/raydium-io/raydium-amm/blob/9c54069c6bd86d52cd6622705b98c274ee33ba4a/program/src/processor.rs#L257-L262)
+  - **Was:** "The value of an LP token grows monotonically"
+  - **Now:** "Swap fees add to the reserves behind each LP token. Booking protocol PnL takes a smaller amount back out" … "Neither value tells you an LP token's market value, which also moves with the prices of the two tokens."
+- **[Fees, Visualization](/docs/en/products/amm-v4/fees#visualization-where-1000-usdc-of-volume-goes):** the share comes from both tokens, and the last line is the curve's input, not the user's output. Source: [processor.rs L1975–1982](https://github.com/raydium-io/raydium-amm/blob/9c54069c6bd86d52cd6622705b98c274ee33ba4a/program/src/processor.rs#L1975-L1982)
+  - **Was:** `→ need_take_pnl_pc, swept by TakePnl` and `Remainder sent to user:   $997.50`
+  - **Now:** `PnL economic equivalent: ≈$0.30   → booked from calculated growth in both tokens` and `Enters the curve:         $997.50`
+- **[Instructions, State-change matrix](/docs/en/products/amm-v4/instructions#state-change-matrix):** deposits and withdrawals book the share first, so they can raise the counters. Source: [processor.rs L1166](https://github.com/raydium-io/raydium-amm/blob/9c54069c6bd86d52cd6622705b98c274ee33ba4a/program/src/processor.rs#L1166) · [L1741](https://github.com/raydium-io/raydium-amm/blob/9c54069c6bd86d52cd6622705b98c274ee33ba4a/program/src/processor.rs#L1741)
+  - **Was:** the PnL counters column showed no change for `Deposit` and `Withdraw`.
+  - **Now:** "+ (realises PnL)" for `Deposit`, and "+ (realises PnL, except in `WithdrawOnly`)" for `Withdraw`.
+- **[Math, Deposit and withdraw math](/docs/en/products/amm-v4/math#deposit-and-withdraw-math):** the formulas for both, including how each rounds. Source: [processor.rs L1200–1302](https://github.com/raydium-io/raydium-amm/blob/9c54069c6bd86d52cd6622705b98c274ee33ba4a/program/src/processor.rs#L1200-L1302) · [L1751–1761](https://github.com/raydium-io/raydium-amm/blob/9c54069c6bd86d52cd6622705b98c274ee33ba4a/program/src/processor.rs#L1751-L1761)
+  - **Was:** not covered.
+  - **Now:** a new section starting "Both run the settlement step first. `Withdraw` skips it while the pool's status is `WithdrawOnly`."
+
+## Fees can change after a pool is created
+
+The docs said a pool's fees are **fixed at creation**. Every pool does start with the same defaults, but the **admin can change any pool's fees later**. An integrator that hardcodes the defaults could quote the wrong price.
+
+- **[Fees, The one published tier](/docs/en/products/amm-v4/fees#the-one-published-tier):** AMM v4 does have a config account, and fees can change. Source: [state.rs L780–791](https://github.com/raydium-io/raydium-amm/blob/9c54069c6bd86d52cd6622705b98c274ee33ba4a/program/src/state.rs#L780-L791) · [processor.rs L2689–2696](https://github.com/raydium-io/raydium-amm/blob/9c54069c6bd86d52cd6622705b98c274ee33ba4a/program/src/processor.rs#L2689-L2696)
+  - **Was:** "Unlike CPMM and CLMM, AMM v4 has **no `AmmConfig` account**. Fees are stored directly on each pool's `AmmInfo.fees` struct and are fixed at pool creation."
+  - **Now:** "Its program-wide `AmmConfig` account holds the fee owners and the pool-creation fee, not trading fees" … "The admin can change a pool's fees afterwards with `SetParams`."
+- **[Overview, How AMM v4 differs from CPMM](/docs/en/products/amm-v4/overview#how-amm-v4-differs-from-cpmm):** the same correction in the comparison table. Source: [processor.rs L2689–2696](https://github.com/raydium-io/raydium-amm/blob/9c54069c6bd86d52cd6622705b98c274ee33ba4a/program/src/processor.rs#L2689-L2696)
+  - **Was:** "0.03% of volume (fixed)"
+  - **Now:** "≈0.03% economic equivalent under the defaults; the configured fraction applies to calculated pool growth, and the admin can change it per pool with `SetParams`"
+- **[Fees, Integrator notes](/docs/en/products/amm-v4/fees#integrator-notes):** replaces an unchecked statement with a bounded mainnet sample.
+  - **Was:** "in practice the Raydium multisig has not changed defaults for any live pool"
+  - **Now:** "A 2026-11-20 Triton mainnet sample found default values in all 3,559 AMM v4 pools returned among the five highest-TVL API pages. The lowest-TVL pool in the sample held about $7,830."
+- **[Fees, Integrator notes](/docs/en/products/amm-v4/fees#integrator-notes):** documents a separate SDK limitation found in the second review. Source: [SDK quotation implementation](https://github.com/raydium-io/raydium-sdk-V2/blob/32a184eb0aea15ddbb485e24a1a73d3723fd94d6/src/raydium/liquidity/liquidity.ts#L1025-L1210)
+  - **Was:** the page told integrators to read `AmmInfo.fees`, but did not warn that the SDK quotation helpers ignore those values.
+  - **Now:** `liquidity.computeAmountOut()` and `liquidity.computeAmountIn()` are documented as fixed to the default `25 / 10_000` fee. Pools with changed fees need custom quote math based on the on-chain values.
+- **[Fees, Integrator notes](/docs/en/products/amm-v4/fees#integrator-notes):** Farm v6 is the current farm program, as `AGENTS.md` says.
+  - **Was:** "Legacy ecosystem farms (Farm v3 / v5 / v6)"
+  - **Now:** "Farm v6 is current, and Farm v3 / v5 are wind-down only"
+- **[Fees, Comparison table](/docs/en/products/amm-v4/fees#comparison-table):** compares the right CLMM tier, with its real split. Source: [api-v3 CLMM configs](https://api-v3.raydium.io/main/clmm-config)
+  - **Was:** "CLMM `index=2`" with LP "Varies by emissions"
+  - **Now:** "CLMM `index=1`" with LP "0.21% (84% of the trade fee)"
+- **[Accounts, `AmmConfig`](/docs/en/products/amm-v4/accounts#ammconfig):** documents the program-wide config. Source: [processor.rs L716–740](https://github.com/raydium-io/raydium-amm/blob/9c54069c6bd86d52cd6622705b98c274ee33ba4a/program/src/processor.rs#L716-L740) · [L1406–1411](https://github.com/raydium-io/raydium-amm/blob/9c54069c6bd86d52cd6622705b98c274ee33ba4a/program/src/processor.rs#L1406-L1411)
+  - **Was:** not covered.
+  - **Now:** a new section starting "AMM v4 has one program-wide config account: a 544-byte PDA at seed `["amm_config_account_seed"]`".
+
+## Compute costs after the rebuild
+
+The prior docs carried compute estimates from before the September rebuild. The new figures come from mainnet on 20 November 2026.
+
+**How to reproduce.** Take the 400 most recent successful transactions for the AMM v4 program and for the CPMM program. In each transaction's logs, find the pool program's line `Program <id> consumed N of M compute units`. N is that swap's compute, including the pool's own token transfers. Take the median per swap type. Any single transaction's logs in a Solana explorer show the same line.
+
+**Results.** Median consumption was 15,397 CU for 98 AMM v4 `SwapBaseInV2` swaps, 16,091 CU for 34 v1 `SwapBaseIn` swaps, and 25,152 CU for 384 CPMM `swap_base_input` swaps. Swaps in five blocks either side of the AMM v4 redeploy at slot `445763204` (slots `445762804`–`445762808` and `445763604`–`445763608`) dropped from a median of 25,681 CU to 15,404 CU.
+
+- **[Overview, How AMM v4 differs from CPMM](/docs/en/products/amm-v4/overview#how-amm-v4-differs-from-cpmm):** reports typical compute per swap from the sample: about 15,400 CU with `SwapBaseInV2` (98 swaps) and 16,100 CU with v1 `SwapBaseIn` (34 swaps) for AMM v4, against about 25,200 CU with `swap_base_input` (384 swaps) for CPMM. A note under the table says these count only the pool program's own compute.
+- **[Overview, What AMM v4 gives you](/docs/en/products/amm-v4/overview#what-amm-v4-gives-you-that-cpmm-does-not):** scopes the lower-compute comparison to the measured sample: 15,397 CU for `SwapBaseInV2` against 25,152 CU for CPMM `swap_base_input`.
+- **[Code demos, Compute-unit tuning](/docs/en/products/amm-v4/code-demos#compute-unit-/-priority-fee-tuning):** reports the measured AMM v4 medians, 15,397 CU for 98 `SwapBaseInV2` calls and 16,091 CU for 34 v1 `SwapBaseIn` calls, then tells you to simulate the complete transaction before choosing a limit.
+- **Still to do:** [fee comparison](/docs/en/reference/fee-comparison), the CPI guides and the [routing](/docs/en/products/routing) pages carry the same old figures. A follow-up fixes them. It is not in this checkout yet.
+
+## Follow-ups outside the AMM v4 chapter
+
+The 2026-11-20 SDK and fee-accounting pass resolved two fee-related follow-ups. The other pages below still need separate changes.
+
+- **Resolved:** the [constant-product algorithm](/docs/en/algorithms/constant-product#amm-v4-convention) now applies `pnl_numerator / pnl_denominator` to the growth calculated by `calc_take_pnl`, not directly to each swap's fee. It also documents configurable PnL parameters.
+- **Partially resolved:** [fee comparison](/docs/en/reference/fee-comparison) now describes AMM v4's 0.03% as a default economic equivalent and notes that the admin can change pool fees. Its pre-rebuild compute figures remain a follow-up.
+- **[CLMM fees](/docs/en/products/clmm/fees)** labels the 0.25% tier as index 2. The live API lists it as index 1.
+- **[CPI integration](/docs/en/integration-guides/cpi-integration)**, **[Rust CPI](/docs/en/sdk-api/rust-cpi)** and the **[routing](/docs/en/products/routing)** pages carry old compute figures, and the routing pages still describe OpenBook pricing.
+- **CPMM compute figures disagree.** The AMM v4 overview gives 25,152 CU for CPMM `swap_base_input`, from the 2026-11-20 sample. [Fee comparison](/docs/en/reference/fee-comparison) and [Rust CPI](/docs/en/sdk-api/rust-cpi) give about 23,000 CU, from a 2026-09-09 sample. Reconcile them when the compute figures above are updated.
+
+## What the SDK and router actually send
+
+Integrators build transactions from what the docs say Raydium's tools do. AMM v4 has two swap formats: the older **v1**, which still carries the market accounts, and the leaner **V2**. The pinned SDK sends V2 for AMM v4 pools. Raydium's closed-source on-chain router used v1 for all 33 AMM v4 hops observed in the Triton sample.
+
+- **[Instructions, `SwapBaseInV2` / `SwapBaseOutV2`](/docs/en/products/amm-v4/instructions#swapbaseinv2-/-swapbaseoutv2):** corrects the SDK path and scopes the router statement to the measured sample. Sources: the Triton sample (33 router hops, all v1) · [SDK `liquidity.swap()`](https://github.com/raydium-io/raydium-sdk-V2/blob/32a184eb0aea15ddbb485e24a1a73d3723fd94d6/src/raydium/liquidity/liquidity.ts#L1340-L1365) · [V2 builder](https://github.com/raydium-io/raydium-sdk-V2/blob/32a184eb0aea15ddbb485e24a1a73d3723fd94d6/src/raydium/liquidity/instruction.ts#L477-L512)
+  - **Was:** "The Raydium router always uses the V2 form when routing through AMM v4."
+  - **Now:** "In the Triton mainnet sample collected on 2026-11-20, Raydium's on-chain AMM Routing program invoked AMM v4 with the 17-account v1 instructions for all 33 observed hops." … "By contrast, `raydium.liquidity.swap()` in SDK V2 builds the eight-account `SwapBaseInV2` or `SwapBaseOutV2` instruction for AMM v4 pools."
+- **[Overview, One-paragraph summary](/docs/en/products/amm-v4/overview#one-paragraph-summary):** swaps can use both formats.
+  - **Was:** "all current swap traffic flows through the AMM-only V2 swap entrypoints"
+  - **Now:** "Swaps reach the curve through both the v1 entrypoints, whose market accounts are now ignored, and the V2 entrypoints, which drop them."
+- **[Overview, One-paragraph summary](/docs/en/products/amm-v4/overview#one-paragraph-summary) and [What AMM v4 does not give you](/docs/en/products/amm-v4/overview#what-amm-v4-does-not-give-you):** the SDK can still create AMM v4 pools, and CPMM is no longer described as cheaper. Source: [liquidity/instruction.ts L166–245](https://github.com/raydium-io/raydium-sdk-V2/blob/32a184eb0aea15ddbb485e24a1a73d3723fd94d6/src/raydium/liquidity/instruction.ts#L166-L245)
+  - **Was:** "the UI and SDK default new pool creation to [CPMM](/docs/en/products/cpmm) because CPMM is cheaper and supports more mint types." and "The Raydium UI, SDK, and `api-v3.raydium.io` no longer surface a \"create AMM v4 pool\" button"
+  - **Now:** "Raydium recommends [CPMM](/docs/en/products/cpmm) for new constant-product pools because it supports Token-2022 mints. The SDK can still create AMM v4 pools." and "`raydium.liquidity` exports `createPoolV4` and `createMarketAndPoolV4`, and both send `Initialize2`."
+- **[Code demos banner](/docs/en/products/amm-v4/code-demos):** the same claim about the UI, which this pass could not verify.
+  - **Was:** "The Raydium UI no longer offers AMM v4 pool creation"
+  - **Now:** "Raydium recommends [CPMM](/docs/en/products/cpmm/code-demos) for new constant-product pools. The AMM v4 program still accepts `Initialize2`, and the SDK's `createPoolV4` builds it"
+- **[Instructions, Instruction inventory](/docs/en/products/amm-v4/instructions#instruction-inventory):** the SDK still exports builders for two removed instructions. Source: [liquidity/instruction.ts L544–552](https://github.com/raydium-io/raydium-sdk-V2/blob/32a184eb0aea15ddbb485e24a1a73d3723fd94d6/src/raydium/liquidity/instruction.ts#L544-L552) · [L257–262](https://github.com/raydium-io/raydium-sdk-V2/blob/32a184eb0aea15ddbb485e24a1a73d3723fd94d6/src/raydium/liquidity/instruction.ts#L257-L262)
+  - **Was:** "**Removed / no longer callable** (their client builders were deleted):"
+  - **Now:** "The program crate's builders for them were deleted. The TypeScript SDK still exports two: `makeInitPoolInstructionV4` (tag 0) and `simulatePoolInfoInstruction` (tag 12). Instructions built with them fail."
+- **[Code demos, Compute-unit tuning](/docs/en/products/amm-v4/code-demos#compute-unit-/-priority-fee-tuning):** what the pinned SDK does without a budget, separated by transaction version. Source: [txTool.ts L719–770](https://github.com/raydium-io/raydium-sdk-V2/blob/32a184eb0aea15ddbb485e24a1a73d3723fd94d6/src/common/txTool/txTool.ts#L719-L770)
+  - **Was:** "If you omit `computeBudgetConfig`, the SDK may still use its own default; inspect the returned `transaction` to confirm."
+  - **Now:** legacy and V0 transactions add no Compute Budget instruction and pay no priority fee. V1 transactions carry their compute limit and priority fee in the V1 configuration. Their builder fetches a default fee configuration and falls back to a 600,000 CU limit.
+- **[Code demos, Pitfalls](/docs/en/products/amm-v4/code-demos#pitfalls):** three traps that cost integrators failed or wasted transactions. Source: [txTool.ts L384](https://github.com/raydium-io/raydium-sdk-V2/blob/32a184eb0aea15ddbb485e24a1a73d3723fd94d6/src/common/txTool/txTool.ts#L384) · [processor.rs L1930–1938](https://github.com/raydium-io/raydium-amm/blob/9c54069c6bd86d52cd6622705b98c274ee33ba4a/program/src/processor.rs#L1930-L1938) · [liquidity.ts L1205–1209](https://github.com/raydium-io/raydium-sdk-V2/blob/32a184eb0aea15ddbb485e24a1a73d3723fd94d6/src/raydium/liquidity/liquidity.ts#L1205-L1209) · [processor.rs L2180–2191](https://github.com/raydium-io/raydium-amm/blob/9c54069c6bd86d52cd6622705b98c274ee33ba4a/program/src/processor.rs#L2180-L2191)
+  - **Was:** not covered.
+  - **Now:** "`execute` defaults to `skipPreflight = true`", "A pool at status `7` (`WaitingTrade`) rejects swaps with `InvalidStatus` until `pool_open_time`" and "`computeAmountIn` rounds both of its divisions down, while the program rounds them up."
+- **[Accounts, Lifecycle quick reference](/docs/en/products/amm-v4/accounts#lifecycle-quick-reference):** the program never creates token accounts for deposits or swaps; the SDK does. Source: [processor.rs L1007–1022](https://github.com/raydium-io/raydium-amm/blob/9c54069c6bd86d52cd6622705b98c274ee33ba4a/program/src/processor.rs#L1007-L1022) · [liquidity.ts L252–260](https://github.com/raydium-io/raydium-sdk-V2/blob/32a184eb0aea15ddbb485e24a1a73d3723fd94d6/src/raydium/liquidity/liquidity.ts#L252-L260)
+  - **Was:** "(may create user LP ATA)" and "(may create user ATA)"
+  - **Now:** "`Deposit` and the swaps expect the user's token accounts to exist already. The SDK adds the ATA-creation instructions to the transaction when one is missing"
+- **[Accounts, Deriving a pool's accounts](/docs/en/products/amm-v4/accounts#deriving-a-pools-accounts-from-scratch):** the helper's real name. Source: [liquidity/utils.ts L65](https://github.com/raydium-io/raydium-sdk-V2/blob/32a184eb0aea15ddbb485e24a1a73d3723fd94d6/src/raydium/liquidity/utils.ts#L65)
+  - **Was:** "`raydium-sdk-v2`'s `Liquidity.getAssociatedPoolKeys`"
+  - **Now:** "its `getAssociatedPoolKeys` helper (`src/raydium/liquidity/utils.ts` in `raydium-sdk-v2`)"
+- **[Code demos, Fetch a pool by id](/docs/en/products/amm-v4/code-demos#fetch-a-pool-by-id):** `poolKeys` is looked up by name, not position, and an unused variable is gone. Source: [api/type.ts L413–454](https://github.com/raydium-io/raydium-sdk-V2/blob/32a184eb0aea15ddbb485e24a1a73d3723fd94d6/src/api/type.ts#L413-L454)
+  - **Was:** "It carries every AMM v4 account in the order the program expects" and `const { poolInfo, poolKeys, poolRpcData } = data;`
+  - **Now:** "`poolKeys` is a keyed object (`AmmV4Keys`) that the instruction builders read by field name" and `const { poolInfo, poolKeys } = data;`
+- **[Instructions page note](/docs/en/products/amm-v4/instructions):** the page's account names come from neither the SDK nor the program. Source: [instruction.rs L863–880](https://github.com/raydium-io/raydium-amm/blob/9c54069c6bd86d52cd6622705b98c274ee33ba4a/program/src/instruction.rs#L863-L880) · [api/type.ts L413–454](https://github.com/raydium-io/raydium-sdk-V2/blob/32a184eb0aea15ddbb485e24a1a73d3723fd94d6/src/api/type.ts#L413-L454)
+  - **Was:** "The account lists below use the field names from the Raydium SDK; the underlying IDL sometimes uses `serum_*` prefixes."
+  - **Now:** "The account names on this page are descriptive and match neither source exactly." … "Match accounts by position."
+
+## Instruction and account details
+
+The **Instructions** and **Accounts** pages are where integrators check accounts, arguments, sizes and errors. Several of these were missing or wrong. A wrong account list or a missing error makes a failed transaction hard to diagnose.
+
+- **[Landing page, Instructions card](/docs/en/products/amm-v4#chapter-contents) and [Overview, Where to go next](/docs/en/products/amm-v4/overview#where-to-go-next):** three instructions were missing. Source: [instruction.rs L434–479](https://github.com/raydium-io/raydium-amm/blob/9c54069c6bd86d52cd6622705b98c274ee33ba4a/program/src/instruction.rs#L434-L479)
+  - **Was:** "SetParams, WithdrawPnl. (Order-book instructions such as MonitorStep are removed.)"
+  - **Now:** "SetParams, WithdrawPnl, CreateConfigAccount, UpdateConfigAccount, WithdrawExcessLamports. (Order-book instructions such as MonitorStep are removed.)"
+- **[Instructions, `Initialize2`](/docs/en/products/amm-v4/instructions#initialize2):** how the creation fee is charged, and four missing errors. Source: [processor.rs L716–740](https://github.com/raydium-io/raydium-amm/blob/9c54069c6bd86d52cd6622705b98c274ee33ba4a/program/src/processor.rs#L716-L740) · [L685–706](https://github.com/raydium-io/raydium-amm/blob/9c54069c6bd86d52cd6622705b98c274ee33ba4a/program/src/processor.rs#L685-L706) · [L313–316](https://github.com/raydium-io/raydium-amm/blob/9c54069c6bd86d52cd6622705b98c274ee33ba4a/program/src/processor.rs#L313-L316)
+  - **Was:** the error list began "`InvalidCoinMint` (coin and pc mint identical)", and the fee was not covered.
+  - **Now:** the list adds `InvalidSignAccount`, `InvalidSysProgramAddress`, `InvalidSplTokenProgram` and `ExpectedAccount`, and the page says "The program transfers that many lamports from `user_wallet` to `create_fee_destination` and then calls `SyncNative` on it".
+- **[Instructions, `Deposit`](/docs/en/products/amm-v4/instructions#deposit):** an argument the program accepts, the real math, and the checks. Source: [instruction.rs L355–371](https://github.com/raydium-io/raydium-amm/blob/9c54069c6bd86d52cd6622705b98c274ee33ba4a/program/src/instruction.rs#L355-L371) · [processor.rs L1080–1103](https://github.com/raydium-io/raydium-amm/blob/9c54069c6bd86d52cd6622705b98c274ee33ba4a/program/src/processor.rs#L1080-L1103) · [L1166–1325](https://github.com/raydium-io/raydium-amm/blob/9c54069c6bd86d52cd6622705b98c274ee33ba4a/program/src/processor.rs#L1166-L1325)
+  - **Was:** `// (some SDK variants also accept other_amount_min)` and "Using the pool's *effective* reserves (vaults + on-book), the SDK computes the coin/pc pair that yields the given LP amount"
+  - **Now:** `other_amount_min: u64    // optional; the minimum for the non-base side` and "the program first realises PnL (`calc_take_pnl`). It then takes the base side's `max_*` amount as given, computes the other side from the reserves (rounding up)", followed by a list of checks and errors.
+- **[Instructions, `Withdraw`](/docs/en/products/amm-v4/instructions#withdraw):** two optional arguments and the checks were missing. Source: [instruction.rs L372–386](https://github.com/raydium-io/raydium-amm/blob/9c54069c6bd86d52cd6622705b98c274ee33ba4a/program/src/instruction.rs#L372-L386) · [processor.rs L1652](https://github.com/raydium-io/raydium-amm/blob/9c54069c6bd86d52cd6622705b98c274ee33ba4a/program/src/processor.rs#L1652) · [L1740](https://github.com/raydium-io/raydium-amm/blob/9c54069c6bd86d52cd6622705b98c274ee33ba4a/program/src/processor.rs#L1740) · [L1779–1816](https://github.com/raydium-io/raydium-amm/blob/9c54069c6bd86d52cd6622705b98c274ee33ba4a/program/src/processor.rs#L1779-L1816)
+  - **Was:** only `amount: u64    // LP to burn`
+  - **Now:** adds `min_coin_amount: u64    // optional; sent together with min_pc_amount`, the status rules, the `WithdrawOnly` case and "Each output must be below its raw vault balance, or the call fails with `TakePnlError`."
+- **[Instructions, `SwapBaseIn`](/docs/en/products/amm-v4/instructions#swapbasein) and [`SwapBaseOut`](/docs/en/products/amm-v4/instructions#swapbaseout):** a complete account list, the real open-time rule and full error lists. Source: [processor.rs L1848–1861](https://github.com/raydium-io/raydium-amm/blob/9c54069c6bd86d52cd6622705b98c274ee33ba4a/program/src/processor.rs#L1848-L1861) · [L1930–1938](https://github.com/raydium-io/raydium-amm/blob/9c54069c6bd86d52cd6622705b98c274ee33ba4a/program/src/processor.rs#L1930-L1938) · [L1843–2004](https://github.com/raydium-io/raydium-amm/blob/9c54069c6bd86d52cd6622705b98c274ee33ba4a/program/src/processor.rs#L1843-L2004) · [L2172–2210](https://github.com/raydium-io/raydium-amm/blob/9c54069c6bd86d52cd6622705b98c274ee33ba4a/program/src/processor.rs#L2172-L2210)
+  - **Was:** "(abridged)", "`amm.state_data.pool_open_time <= now`." and "`ExceededSlippage`, `InvalidInput`, `InvalidStatus`, `NotAllowed` (coin/pc mint identical)."
+  - **Now:** "17, or 18 with `amm_target_orders`", "If `status` is `7` (`WaitingTrade`), the current time must be at or after `pool_open_time`" and nine named errors for `SwapBaseIn`, with a separate list for `SwapBaseOut`.
+- **[Instructions, `SetParams`](/docs/en/products/amm-v4/instructions#setparams) and [config instructions](/docs/en/products/amm-v4/instructions#createconfigaccount-/-updateconfigaccount):** what each admin instruction actually takes. Source: [instruction.rs L387–416](https://github.com/raydium-io/raydium-amm/blob/9c54069c6bd86d52cd6622705b98c274ee33ba4a/program/src/instruction.rs#L387-L416) · [L435–462](https://github.com/raydium-io/raydium-amm/blob/9c54069c6bd86d52cd6622705b98c274ee33ba4a/program/src/instruction.rs#L435-L462) · [processor.rs L2765–2810](https://github.com/raydium-io/raydium-amm/blob/9c54069c6bd86d52cd6622705b98c274ee33ba4a/program/src/processor.rs#L2765-L2810)
+  - **Was:** "`UpdateConfigAccount` sets `pnl_owner` with `param = 0`, `cancel_owner` with `param = 1`, and `create_pool_fee` with `param = 2`." There was no payload layout for `SetParams`.
+  - **Now:** payload tables for both, the two accounts `UpdateConfigAccount` takes, and "`CreateConfigAccount` (tag `14`, no arguments) sets `pnl_owner` from the account in slot 3 and writes `create_pool_fee = 0`."
+- **[Instructions, `WithdrawExcessLamports`](/docs/en/products/amm-v4/instructions#withdrawexcesslamports):** the program's Rust crate does have a builder. Source: [instruction.rs L1168](https://github.com/raydium-io/raydium-amm/blob/9c54069c6bd86d52cd6622705b98c274ee33ba4a/program/src/instruction.rs#L1168) · [commit 9c54069](https://github.com/raydium-io/raydium-amm/commit/9c54069c6bd86d52cd6622705b98c274ee33ba4a)
+  - **Was:** "**No SDK builder.**"
+  - **Now:** "The program crate does: `withdraw_excess_lamports` in `instruction.rs`. Use a crate revision from 2026-11-18 or later"
+- **[Overview, How AMM v4 differs from CPMM](/docs/en/products/amm-v4/overview#how-amm-v4-differs-from-cpmm):** exact account counts. Source: [processor.rs L2271–2283](https://github.com/raydium-io/raydium-amm/blob/9c54069c6bd86d52cd6622705b98c274ee33ba4a/program/src/processor.rs#L2271-L2283) · [swap_base_input.rs L10–72](https://github.com/raydium-io/raydium-cp-swap/blob/3d69122790e97cd6aff24e8ba95940793773f58c/programs/cp-swap/src/instructions/swap_base_input.rs#L10-L72)
+  - **Was:** "Account count per V2 swap", "~9" for AMM v4 and "~11" for CPMM
+  - **Now:** "Accounts per swap", "8 (`SwapBaseInV2`, `SwapBaseOutV2`)" for AMM v4 and "13 (`SwapBaseInput`)" for CPMM
+- **[Accounts, Inventory](/docs/en/products/amm-v4/accounts#inventory):** the authority is never created as an account, the vaults are not associated token accounts, and `AmmConfig` is listed. Source: [processor.rs L284–290](https://github.com/raydium-io/raydium-amm/blob/9c54069c6bd86d52cd6622705b98c274ee33ba4a/program/src/processor.rs#L284-L290) · [L307–323](https://github.com/raydium-io/raydium-amm/blob/9c54069c6bd86d52cd6622705b98c274ee33ba4a/program/src/processor.rs#L307-L323)
+  - **Was:** "Program-owned PDA that signs vault moves." and "Pool's coin-side vault (ATA of `amm_authority`)."
+  - **Now:** "No account exists at this address; it is a derived signer shared by every pool." and "Pool's coin-side vault: a PDA token account owned by `amm_authority`, not an ATA."
+- **[Accounts, `AmmInfo`](/docs/en/products/amm-v4/accounts#amminfo):** the exact size, and the full definition. Source: [state.rs L603–674](https://github.com/raydium-io/raydium-amm/blob/9c54069c6bd86d52cd6622705b98c274ee33ba4a/program/src/state.rs#L603-L674) · [L222–235](https://github.com/raydium-io/raydium-amm/blob/9c54069c6bd86d52cd6622705b98c274ee33ba4a/program/src/state.rs#L222-L235)
+  - **Was:** "Large (≈ 752 bytes)", `// (abridged; field order / names follow the IDL)` and `// bitmask: swap/deposit/withdraw/crank enabled`
+  - **Now:** "exactly 752 bytes" and `// AmmStatus value, not a bitmask; see Status below`
+- **[Accounts, Status](/docs/en/products/amm-v4/accounts#status):** the bit arithmetic was backwards. Source: [state.rs L232](https://github.com/raydium-io/raydium-amm/blob/9c54069c6bd86d52cd6622705b98c274ee33ba4a/program/src/state.rs#L232)
+  - **Was:** "the normal trading state is `6`, which has bit 0 set."
+  - **Now:** "the normal trading state is `6` (`0b110`), whose bit 0 is clear."
+- **[Math, The invariant](/docs/en/products/amm-v4/math#the-invariant):** the program has no such check. Source: [processor.rs L1843–2051](https://github.com/raydium-io/raydium-amm/blob/9c54069c6bd86d52cd6622705b98c274ee33ba4a/program/src/processor.rs#L1843-L2051)
+  - **Was:** "Every `Swap*` operation enforces `k' ≥ k` after adding the LP's fee share back into the reserves."
+  - **Now:** "The swap handlers don't check `k' ≥ k` explicitly. `k` can't fall on a swap anyway"
+- **[Math, Direct swap math](/docs/en/products/amm-v4/math#direct-swap-math-amm-path):** what the reserves are, and the right name for the first exact-output step. Source: [math.rs L238–250](https://github.com/raydium-io/raydium-amm/blob/9c54069c6bd86d52cd6622705b98c274ee33ba4a/program/src/math.rs#L238-L250) · [processor.rs L2172–2191](https://github.com/raydium-io/raydium-amm/blob/9c54069c6bd86d52cd6622705b98c274ee33ba4a/program/src/processor.rs#L2172-L2191)
+  - **Was:** "The pool's internal reserves (including on-book allocations) are the denominator." and `amount_in_after_fee = ceil(in_reserve × amount_out / (out_reserve − amount_out))`
+  - **Now:** "A swap trades against the pool's reserves: each vault balance minus its `need_take_pnl_*`. There is no on-book part." and `amount_in_before_fee = ceil(in_reserve × amount_out / (out_reserve − amount_out))`
+- **[Math, Precision rules](/docs/en/products/amm-v4/math#precision-rules):** a missing rounding rule and the wrong error name. Source: [processor.rs L1202–1204](https://github.com/raydium-io/raydium-amm/blob/9c54069c6bd86d52cd6622705b98c274ee33ba4a/program/src/processor.rs#L1202-L1204) · [L1996–1998](https://github.com/raydium-io/raydium-amm/blob/9c54069c6bd86d52cd6622705b98c274ee33ba4a/program/src/processor.rs#L1996-L1998)
+  - **Was:** "Reserve multiplications use `u128`; final divisions round toward zero." and "Pools with extreme reserve ratios can hit `ZeroTradingTokens` on very small inputs"
+  - **Now:** "The paired side of a `Deposit` rounds up (so the depositor does not underpay)." and "A swap whose input or output rounds to zero fails with `InvalidInput`."
+- **[Math, Limitations vs CPMM](/docs/en/products/amm-v4/math#limitations-vs-cpmm):** how to read the program's trade records, for anyone building a price history. Source: [log.rs L41–60](https://github.com/raydium-io/raydium-amm/blob/9c54069c6bd86d52cd6622705b98c274ee33ba4a/program/src/log.rs#L41-L60)
+  - **Was:** "External consumers that want an AMM-v4-backed price must compute it themselves from trade logs."
+  - **Now:** "To build a price series, decode the `ray_log: <base64>` line that swaps, deposits and withdrawals emit."
+- **[Code demos, Direct Rust CPI](/docs/en/products/amm-v4/code-demos#direct-rust-cpi):** the account count, and an account the call cannot work without. Source: [processor.rs L1848–1861](https://github.com/raydium-io/raydium-amm/blob/9c54069c6bd86d52cd6622705b98c274ee33ba4a/program/src/processor.rs#L1848-L1861)
+  - **Was:** "(tag 9, 17 accounts)", and the sketch's account struct had no program account.
+  - **Now:** "(tag 9, 18 accounts, including the optional `amm_target_orders`)", and the struct starts with `pub amm_program: UncheckedAccount<'info>,`.
+- **Same section:** a V2 example and the crate's own builders. Source: [processor.rs L2271–2283](https://github.com/raydium-io/raydium-amm/blob/9c54069c6bd86d52cd6622705b98c274ee33ba4a/program/src/processor.rs#L2271-L2283) · [instruction.rs L863](https://github.com/raydium-io/raydium-amm/blob/9c54069c6bd86d52cd6622705b98c274ee33ba4a/program/src/instruction.rs#L863) · [L924](https://github.com/raydium-io/raydium-amm/blob/9c54069c6bd86d52cd6622705b98c274ee33ba4a/program/src/instruction.rs#L924)
+  - **Was:** not covered.
+  - **Now:** a `proxy_swap_v2` sketch and "The program crate also exports plain-Rust builders that return an `Instruction`: `swap_base_in` and `swap_base_in_v2`"
+
+## Wording, notation and conventions
+
+Smaller fixes that make the pages consistent and follow the repository's rules in `AGENTS.md`.
+
+- **[Landing page, What it is](/docs/en/products/amm-v4#what-it-is)** and the Math card use the notation the rest of the chapter uses.
+  - **Was:** "(xy=k)"
+  - **Now:** "(`x · y = k`)"
+- **[Landing page, Code demos card](/docs/en/products/amm-v4#chapter-contents)** promised Rust examples that never existed.
+  - **Was:** "TypeScript (raydium-sdk-v2) and Rust CPI examples for deposit, withdraw, and swap."
+  - **Now:** "TypeScript (raydium-sdk-v2) examples for swap, deposit, and withdraw, plus Rust CPI sketches for SwapBaseIn and SwapBaseInV2."
+- **[Overview, Mental model](/docs/en/products/amm-v4/overview#mental-model)** spells the product name correctly and names both swap formats.
+  - **Was:** "open-book orders" and "(user ↔ pool, via `SwapBaseInV2` / `SwapBaseOutV2`)"
+  - **Now:** "OpenBook orders" and "(user ↔ pool, via the V2 entrypoints `SwapBaseInV2` / `SwapBaseOutV2` or the legacy v1 `SwapBaseIn` / `SwapBaseOut`)"
+- **Page descriptions** for Accounts, Math, Fees and Instructions now describe what each page covers. For example, on Math:
+  - **Was:** "reserve-to-orderbook price conversion, target-order grid construction, and the PnL settlement step."
+  - **Now:** "the swap, deposit and withdraw formulas, how the protocol fee is realised, and the retired OpenBook order grid."
+- **[Code demos](/docs/en/products/amm-v4/code-demos)** links the program ID instead of restating it, as `AGENTS.md` requires.
+  - **Was:** the banner wrote the program ID out in full.
+  - **Now:** "The program ID is listed in [`reference/program-addresses`](/docs/en/reference/program-addresses)."
+- **[Code demos, Fetch a pool by id](/docs/en/products/amm-v4/code-demos#fetch-a-pool-by-id)**: a comment pointed at a page that doesn't list the pool.
+  - **Was:** `// SOL-USDC, see reference/program-addresses`
+  - **Now:** `// SOL-USDC AMM v4 pool; any AMM v4 pool id works`
+- **[Code demos, Direct Rust CPI](/docs/en/products/amm-v4/code-demos#direct-rust-cpi)** and **[Accounts, Authority PDAs](/docs/en/products/amm-v4/accounts#authority-pdas)** mark their program IDs so a future address change can be found, as `AGENTS.md` requires, and use the right term.
+  - **Was:** `// Instruction discriminator for SwapBaseIn is 9 on AMM v4.`, and program ID literals with no comment
+  - **Now:** `// Instruction tag for SwapBaseIn is 9 on AMM v4.`, and `// see reference/program-addresses` after each program ID literal
+- **[Code demos, Remove liquidity](/docs/en/products/amm-v4/code-demos#remove-liquidity)** contradicted its own example.
+  - **Was:** "Slippage mins protect against the pool's state shifting between your pre-quote and the land time."
+  - **Now:** "The example passes `0` for both minimums, which accepts any outcome."
+- **[Code demos, Where to go next](/docs/en/products/amm-v4/code-demos#where-to-go-next)** no longer calls AMM v4 swaps heavy.
+  - **Was:** "priority-fee sizing for heavy AMM v4 swaps."
+  - **Now:** "priority-fee sizing for AMM v4 swaps."
+- **[Accounts, `AmmInfo`](/docs/en/products/amm-v4/accounts#amminfo)** titles its code block with the real file path.
+  - **Was:** `programs/amm/src/state.rs`
+  - **Now:** `program/src/state.rs`

@@ -186,8 +186,7 @@ A taxa do criador é opcional e por pool. A **taxa** vive em `AmmConfig.creator_
 - **Não pode ser reabilitada ou redirecionada após a criação.** Um pool inicializado com `enable_creator_fee = false` nunca cobrará uma taxa de criador; um inicializado com um `creator_fee_on` particular não pode mudar de lado.
 - **Habilitá-la não define a alíquota.** Um pool criado com a taxa habilitada cobra o `creator_fee_rate` do seu nível. O padrão é `0`, então em um nível assim um pool habilitado não acumula nada. Verifique a configuração antes de criar o pool.
 
-As taxas do criador são o mecanismo por trás do padrão "Burn & Earn" do Raydium: tokens de LP são bloqueados sob o programa [LP Lock](/docs/i18n/pt/reference/program-addresses) para que o criador não possa sacar liquidez, mas as taxas do criador acumuladas ainda podem ser coletadas indefinidamente.
-
+As taxas do criador do CPMM são separadas do Fee Key do "Burn & Earn" da Raydium. O Burn & Earn bloqueia uma posição de LP sob o programa [LP Lock](/docs/i18n/pt/reference/program-addresses) e envia as taxas de LP dessa posição ao detentor do Fee Key. O fluxo da taxa do criador do CPMM continua pertencendo a `PoolState.pool_creator`, menos a parte do protocolo na coleta; nem bloquear o LP nem transferir o Fee Key transfere essa designação.
 
 ## Parcela do protocolo da taxa do criador
 

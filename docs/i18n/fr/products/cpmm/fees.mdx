@@ -186,8 +186,7 @@ Le frais créateur est optionnel et par pool. Le **taux** vit sur `AmmConfig.cre
 - **Ne peut pas être réactivé ou réacheminer après la création.** Un pool initialisé avec `enable_creator_fee = false` ne facturera jamais de frais créateur ; un initialisé avec un `creator_fee_on` particulier ne peut pas changer de côté.
 - **L'activer ne fixe pas le taux.** Un pool créé avec le frais activé facture le `creator_fee_rate` de son niveau. La valeur par défaut est `0`, donc sur un tel niveau un pool activé n'accumule rien. Vérifiez la configuration avant de créer le pool.
 
-Les frais créateurs sont le mécanisme derrière le modèle « Burn & Earn » de Raydium : les tokens LP sont verrouillés sous le programme [LP Lock](/docs/i18n/fr/reference/program-addresses) pour que le créateur ne puisse pas retirer la liquidité, mais les frais créateurs accumulés peuvent toujours être collectés indéfiniment.
-
+Les frais créateur CPMM sont distincts du Fee Key « Burn & Earn » de Raydium. Burn & Earn verrouille une position LP sous le programme [LP Lock](/docs/i18n/fr/reference/program-addresses) et envoie les frais LP de cette position au détenteur du Fee Key. Le flux des frais créateur CPMM appartient toujours à `PoolState.pool_creator`, moins la part du protocole lors de la collecte ; ni le verrouillage de la position LP ni le transfert du Fee Key ne transfèrent cette désignation.
 
 ## Part protocole du frais créateur
 

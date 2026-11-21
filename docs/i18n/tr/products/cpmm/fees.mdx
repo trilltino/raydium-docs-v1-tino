@@ -186,7 +186,7 @@ Yaratıcı ücreti isteğe bağlı ve havuz başınadır. **Oran** `AmmConfig.cr
 - **Oluşturmadan sonra yeniden etkinleştirilemez veya yeniden yönlendirilemez.** `enable_creator_fee = false` ile başlatılan bir havuz asla yaratıcı ücreti ücretlendirmez; belirli bir `creator_fee_on` ile başlatılan bir havuz taraf değiştiremez.
 - **Etkinleştirmek oranı belirlemez.** Ücret etkin olarak oluşturulan bir havuz, katmanının `creator_fee_rate` oranını uygular. Varsayılan `0`'dır, bu nedenle böyle bir katmanda etkin bir havuz hiçbir şey tahakkuk ettirmez. Havuzu oluşturmadan önce config'i kontrol edin.
 
-Yaratıcı ücretleri Raydium'un "Burn & Earn" deseni arkasındaki mekanizmadır: LP token'ları [LP Lock](/docs/i18n/tr/reference/program-addresses) programı altında kilitlenir, böylece yaratıcı likiditeyi çekemez, ancak birikmiş yaratıcı ücretleri süresiz olarak toplanabilir.
+CPMM yaratıcı ücretleri, Raydium'un "Burn & Earn" Fee Key'inden ayrıdır. Burn & Earn bir LP pozisyonunu [LP Lock](/docs/i18n/tr/reference/program-addresses) programı altında kilitler ve o pozisyonun LP ücretlerini Fee Key sahibine yönlendirir. CPMM yaratıcı ücreti akışı, tahsilattaki protokol payı düşüldükten sonra hâlâ `PoolState.pool_creator` adresine aittir; ne LP'yi kilitlemek ne de Fee Key'i devretmek bu atamayı devreder.
 
 ## Yaratıcı ücretinin protokol payı
 

@@ -104,8 +104,8 @@ console.log(`Tx:       https://solscan.io/tx/${txId}`);
 例：1 SOL と 160 USDC のシードで SOL/USDC プールを作成します：
 
 ```bash icon="terminal"
-export MINT_A="So11111111111111111111111111111111111111112"   # wSOL
-export MINT_B="EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"   # USDC
+export MINT_A="So11111111111111111111111111111111111111112"   # wSOL; see reference/program-addresses
+export MINT_B="EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"   # USDC; see reference/program-addresses
 export AMOUNT_A="1000000000"   # 1 SOL (9 decimals)
 export AMOUNT_B="160000000"    # 160 USDC (6 decimals)
 
@@ -134,6 +134,10 @@ Tx:       https://solscan.io/tx/5dQ...
    - ボールトを `AMOUNT_A` と `AMOUNT_B` でシードする。
 4. **初期価格**はシード比率で設定されます：小数調整後 `price = AMOUNT_B / AMOUNT_A`。これは慎重に選択してください — ボットはプールが開くと数秒以内に誤った価格設定を裁定します。
 5. **`startTime: new BN(0)`** はトレーディングを即座に開きます。公開前に流動性をステージングするには、将来の Unix タイムスタンプを設定します。
+
+この例は `creatorFeeOn` を省略しているため、SDK は `Initialize` を構築し、プールのクリエイターフィーのパスは無効になります。SDK `0.2.85-alpha` で有効にするには、`FeeOn` をインポートし、`creatorFeeOn: FeeOn.OnlyTokenA`、`OnlyTokenB`、または `BothToken` を追加します。すると SDK は `InitializeV2` を構築します。設定した owner がクリエイターとして署名し、`PoolState.pool_creator` になります。トランザクション手数料を別のアカウントから支払っても、クリエイターフィーの送り先は変わりません。
+
+`creatorFeeOn` が選ぶのはトークンであり、料率ではありません。プールは `AmmConfig.creator_fee_rate` を使い、パスを有効にしても料率がゼロなら何も累積しません。作成前に現在の設定を確認してください。入力/出力の挙動と回収については [`products/cpmm/fees`](/docs/i18n/ja/products/cpmm/fees) を参照してください。
 
 ## 一般的なエラー
 

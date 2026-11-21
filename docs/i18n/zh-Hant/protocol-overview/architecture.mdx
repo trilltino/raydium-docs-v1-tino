@@ -167,7 +167,7 @@ flowchart TB
 |-----------|------------|---------------------|
 | **授權 PDA** | 一個程式擁有的簽署者，實際控制代幣保管庫。使用者從不持有保管庫授權。 | 每個程式；CPMM 使用 `vault_and_lp_mint_auth_seed` — 見 [`products/cpmm/accounts`](/docs/i18n/zh-Hant/products/cpmm/accounts)。 |
 | **設定帳戶** | 每個程式帳戶持有費率、管理員鑰匙和基金/創建者目的地。在 CPMM 中由 `u16` 索引（`amm_config[index]`）。 | [`reference/program-addresses`](/docs/i18n/zh-Hant/reference/program-addresses) 列出返回它們的 API 端點。 |
-| **協議/基金/創建者費用分割** | 單個交易費用在結算時分為三（有時四）種方式。CPMM 和 CLMM 中的相同模式，不同的旋鈕。 | [`reference/fee-comparison`](/docs/i18n/zh-Hant/reference/fee-comparison) |
+| **交易費與創作者費** | CPMM 和 CLMM 將交易費分配給 LP、協議和基金。CPMM 可以收取單獨的創作者費，在收取該創作者費桶時扣除協議份額。 | [`protocol-overview/shared-infrastructure`](/docs/i18n/zh-Hant/protocol-overview/shared-infrastructure#3-trade-fee-and-creator-fee-accounting) |
 | **觀察帳戶** | 用於 TWAP 的價格樣本環形緩衝區。在每次交換時寫入。 | [`products/cpmm/accounts`](/docs/i18n/zh-Hant/products/cpmm/accounts)、[`products/clmm/accounts`](/docs/i18n/zh-Hant/products/clmm/accounts) |
 | **REST API（`api-v3.raydium.io`）** | 用於池元數據、位置、農場狀態和報價計算的單一公共讀 API。 | [`sdk-api/rest-api`](/docs/i18n/zh-Hant/sdk-api/rest-api) |
 | **IDL 登錄** | 每個程式的 Anchor IDL，鏡像在 [`github.com/raydium-io/raydium-idl`](https://github.com/raydium-io/raydium-idl)。SDK 和 CPI 整合器根據這些反序列化。 | [`sdk-api/anchor-idl`](/docs/i18n/zh-Hant/sdk-api/anchor-idl) |

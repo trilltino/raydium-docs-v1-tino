@@ -10,9 +10,9 @@ description: "@raydium-io/raydium-sdk-v2 end-to-end — instalasi, empat modul f
 </Info>
 
 <Info>
-  **Banner versi.** Halaman ini mendokumentasikan `@raydium-io/raydium-sdk-v2@0.2.64-alpha`, versi yang digunakan setiap demo kode di situs ini. SDK masih pre-1.0 dan permukaan tipe telah berkembang di berbagai rilis — pastikan Anda menentukan versi.
+  **Banner versi.** Halaman ini mendokumentasikan `@raydium-io/raydium-sdk-v2@0.2.85-alpha`, versi yang digunakan setiap demo kode di situs ini. SDK masih pre-1.0 dan permukaan tipe telah berkembang di berbagai rilis — pastikan Anda menentukan versi.
 
-  Versi diperbarui dari `0.2.42-alpha` pada 2026-09-09 bersamaan dengan upgrade program: `0.2.64-alpha` adalah rilis terkini SDK. Repo [`raydium-sdk-V2-demo`](https://github.com/raydium-io/raydium-sdk-V2-demo) yang ditautkan di halaman demo kode menginstal `0.2.62-alpha`, jadi tentukan salah satu jika Anda mengikuti demo secara persis. Demo di halaman ini terakhir **dijalankan** terhadap `0.2.42-alpha` (2026-04); tanda tangan panggilan mereka diperiksa ulang terhadap sumber `0.2.64-alpha` pada 2026-09-09, tetapi perlakukan ketidaksesuaian apa pun sebagai bug dokumentasi dan [buka issue](https://github.com/raydium-io/raydium-docs-v1/issues/new).
+  Versi yang dipatok dinaikkan dari `0.2.64-alpha` pada 2026-11-20. Repositori [`raydium-sdk-V2-demo`](https://github.com/raydium-io/raydium-sdk-V2-demo) memasang `0.2.85-alpha` pada commit yang dipakai contoh pembuatan pool yang diperbarui. Demo terakhir **dijalankan** dengan `0.2.42-alpha` (2026-04). Tanda tangan builder publiknya diperiksa ulang terhadap paket `0.2.85-alpha` yang telah dirilis pada 2026-11-20. Anggap setiap ketidakcocokan sebagai bug dokumentasi dan [buka issue](https://github.com/raydium-io/raydium-docs-v1/issues/new).
 </Info>
 
 ## Instalasi
@@ -52,8 +52,10 @@ const raydium = await Raydium.load({
 Setelah dimuat, objek `raydium` mengekspos sepuluh modul facade ditambah satu klien API:
 
 ```ts
-raydium.cpmm       // Pool CPMM: createPool, addLiquidity, withdrawLiquidity, swap, ...
-raydium.clmm       // Pool CLMM: createPool, openPositionFromBase, increasePositionFromBase,
+raydium.cpmm       // CPMM pools: createPool with optional creatorFeeOn / InitializeV2,
+                   //             addLiquidity, withdrawLiquidity, swap, ...
+raydium.clmm       // CLMM pools: createPool, customizable pool and V2 builders,
+                   //             openPositionFromBase, increasePositionFromBase,
                    //            decreaseLiquidity, harvestAllRewards, swap, limit order, ...
 raydium.liquidity  // Pool AMM v4: computeAmountOut, swap, addLiquidity, removeLiquidity, ...
 raydium.farm       // Farm v3/v5/v6: deposit, withdraw, harvestAllRewards, create,
@@ -107,11 +109,13 @@ Bidang yang dikembalikan:
 
 Hampir setiap builder secara internal mengambil state on-chain: info pool (untuk quote), kepemilikan program token (untuk Token-2022 vs routing SPL), rent-exemption akun (untuk pembuatan ATA), dll. SDK melakukan cache secara agresif tetapi panggilan pertama untuk pool baru melibatkan round-trip RPC. Pertahankan instance `raydium` yang berumur panjang untuk menghindari pengambilan ulang.
 
-## Penambahan modul CLMM (rilis terbaru)
+## Pool yang dapat dikustomisasi dan order limit CLMM
 
-Facade CLMM mendapatkan permukaan untuk fitur dynamic-fee, single-sided-fee, dan limit-order baru:
+Fasad CLMM menyediakan fitur biaya dinamis, biaya satu sisi, dan order limit:
 
-- **`raydium.clmm.createCustomizablePool`** — superset dari `createPool` yang menerima `collectFeeOn` dan `dynamicFeeConfig` (`PublicKey` dari akun config-nya). Menyediakan `dynamicFeeConfig` itulah yang mengaktifkan dynamic fee; tidak ada flag `enableDynamicFee` terpisah dan tidak ada `dynamicFeeConfigId`. `createPool` klasik terus bekerja untuk pool dengan biaya default.
+- **`raydium.clmm.createCustomizablePool`** — membuat pool kanonis yang dapat dikustomisasi dan menerima `collectFeeOnMint` serta `dynamicFeeConfig`. Mint penarikan biaya harus salah satu mint pool; hilangkan untuk menarik biaya dari input swap. Parameter lama `collectFeeOn` sudah usang dan ditolak.
+- **`raydium.clmm.createCustomizablePoolV2`** — membuat pool tambahan pada PDA dengan `seed_index` bukan nol. SDK memeriksa 100 seed index pertama dan memilih yang pertama tersedia. Metode ini menerima parameter `collectFeeOnMint` dan `dynamicFeeConfig` yang sama. Gunakan metode kanonis jika Anda memerlukan PDA pool asli.
+- **Biaya dinamis** — diaktifkan dengan memberikan `dynamicFeeConfig`. Tidak ada flag `enableDynamicFee` terpisah atau `dynamicFeeConfigId`. `createPool` klasik tetap berfungsi untuk pool dengan biaya default.
 - **`raydium.clmm.openLimitOrder`** — buka limit order single-tick. Mengambil `poolInfo`, `baseIn` (arah), `orderTick`, `amount`, dan secara opsional `tickArrayBitmap`, `noneIndex`, `ownerInfo`. Gunakan helper terekspor `getOrderTick({ baseIn, mintADecimal, mintBDecimal, tickSpacing, price })` untuk mengkuantisasi tick.
 - **`raydium.clmm.increaseLimitOrder` / `decreaseLimitOrder`** — sesuaikan bagian yang belum terisi dari order yang ada. Keduanya mengambil `{ poolInfo, limitOrder, amount }`; `decreaseLimitOrder` menambahkan `slippage` opsional. Menurunkan akan revert pada order yang sepenuhnya terisi dengan `InvalidOrderPhase`.
 - **`raydium.clmm.settleLimitOrder` / `settleAllLimitOrder`** — sapukan output yang terisi ke ATA pemilik. `settleLimitOrder` hanya mengambil `{ limitOrder }` — tanpa `poolInfo`. Baik pemilik order maupun keeper `limit_order_admin` milik program dapat memanggilnya.

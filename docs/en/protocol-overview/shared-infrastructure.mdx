@@ -1,6 +1,6 @@
 ---
 title: "Shared infrastructure"
-description: "The primitives every Raydium program shares — authority PDAs, AmmConfig accounts, the protocol/fund/creator fee split, observation accounts, and the public REST API surface — defined once so per-product chapters can refer back here."
+description: "The primitives every Raydium program shares — authority PDAs, AmmConfig accounts, trade-fee and CPMM creator-fee accounting, observation accounts, and the public REST API surface — defined once so per-product chapters can refer back here."
 ---
 
 <Info>
@@ -11,7 +11,7 @@ description: "The primitives every Raydium program shares — authority PDAs, Am
 
 Three flavors of sharing run through the codebase:
 
-- **Convention sharing.** Every program uses the same PDA-derivation pattern, the same fee-split shape, and the same observation-account idea — but each implements them in its own program with its own seeds.
+- **Convention sharing.** The programs reuse PDA-derivation, config-account, fee-accounting, and observation-account patterns, but each program defines its own seeds and behavior. Similar field names do not guarantee identical settlement rules.
 - **Account sharing.** A handful of accounts are *literally* the same record across many pools (the global authority PDA in CPMM, the AmmConfig accounts).
 - **Off-chain sharing.** One REST API and one TypeScript SDK front all four programs. Integrators interact with one HTTP host and one NPM package regardless of which program they end up calling.
 
@@ -71,31 +71,35 @@ AMM v4 has no `AmmConfig` — its fee parameters are per-pool, hardcoded at crea
 
 A complete table of who can change what is in [`security/admin-and-multisig`](/docs/en/security/admin-and-multisig). Current user-facing fee splits are in [`ray/protocol-fees`](/docs/en/ray/protocol-fees).
 
-## 3. The protocol / fund / creator fee split
+## 3. Trade-fee and creator-fee accounting
 
-Every CPMM and CLMM swap fee is split across up to four destinations on the way out:
+CPMM and CLMM split their **trade fee** between LPs, the protocol, and the fund. CPMM can also charge an optional creator fee at a separate rate. Do not model that creator fee as a fourth slice of the trade fee:
 
 ```
-                         total swap fee
-                              │
-              ┌───────────────┼───────────────┬──────────────┐
-              ▼               ▼               ▼              ▼
-        LP pool side     Protocol         Fund         Creator
-        (raises k)       treasury         multisig     (LaunchLab pools)
+CPMM / CLMM trade fee
+  ├── LP share
+  ├── Protocol share
+  └── Fund share
+
+CPMM creator fee (independent rate, when enabled)
+  └── Accrued creator bucket
+      ├── Protocol share, applied at collection
+      └── Remainder paid to PoolState.pool_creator
 ```
 
 Mechanically:
 
-1. **Trade fee accrues into the pool.** The fee is removed from the input side of the swap and the *post-fee* amount is what the constant-product math sees. This is what "the LP earns the fee" means — `k` rises and so does the implied per-LP token value.
-2. **Protocol/fund/creator portions are deducted from that LP-side accrual into per-pool counter accounts.** They sit on the pool state (`protocol_fees_token{0,1}`, `fund_fees_token{0,1}`, etc.) until somebody calls the corresponding collection instruction. They do not leave the pool's vaults until then; from a swap's perspective they are still "in the pool".
-3. **Collection moves them out.** Protocol and fund paths require the respective `protocol_owner` / `fund_owner` signer from `AmmConfig`. CPMM creator fees use either the creator-signed `CollectCreatorFee` path or `CollectCreatorFeePermissionless`, which any payer can trigger but which fixes the destinations to the creator's canonical ATAs.
+1. **The trade fee uses `trade_fee_rate`.** The LP share remains in the pool's accounting. CPMM takes its trade fee from swap input. CLMM also supports pool-level single-sided fee collection, so check the product's fee mode before assuming an input-only deduction.
+2. **CPMM's creator fee uses `creator_fee_rate` independently.** It never reduces the LP, protocol, or fund shares of the trade fee. `PoolState.creator_fee_on` determines whether the creator fee is deducted from input or output on each swap. CLMM does not have this CPMM-style creator-fee bucket.
+3. **Non-LP shares accrue in separate counters.** They remain in the vaults but are excluded from the reserves used by the curve until the corresponding collection instruction runs.
+4. **Collection settles the destinations.** Protocol and fund paths require the respective `AmmConfig` authority. CPMM creator collection either requires the recorded creator to sign or uses the permissionless path, which any payer can trigger but which fixes the creator destinations to that creator's canonical ATAs. Both creator paths apply the protocol's configured share of the creator bucket at collection time.
 
 A few load-bearing observations:
 
-- **The split percentages are off the trade fee, not off the trade.** A 0.25% trade fee with a 12% protocol share means the protocol gets `0.25% × 12% = 0.03%` of the trade — not 12% of the trade.
-- **Creator fees are opt-in per pool and fixed at creation.** A pool without them has a 3-way split (LP / protocol / fund). On CPMM, a fourth slot routes to the recorded pool creator. LaunchLab graduations enable it through `InitializeWithPermission`, and since 2026-10-30 any creator can enable it through `InitializeV2`. The setting cannot change after creation.
-- **AMM v4 splits two ways only**, hardcoded per-pool: LP and protocol. No fund slot, no creator slot.
-- **Fund vs protocol** — both are protocol-treasury destinations, but they have different signers and different intended uses. `protocol` historically funds operations; `fund` is the longer-term treasury. The split between the two is itself a tunable.
+- **Trade-fee split percentages apply to the trade fee, not the full trade.** A 0.25% trade fee with a 12% protocol share gives the protocol `0.25% × 12% = 0.03%` of the trade, before considering any separate creator fee.
+- **CPMM creator fees are opt-in per pool and fixed at creation.** LaunchLab graduations can enable them through `InitializeWithPermission`. Since 2026-10-30, any creator can enable the path through `InitializeV2`; the SDK selects that instruction when `creatorFeeOn` is defined. A nonzero `creator_fee_rate` is still required for anything to accrue.
+- **AMM v4 uses deferred PnL settlement.** Its `pnl_numerator / pnl_denominator` fraction applies to growth calculated by `calc_take_pnl`, not directly to each swap fee. It has no fund or creator bucket.
+- **Fund vs protocol** — both are protocol-treasury destinations, but they have different signers and different intended uses. `protocol` historically funds operations; `fund` is the longer-term treasury.
 
 Specific rates are in [`reference/fee-comparison`](/docs/en/reference/fee-comparison) and [`ray/protocol-fees`](/docs/en/ray/protocol-fees).
 

@@ -167,7 +167,7 @@ flowchart TB
 |-----------|------------|---------------------|
 | **权限 PDA** | 一个程序拥有的签名者，实际控制代币保险库。用户从不持有保险库权限。 | 每个程序；CPMM 使用 `vault_and_lp_mint_auth_seed` — 见 [`products/cpmm/accounts`](/docs/i18n/zh/products/cpmm/accounts)。 |
 | **配置账户** | 每个程序的账户，持有费率、管理员密钥和基金/创建者目的地。在 CPMM 中由 `u16` 索引（`amm_config[index]`）。 | [`reference/program-addresses`](/docs/i18n/zh/reference/program-addresses) 列出返回它们的 API 端点。 |
-| **协议/基金/创建者费用分割** | 单个交易费用在结算时分为三（有时四）种方式。CPMM 和 CLMM 中的相同模式，不同的旋钮。 | [`reference/fee-comparison`](/docs/i18n/zh/reference/fee-comparison) |
+| **交易费与创建者费** | CPMM 和 CLMM 将交易费分配给 LP、协议和基金。CPMM 可以收取单独的创建者费，在归集该创建者费桶时扣除协议份额。 | [`protocol-overview/shared-infrastructure`](/docs/i18n/zh/protocol-overview/shared-infrastructure#3-trade-fee-and-creator-fee-accounting) |
 | **观察账户** | 用于 TWAP 的价格样本的环形缓冲区。在每次交换时写入。 | [`products/cpmm/accounts`](/docs/i18n/zh/products/cpmm/accounts)、[`products/clmm/accounts`](/docs/i18n/zh/products/clmm/accounts) |
 | **REST API（`api-v3.raydium.io`）** | 池元数据、头寸、农场状态和报价计算的单一公共读 API。 | [`sdk-api/rest-api`](/docs/i18n/zh/sdk-api/rest-api) |
 | **IDL 注册表** | 每个程序的 Anchor IDL，镜像在 [`github.com/raydium-io/raydium-idl`](https://github.com/raydium-io/raydium-idl)。SDK 和 CPI 集成者针对这些反序列化。 | [`sdk-api/anchor-idl`](/docs/i18n/zh/sdk-api/anchor-idl) |

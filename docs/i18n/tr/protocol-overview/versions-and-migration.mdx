@@ -58,7 +58,7 @@ CPMM (sabit-çarpım pazar yapıcı, dahili ad `raydium-cp-swap`) 2024'te yeni v
 
 ### CPMM'nin AMM v4'e göre avantajları
 
-- **Varsayılan olarak daha iyi LP ekonomisi.** CPMM'nin varsayılan AmmConfig, işlem ücretlerinin %100'ünü LP'lere yönlendirir (protokol ücreti katman başına değiştirilebilir). AMM v4 ~%12'yi protokole sabit kodlar.
+- **Yapılandırılabilir işlem ücreti seviyeleri.** CPMM LP, protokol ve fon dağılımını `AmmConfig` içinden okur. Standart %0,25 yapılandırması %84 / %12 / %4 işlem ücreti dağılımı kullanır. Etkinleştirildiğinde ve sıfırdan farklı bir oranla yapılandırıldığında ayrı, isteğe bağlı bir yaratıcı ücreti de uygulanabilir. AMM v4 ise protokol PnL'ini hesaplanan havuz büyümesinden uzlaştırır; yaklaşık %88 / %12 dağılımı varsayılan değerlerdeki ekonomik eşdeğerdir.
 - **Daha düşük havuz oluşturma maliyeti.** OpenBook pazarı gerekmez. Oluşturma bir işlemdir, ~0.15 SOL kira vs v4 için ~0.6 SOL.
 - **Token-2022.** Transfer ücreti mintleri, transfer-hook mintleri (uyarılarla), gizli transferler — tümü CPMM'de desteklenir, v4'te hiçbiri.
 - **Daha temiz entegratör yüzeyi.** CPMM'nin Anchor-CPI dostu yayınlanmış bir sandığı (`raydium-cp-swap`), daha basit bir hesap listesi ve kararlı bir IDL'si vardır. AMM v4 bir IDL gönderir ancak hiçbir zaman bakımlı bir Rust CPI sandığına sahip olmamıştır.
@@ -66,9 +66,9 @@ CPMM (sabit-çarpım pazar yapıcı, dahili ad `raydium-cp-swap`) 2024'te yeni v
 
 ### Geçişin değerli olduğu zaman
 
-Aktif olarak işlem gören bir havuz için, LP ücret artışı tek başına birkaç ay içinde geçişi haklı çıkarır. Aritmetik: günde 0.25% × \$X hacim kazanan bir havuz v4'te protokole %0.03 verir (eksik %12). CPMM'de bu LP'lere geri döner. Bir yıl boyunca, bu anlamlı bir şekilde bileşik olur.
+Taşıma LP ekonomisini değiştirebilir, ancak AMM v4 protokol payının otomatik olarak LP'lere döneceğini varsaymak yerine gerçek `AmmConfig` değerlerini ve ayrı bir CPMM yaratıcı ücreti olup olmadığını karşılaştırın. CPMM'nin standart yapılandırmasında işlem ücretinin %12'si yine protokole, %4'ü fona gider. AMM v4 için sık anılan %0,03'lük protokol eşdeğeri, swap başına kesin bir kesinti değildir.
 
-Düşük hacimli bir havuz için, geçiş daha çok gelecek için hazırlık hakkındadır — daha iyi varsayılanlar, ihtiyacınız olursa Token-2022 desteği, daha kolay entegrasyonlar.
+Düşük hacimli bir havuz için taşıma daha çok geleceğe hazırlık olabilir — Token-2022 desteği ve daha kolay entegrasyonlar.
 
 ### Geçiş nasıl çalışır
 

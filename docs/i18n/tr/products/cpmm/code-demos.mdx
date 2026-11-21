@@ -10,7 +10,7 @@ description: "Her CPMM işlemi için uçtan uca TypeScript örnekleri — havuz 
 </Info>
 
 <Info>
-  **Sürüm notu.** Tüm TypeScript örnekleri `@raydium-io/raydium-sdk-v2@0.2.64-alpha` hedeflemektedir; son olarak `0.2.42-alpha` (2026-04) sürümüne karşı çalıştırılmış ve çağrı imzaları 2026-09-09 tarihinde `0.2.64-alpha` kaynağına karşı Solana mainnet-beta üzerinde yeniden kontrol edilmiştir. Rust CPI iskeleti `raydium-cp-swap` üzerinde `master` dalında, Anchor `1.0.2` hedeflemektedir. Program ID'leri [`reference/program-addresses`](/docs/i18n/tr/reference/program-addresses) içindeki sabitlerden alınmaktadır.
+  **Sürüm bilgisi.** Tüm TypeScript demoları Solana mainnet-beta üzerinde `@raydium-io/raydium-sdk-v2@0.2.85-alpha` sürümünü hedefler. En son `0.2.42-alpha` (2026-04) ile çalıştırıldılar; çağrı imzaları 2026-11-20 tarihinde yayımlanmış `0.2.85-alpha` paketine göre yeniden kontrol edildi. Rust CPI iskeleti `master` dalındaki `raydium-cp-swap` ve Anchor `1.0.2` sürümünü hedefler. Program kimlikleri [`reference/program-addresses`](/docs/i18n/tr/reference/program-addresses) içindeki sabitlerden alınır.
 </Info>
 
 ## Ön koşullar
@@ -49,13 +49,16 @@ Kaynak: [`src/cpmm/createCpmmPool.ts`](https://github.com/raydium-io/raydium-sdk
 ```ts
 import { PublicKey } from "@solana/web3.js";
 import BN from "bn.js";
-import { CREATE_CPMM_POOL_PROGRAM, CREATE_CPMM_POOL_FEE_ACC }
-  from "@raydium-io/raydium-sdk-v2";
+import {
+  CREATE_CPMM_POOL_PROGRAM,
+  CREATE_CPMM_POOL_FEE_ACC,
+  FeeOn,
+} from "@raydium-io/raydium-sdk-v2";
 // (Tüm havuz PDA'larını bir kerede almanız gerekiyorsa, dışa aktarılan yardımcı
 //  `getCreatePoolKeys` olur. `getCpmmPdas` yoktur.)
 
-const mintA = new PublicKey("So11111111111111111111111111111111111111112"); // wSOL
-const mintB = new PublicKey("EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"); // USDC
+const mintA = new PublicKey("So11111111111111111111111111111111111111112"); // wSOL; see reference/program-addresses
+const mintB = new PublicKey("EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"); // USDC; see reference/program-addresses
 
 // 1. Bir ücret yapılandırması seçiniz. index=0, %0.25 katmanıdır.
 const feeConfigs = await raydium.api.getCpmmConfigs();
@@ -75,6 +78,7 @@ const { execute, extInfo } = await raydium.cpmm.createPool({
   mintBAmount:     new BN(   160_000_000),  // 160 USDC (160/SOL'da)
   startTime:       new BN(0),               // hemen aç
   feeConfig,
+  creatorFeeOn:    FeeOn.OnlyTokenA,
   associatedOnly:  false,
   ownerInfo:       { useSOLBalance: true },
   txVersion:       TxVersion.V0,
@@ -93,8 +97,12 @@ SDK'nın sessizce hallettiği birkaç şey:
 - Her bir taraf için doğru token programını (SPL Token vs Token-2022) seçmek.
 
 <Note>
-  **`createPool`, `Initialize` oluşturur, bu nedenle havuzun yaratıcı ücreti kapalıdır.** Yaratıcı ücreti etkin bir havuz oluşturmak için `InitializeV2` kullanın (2026-10-30 program yükseltmesinde eklendi). İlk 19 hesabı `Initialize` ile eşleşir. `rent` hesabını çıkarır ve bir argüman daha alır: `creator_fee_on: Option<CreatorFeeOn>`. Bu sayfadaki `0.2.64-alpha` sabitlemesi bu talimattan öncedir. SDK sürümünüz bir oluşturucu sunana kadar talimatı yenilenmiş IDL'den kodlayın. Bkz. [`products/cpmm/instructions`](/docs/i18n/tr/products/cpmm/instructions#initializev2).
+  **`creatorFeeOn` tanımlandığında `createPool`, `InitializeV2` oluşturur.** Atlanırsa yaratıcı ücreti devre dışı olarak orijinal `Initialize` talimatı oluşturulur. `FeeOn.OnlyTokenA`, `OnlyTokenB` ve `BothToken` ücretin alınacağı token'ı veya token'ları seçer; oranı ya da alıcıyı belirlemez. SDK, mint'leri sıralarken A/B seçiminizi korur.
 </Note>
+
+SDK owner olarak yapılandırılan cüzdan yaratıcı olarak imzalar ve `PoolState.pool_creator` alanına kaydedilir. Bu cüzdan havuzun kirasını, havuz oluşturma ücretini ve başlangıç likiditesini de öder. Ayrı bir işlem `feePayer` değeri kayıtlı yaratıcıyı değiştirmez ve yaratıcı ücretlerini başka yere yönlendirmez. Normal tahsilat kayıtlı yaratıcının imzasını gerektirir; izinsiz tahsilatı başka bir ödeyici tetikleyebilir, ancak yaratıcı payı yalnızca o yaratıcının kanonik ATA'larına gönderilir.
+
+Oran `AmmConfig.creator_fee_rate` değerinden gelir. Bu değer sıfırsa yaratıcı ücreti yolunu etkinleştirmek hiçbir şey biriktirmez. Tahsilat sırasında program yapılandırılmış protokol payını protokol kovasına aktarır ve kalanını yaratıcıya öder. Bkz. [`products/cpmm/fees`](/docs/i18n/tr/products/cpmm/fees) ve [`products/cpmm/instructions`](/docs/i18n/tr/products/cpmm/instructions#initializev2).
 
 Onaydan sonra canlı havuz durumunu şu şekilde getirebilirsiniz:
 
@@ -245,7 +253,7 @@ await execute({ sendAndConfirm: true });
 
 Kaynak: [`src/cpmm/collectCreatorFee.ts`](https://github.com/raydium-io/raydium-sdk-V2-demo/blob/master/src/cpmm/collectCreatorFee.ts), [`src/cpmm/collectAllCreatorFee.ts`](https://github.com/raydium-io/raydium-sdk-V2-demo/blob/master/src/cpmm/collectAllCreatorFee.ts)
 
-Protokol ve fon tahsili yetki ile sınırlıdır. Yaratıcı ücretlerinin iki yolu vardır: yaratıcı tarafından imzalanan `CollectCreatorFee` ve herhangi bir ödeyicinin çağırabileceği ancak yalnızca yaratıcının kanonik ATA'larına transfer yapabilen `CollectCreatorFeePermissionless`. `0.2.64-alpha` her iki yaratıcı yolu için modül düzeyinde oluşturucular içerir:
+Protokol ve fon tahsili yetki ile sınırlıdır. Yaratıcı ücretlerinin iki yolu vardır: yaratıcı tarafından imzalanan `CollectCreatorFee` ve herhangi bir ödeyicinin çağırabileceği ancak yalnızca yaratıcının kanonik ATA'larına transfer yapabilen `CollectCreatorFeePermissionless`. `0.2.85-alpha` her iki yaratıcı yolu için modül düzeyinde oluşturucular içerir:
 
 ```ts
 // creator-signed
@@ -267,7 +275,7 @@ await raydium.cpmm.collectMultiCreatorFees({ poolInfoList, txVersion: TxVersion.
 ```
 
 <Warning>
-  **Her iki yaratıcı talimatı da 2026-09-19 program yükseltmesinde hesap listelerini değiştirdi.** Her biri artık `["creator_fee_share", creator, ammConfig]` konumunda bir `creator_fee_share` PDA'sı alır ve izinsiz olanı `amm_config`'i de alır — her ikisi de **`system_program`'dan sonra eklenir** yerine eklenirse, zaten orada olan hesaplar konumlarını korur. Yükseltmeden önceki bir SDK sürümüne sabitlenmiş bir oluşturucu daha kısa listeyi yayar ve işlem eksik hesaplar için reddedilir. Bu yardımcıları yükseltilmiş programa karşı kullanmadan önce yüklediğiniz sürümün yeni hesapları içerdiğini kontrol edin ve ondan istemciler oluşturursanız IDL'yi yenileyin.
+  **Her iki yaratıcı talimatı da 2026-09-19 program yükseltmesinde hesap listelerini değiştirdi.** Her biri artık `["creator_fee_share", creator, ammConfig]` adresindeki `creator_fee_share` PDA'sını alır; izinsiz sürüm ayrıca `amm_config` da alır. Her iki hesap araya eklenmek yerine **`system_program` sonrasına eklenir**, bu nedenle mevcut hesaplar konumlarını korur. `0.2.85-alpha` oluşturucuları her iki hesabı da ekler. `0.2.64-alpha` daha kısa listeyi üretir ve program bu işlemi eksik hesaplar nedeniyle reddeder. İstemcileri IDL'den üretiyorsanız IDL'yi yenileyin.
 
   PDA'yı hiç oluşturulmamış olsa bile geçmek zorunludur — türetin ve geçin; program hesap boş olduğunda `AmmConfig.creator_fee_share_rate`'e geri döner.
 </Warning>

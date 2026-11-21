@@ -58,7 +58,7 @@ CPMM (constant-product market maker, nama internal `raydium-cp-swap`) dideploy p
 
 ### Apa yang CPMM dapatkan dibanding AMM v4
 
-- **Ekonomi LP yang lebih baik secara default.** AmmConfig default CPMM merutekan 100% biaya perdagangan ke LP (dengan biaya protokol dapat diaktifkan per-tier). AMM v4 hardcodes ~12% ke protokol.
+- **Tingkatan biaya perdagangan yang dapat dikonfigurasi.** CPMM membaca pembagian untuk LP, protokol, dan dana dari `AmmConfig`. Konfigurasi standar 0,25% memakai pembagian biaya perdagangan 84% / 12% / 4%. Biaya kreator opsional yang terpisah dapat berlaku jika diaktifkan dan dikonfigurasi dengan tarif bukan nol. Sebaliknya, AMM v4 menyelesaikan PnL protokol dari pertumbuhan pool yang dihitung; pembagian sekitar 88% / 12% miliknya adalah padanan ekonomis pada parameter default.
 - **Biaya pembuatan pool lebih rendah.** Tidak perlu pasar OpenBook. Pembuatan adalah satu transaksi, ~0.15 SOL sewa vs ~0.6 SOL untuk v4.
 - **Token-2022.** Mint transfer-fee, mint transfer-hook (dengan caveat), confidential transfer — semua didukung di CPMM, tidak ada di v4.
 - **Permukaan integrator yang lebih bersih.** CPMM memiliki crate yang dipublikasikan ramah Anchor-CPI (`raydium-cp-swap`), daftar akun yang lebih sederhana, dan IDL yang stabil. AMM v4 mengirimkan IDL tetapi tidak pernah memiliki crate CPI Rust yang dipertahankan.
@@ -66,9 +66,9 @@ CPMM (constant-product market maker, nama internal `raydium-cp-swap`) dideploy p
 
 ### Kapan migrasi layak dilakukan
 
-Untuk pool yang banyak diperdagangkan, peningkatan biaya LP saja biasanya membenarkan migrasi dalam beberapa bulan. Aritmatikanya: pool yang menghasilkan 0.25% × \$X volume harian memberikan 0.03% ke protokol di v4 (12% yang hilang). Di CPMM itu kembali ke LP. Selama setahun, itu bertambah secara bermakna.
+Migrasi dapat mengubah ekonomi LP, tetapi bandingkan nilai `AmmConfig` yang sebenarnya dan biaya kreator CPMM terpisah, bukan mengasumsikan bahwa bagian protokol AMM v4 otomatis kembali ke LP. Pada konfigurasi standar CPMM, biaya perdagangan tetap mengalokasikan 12% ke protokol dan 4% ke dana. Padanan protokol 0,03% yang sering dikutip untuk AMM v4 bukan potongan pasti per swap.
 
-Untuk pool volume rendah, migrasi lebih tentang future-proofing — default yang lebih baik, dukungan Token-2022 jika Anda membutuhkannya, integrasi yang lebih mudah.
+Untuk pool bervolume rendah, migrasi mungkin lebih bertujuan mempersiapkan masa depan — dukungan Token-2022 dan integrasi yang lebih mudah.
 
 ### Cara migrasi bekerja
 

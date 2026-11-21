@@ -10,7 +10,7 @@ description: "每个 CPMM 操作的端到端 TypeScript 示例 — 创建池、�
 </Info>
 
 <Info>
-  **版本说明。** 所有 TypeScript 示例针对 `@raydium-io/raydium-sdk-v2@0.2.64-alpha`；最后在 `0.2.42-alpha`（2026-04）上执行，并在 2026-09-09 针对 `0.2.64-alpha` 源代码重新检查了调用签名，针对 Solana mainnet-beta。Rust CPI 框架针对 `master` 分支上的 `raydium-cp-swap`，Anchor `1.0.2`。程序 ID 通过 [`reference/program-addresses`](/docs/i18n/zh/reference/program-addresses) 中的常量获取。
+  **版本说明。** 所有 TypeScript 示例针对 Solana mainnet-beta 上的 `@raydium-io/raydium-sdk-v2@0.2.85-alpha`。它们最后一次在 `0.2.42-alpha`（2026-04）上执行；其调用签名已于 2026-11-20 针对已发布的 `0.2.85-alpha` 包重新检查。Rust CPI 框架针对 `master` 分支上的 `raydium-cp-swap`，Anchor `1.0.2`。程序 ID 通过 [`reference/program-addresses`](/docs/i18n/zh/reference/program-addresses) 中的常量获取。
 </Info>
 
 ## 前置条件
@@ -49,13 +49,16 @@ const raydium = await Raydium.load({
 ```ts
 import { PublicKey } from "@solana/web3.js";
 import BN from "bn.js";
-import { CREATE_CPMM_POOL_PROGRAM, CREATE_CPMM_POOL_FEE_ACC }
-  from "@raydium-io/raydium-sdk-v2";
+import {
+  CREATE_CPMM_POOL_PROGRAM,
+  CREATE_CPMM_POOL_FEE_ACC,
+  FeeOn,
+} from "@raydium-io/raydium-sdk-v2";
 // (如果你需要一次获取每个池的 PDA，导出的辅助函数是 `getCreatePoolKeys`。
 //  没有 `getCpmmPdas`。)
 
-const mintA = new PublicKey("So11111111111111111111111111111111111111112"); // wSOL
-const mintB = new PublicKey("EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"); // USDC
+const mintA = new PublicKey("So11111111111111111111111111111111111111112"); // wSOL; see reference/program-addresses
+const mintB = new PublicKey("EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"); // USDC; see reference/program-addresses
 
 // 1. 选择一个费用配置。index=0 是 0.25% 档位。
 const feeConfigs = await raydium.api.getCpmmConfigs();
@@ -75,6 +78,7 @@ const { execute, extInfo } = await raydium.cpmm.createPool({
   mintBAmount:     new BN(   160_000_000),  // 160 USDC（按 160/SOL）
   startTime:       new BN(0),               // 立即开放
   feeConfig,
+  creatorFeeOn:    FeeOn.OnlyTokenA,
   associatedOnly:  false,
   ownerInfo:       { useSOLBalance: true },
   txVersion:       TxVersion.V0,
@@ -93,8 +97,12 @@ SDK 会自动处理以下几点：
 - 根据每一侧选择正确的代币程序（SPL Token 与 Token-2022）。
 
 <Note>
-  **`createPool` 构建的是 `Initialize`，因此池的创建者费是关闭的。** 要创建启用创建者费的池，请使用 `InitializeV2`（在 2026-10-30 程序升级中添加）。它的前 19 个账户与 `Initialize` 相同。它去掉了 `rent`，并多接受一个参数 `creator_fee_on: Option<CreatorFeeOn>`。本页的 `0.2.64-alpha` 版本固定早于该指令。在你的 SDK 版本提供构建器之前，请根据刷新后的 IDL 对其进行编码。详见 [`products/cpmm/instructions`](/docs/i18n/zh/products/cpmm/instructions#initializev2)。
+  **定义 `creatorFeeOn` 后，`createPool` 会构建 `InitializeV2`。** 省略它则构建原有的 `Initialize` 指令，创建者费处于关闭状态。`FeeOn.OnlyTokenA`、`OnlyTokenB` 和 `BothToken` 用于选择收费的代币；它们不设置费率，也不设置接收方。SDK 在对铸币地址排序时会保留你选择的 A/B 一侧。
 </Note>
+
+配置为 SDK owner 的钱包以创建者身份签名，并被记录在 `PoolState.pool_creator` 中。它还要支付池的租金、建池费和初始流动性。单独设置交易 `feePayer` 不会改变记录的创建者，也不会转移创建者费。常规归集需要记录的创建者签名；无权限归集可以由其他支付者触发，但创建者份额只会发送到该创建者的规范 ATA。
+
+费率来自 `AmmConfig.creator_fee_rate`。如果它为零，启用创建者费路径也不会累积任何费用。归集时，程序会把配置的协议份额移入协议费桶，并将剩余部分支付给创建者。参见 [`products/cpmm/fees`](/docs/i18n/zh/products/cpmm/fees) 和 [`products/cpmm/instructions`](/docs/i18n/zh/products/cpmm/instructions#initializev2)。
 
 确认后，你可以使用以下方式获取实时池状态：
 
@@ -245,7 +253,7 @@ await execute({ sendAndConfirm: true });
 
 来源：[`src/cpmm/collectCreatorFee.ts`](https://github.com/raydium-io/raydium-sdk-V2-demo/blob/master/src/cpmm/collectCreatorFee.ts)、[`src/cpmm/collectAllCreatorFee.ts`](https://github.com/raydium-io/raydium-sdk-V2-demo/blob/master/src/cpmm/collectAllCreatorFee.ts)
 
-协议费和基金费的收集受权限控制。创建者费有两条路径：创建者签名的 `CollectCreatorFee`，以及无权限的 `CollectCreatorFeePermissionless`，任何支付者都可以调用，但只能转账到创建者的规范 ATA。`0.2.64-alpha` 为两条创建者路径提供了模块级构建器：
+协议费和基金费的收集受权限控制。创建者费有两条路径：创建者签名的 `CollectCreatorFee`，以及无权限的 `CollectCreatorFeePermissionless`，任何支付者都可以调用，但只能转账到创建者的规范 ATA。`0.2.85-alpha` 为两条创建者路径提供了模块级构建器：
 
 ```ts
 // 创建者签名
@@ -267,7 +275,7 @@ await raydium.cpmm.collectMultiCreatorFees({ poolInfoList, txVersion: TxVersion.
 ```
 
 <Warning>
-  **两条创建者指令在 2026-09-19 程序升级中改变了账户列表。** 每条现在都需要一个 `creator_fee_share` PDA，位置为 `["creator_fee_share", creator, ammConfig]`，无权限版本还需要 `amm_config` — 两者都**追加在 `system_program` 之后**而不是插入，所以原有的账户保持其位置。绑定到升级前 SDK 版本的构建器会发出较短的列表，交易会因缺少账户而被拒绝。在针对升级后的程序使用这些辅助函数前，请确认安装的版本包含新账户，如果从 IDL 生成客户端，请刷新 IDL。
+  **两个创建者指令都在 2026-09-19 程序升级中更改了账户列表。** 现在每个指令都接收位于 `["creator_fee_share", creator, ammConfig]` 的 `creator_fee_share` PDA，无权限版本还额外接收 `amm_config`——两者都**追加在 `system_program` 之后**而不是插入，因此原有账户的位置保持不变。`0.2.85-alpha` 的构建器会追加这两个账户。`0.2.64-alpha` 生成的是较短的列表，程序会因缺少账户而拒绝该交易。如果你从 IDL 生成客户端，请刷新 IDL。
 
   即使 PDA 从未被创建过，传递它也是强制的 — 派生它并传递；当账户为空时，程序会回退到 `AmmConfig.creator_fee_share_rate`。
 </Warning>

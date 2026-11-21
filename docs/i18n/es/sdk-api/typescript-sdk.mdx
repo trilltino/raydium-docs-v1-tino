@@ -10,9 +10,9 @@ description: "@raydium-io/raydium-sdk-v2 de principio a fin — instalación, la
 </Info>
 
 <Info>
-  **Banner de versión.** Esta página documenta `@raydium-io/raydium-sdk-v2@0.2.64-alpha`, la versión fija que lleva cada demostración de código en este sitio. El SDK es pre-1.0 y la superficie de tipos ha evolucionado entre versiones — fija tu versión.
+  **Banner de versión.** Esta página documenta `@raydium-io/raydium-sdk-v2@0.2.85-alpha`, la versión fija que lleva cada demostración de código en este sitio. El SDK es pre-1.0 y la superficie de tipos ha evolucionado entre versiones — fija tu versión.
 
-  La versión se actualizó desde `0.2.42-alpha` el 2026-09-09 junto con las actualizaciones del programa: `0.2.64-alpha` es la versión actual del SDK. El repositorio [`raydium-sdk-V2-demo`](https://github.com/raydium-io/raydium-sdk-V2-demo) al que enlazan las páginas de demostraciones de código instala `0.2.62-alpha`, así que fija cualquiera de ellas si estás siguiendo una demostración al pie de la letra. Las demostraciones en estas páginas fueron **ejecutadas** por última vez contra `0.2.42-alpha` (2026-04); sus firmas de llamada fueron re-verificadas contra la fuente `0.2.64-alpha` el 2026-09-09, pero trata cualquier discrepancia como un error de documentación y [abre un issue](https://github.com/raydium-io/raydium-docs-v1/issues/new).
+  La versión fijada se actualizó desde `0.2.64-alpha` el 2026-11-20. El repositorio [`raydium-sdk-V2-demo`](https://github.com/raydium-io/raydium-sdk-V2-demo) instala `0.2.85-alpha` en el commit que usan los ejemplos actualizados de creación de pools. Las demos se **ejecutaron** por última vez con `0.2.42-alpha` (2026-04). Sus firmas públicas de builders se volvieron a comprobar con el paquete publicado `0.2.85-alpha` el 2026-11-20. Trata cualquier discrepancia como un error de documentación y [abre un issue](https://github.com/raydium-io/raydium-docs-v1/issues/new).
 </Info>
 
 ## Instalar
@@ -52,8 +52,10 @@ const raydium = await Raydium.load({
 Una vez cargado, el objeto `raydium` expone diez fachadas de módulos más un cliente de API:
 
 ```ts
-raydium.cpmm       // Pools CPMM: createPool, addLiquidity, withdrawLiquidity, swap, ...
-raydium.clmm       // Pools CLMM: createPool, openPositionFromBase, increasePositionFromBase,
+raydium.cpmm       // CPMM pools: createPool with optional creatorFeeOn / InitializeV2,
+                   //             addLiquidity, withdrawLiquidity, swap, ...
+raydium.clmm       // CLMM pools: createPool, customizable pool and V2 builders,
+                   //             openPositionFromBase, increasePositionFromBase,
                    //             decreaseLiquidity, harvestAllRewards, swap, limit orders, ...
 raydium.liquidity  // Pools AMM v4: computeAmountOut, swap, addLiquidity, removeLiquidity, ...
 raydium.farm       // Farm v3/v5/v6: deposit, withdraw, harvestAllRewards, create,
@@ -107,11 +109,13 @@ Campos devueltos:
 
 Casi cada constructor obtiene internamente el estado en cadena: información del pool (para cotizaciones), propiedad del programa de tokens (para enrutamiento Token-2022 vs SPL), exención de renta de cuenta (para creación de ATA), etc. El SDK almacena en caché agresivamente pero la primera llamada para un nuevo pool implica viajes de ida y vuelta de RPC. Mantén una instancia `raydium` de larga duración para evitar re-obtener.
 
-## Adiciones del módulo CLMM (versión más reciente)
+## Pools personalizables y órdenes límite de CLMM
 
-La fachada CLMM ganó superficies para las nuevas características de comisión dinámica, comisión de un solo lado y órdenes limitadas:
+La fachada de CLMM expone comisiones dinámicas, comisión de un solo lado y órdenes límite:
 
-- **`raydium.clmm.createCustomizablePool`** — superconjunto de `createPool` que acepta `collectFeeOn` y `dynamicFeeConfig` (la `PublicKey` de la cuenta de configuración). Suministrar `dynamicFeeConfig` es lo que habilita las comisiones dinámicas; no hay una bandera `enableDynamicFee` aparte ni un `dynamicFeeConfigId`. El `createPool` clásico continúa funcionando para pools con comisión predeterminada.
+- **`raydium.clmm.createCustomizablePool`** — crea el pool personalizable canónico y acepta `collectFeeOnMint` y `dynamicFeeConfig`. El mint de cobro de comisión debe ser uno de los mints del pool; omítelo para cobrar de la entrada del swap. El antiguo parámetro `collectFeeOn` está obsoleto y se rechaza.
+- **`raydium.clmm.createCustomizablePoolV2`** — crea un pool adicional en una PDA con `seed_index` distinto de cero. El SDK revisa los primeros 100 seed index y elige el primero disponible. Acepta los mismos parámetros `collectFeeOnMint` y `dynamicFeeConfig`. Usa el método canónico si necesitas la PDA original del pool.
+- **Comisiones dinámicas** — se activan al pasar `dynamicFeeConfig`. No hay un flag `enableDynamicFee` aparte ni `dynamicFeeConfigId`. El `createPool` clásico sigue funcionando para pools con la comisión predeterminada.
 - **`raydium.clmm.openLimitOrder`** — abre una orden limitada de un solo tick. Toma `poolInfo`, `baseIn` (dirección), `orderTick`, `amount` y, opcionalmente, `tickArrayBitmap`, `noneIndex`, `ownerInfo`. Usa el ayudante exportado `getOrderTick({ baseIn, mintADecimal, mintBDecimal, tickSpacing, price })` para cuantizar el tick.
 - **`raydium.clmm.increaseLimitOrder` / `decreaseLimitOrder`** — ajusta la porción no completada de una orden existente. Ambas toman `{ poolInfo, limitOrder, amount }`; `decreaseLimitOrder` añade un `slippage` opcional. Disminuir revierte en una orden completamente completada con `InvalidOrderPhase`.
 - **`raydium.clmm.settleLimitOrder` / `settleAllLimitOrder`** — barre la salida completada al ATA del propietario. `settleLimitOrder` toma solo `{ limitOrder }` — sin `poolInfo`. Puede llamarla tanto el propietario de la orden como el guardián `limit_order_admin` del programa.

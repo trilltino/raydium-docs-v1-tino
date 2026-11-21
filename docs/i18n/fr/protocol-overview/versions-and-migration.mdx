@@ -58,7 +58,7 @@ CPMM (constant-product market maker, nom interne `raydium-cp-swap`) a été dép
 
 ### Ce que CPMM vous apporte par rapport à AMM v4
 
-- **Meilleure économie LP par défaut.** La configuration AmmConfig par défaut de CPMM achemine 100 % des frais de trading vers les LP (avec les frais de protocole basculables par tranche). AMM v4 code en dur environ 12 % au protocole.
+- **Niveaux de frais de trading configurables.** CPMM lit la répartition entre LP, protocole et fonds dans `AmmConfig`. Sa configuration standard à 0,25 % utilise une répartition des frais de trading de 84 % / 12 % / 4 %. Des frais créateur optionnels distincts peuvent s'appliquer lorsqu'ils sont activés et configurés avec un taux non nul. AMM v4, lui, règle le PnL du protocole à partir de la croissance calculée du pool ; sa répartition d'environ 88 % / 12 % est un équivalent économique avec les paramètres par défaut.
 - **Coût de création de pool inférieur.** Aucun marché OpenBook nécessaire. La création est une transaction, environ 0,15 SOL de loyer contre environ 0,6 SOL pour v4.
 - **Token-2022.** Mints avec frais de transfert, mints avec hook de transfert (avec réserves), transferts confidentiels — tous supportés sur CPMM, aucun sur v4.
 - **Surface d'intégrateur plus propre.** CPMM a une caisse publiée conviviale pour Anchor-CPI (`raydium-cp-swap`), une liste de comptes plus simple et un IDL stable. AMM v4 expédie un IDL mais n'a jamais eu de caisse CPI Rust maintenue.
@@ -66,9 +66,9 @@ CPMM (constant-product market maker, nom interne `raydium-cp-swap`) a été dép
 
 ### Quand la migration en vaut la peine
 
-Pour un pool activement négocié, l'augmentation des frais LP seule justifie généralement la migration en quelques mois. L'arithmétique : un pool gagnant 0,25 % × \$X de volume quotidien donne 0,03 % au protocole sur v4 (les 12 % manquants). Sur CPMM, cela revient aux LP. Sur un an, cela s'accumule de manière significative.
+Une migration peut modifier l'économie des LP, mais comparez les valeurs réelles de `AmmConfig` et d'éventuels frais créateur CPMM distincts plutôt que de supposer que la part protocole d'AMM v4 revient automatiquement aux LP. Avec la configuration standard de CPMM, les frais de trading attribuent toujours 12 % au protocole et 4 % au fonds. L'équivalent protocole de 0,03 % souvent cité pour AMM v4 n'est pas une déduction exacte par swap.
 
-Pour un pool à faible volume, la migration concerne davantage la pérennité — de meilleurs défauts, support Token-2022 si vous en avez jamais besoin, intégrations plus faciles.
+Pour un pool à faible volume, la migration relève plutôt de la préparation de l'avenir : prise en charge de Token-2022 et intégrations plus simples.
 
 ### Comment fonctionne la migration
 

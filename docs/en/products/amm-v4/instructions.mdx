@@ -1,10 +1,10 @@
 ---
 title: "AMM v4 instructions"
-description: "Every AMM v4 instruction with its arguments, the pool and OpenBook accounts it expects, and the pre/post conditions on each."
+description: "Every AMM v4 instruction: its arguments, account list, and the checks and errors the program applies. Legacy layouts that still carry ignored OpenBook accounts are noted where they apply."
 ---
 
 <Info>
-  As of the 2026-07 program upgrade, AMM v4's OpenBook / Serum dependency has been **removed**. The legacy v1 `SwapBaseIn` / `SwapBaseOut`, `Deposit`, and `Withdraw` instructions **keep their old account layouts** for backwards compatibility: the market accounts are still accepted in their old positions, but they are **no longer validated or used** (no CPI is issued). New integrations should use the V2 swap entrypoints, which omit the market accounts entirely. Several instructions have been removed and now revert — see the [changelog entry](/docs/en/reference/changelog/2026-07-22-amm-v4-openbook-removal). The account lists below use the field names from the Raydium SDK; the underlying IDL sometimes uses `serum_*` prefixes.
+  As of the 2026-07 program upgrade, AMM v4's OpenBook / Serum dependency has been **removed**. The legacy v1 `SwapBaseIn` / `SwapBaseOut`, `Deposit`, and `Withdraw` instructions **keep their old account layouts** for backwards compatibility: the market accounts are still accepted in their old positions, but they are **no longer validated or used** (no CPI is issued). New integrations should use the V2 swap entrypoints, which omit the market accounts entirely. Several instructions have been removed and now revert — see the [changelog entry](/docs/en/reference/changelog/2026-07-22-amm-v4-openbook-removal). The account names on this page are descriptive and match neither source exactly. The program crate's builders in `instruction.rs` use names such as `amm_pool`, `amm_coin_vault` and `user_token_source`. The SDK's `AmmV4Keys` uses `id`, `vault.A` / `vault.B`, `authority` and `market*`. Match accounts by position.
 
   The 2026-09 program upgrade adds one admin instruction, `WithdrawExcessLamports` (tag 18), and drops the rent sysvar from `CreateConfigAccount`. Everything a trader or LP calls is unchanged. See the [2026-09-09 changelog entry](/docs/en/reference/changelog/2026-09-09-amm-v4-solana-3-and-excess-lamports).
 </Info>
@@ -28,13 +28,13 @@ description: "Every AMM v4 instruction with its arguments, the pool and OpenBook
 
 The SDK exposes builders for the user-facing instructions only. Upkeep instructions are typically invoked by the Raydium keeper.
 
-**Removed / no longer callable** (their client builders were deleted): `Initialize` (tag 0, use `Initialize2`), `MonitorStep` (2), `MigrateToOpenBook` (5), `WithdrawSrm` (8), `PreInitialize` (10, use `Initialize2`), `SimulateInfo` (12), `AdminCancelOrders` (13).
+**Removed / no longer callable:** `Initialize` (tag 0, use `Initialize2`), `MonitorStep` (2), `MigrateToOpenBook` (5), `WithdrawSrm` (8), `PreInitialize` (10, use `Initialize2`), `SimulateInfo` (12), `AdminCancelOrders` (13). The program crate's builders for them were deleted. The TypeScript SDK still exports two: `makeInitPoolInstructionV4` (tag 0) and `simulatePoolInfoInstruction` (tag 12). Instructions built with them fail.
 
 A transaction carrying one of these tags fails; the program never executes the instruction. Treat all seven as gone rather than as error paths to handle.
 
 ## `Initialize2`
 
-Bootstrap a new AMM v4 pool bound to an existing OpenBook market.
+Create a new AMM v4 pool. The `market` account is only a seed for the pool's PDAs, so it doesn't need to be an OpenBook market. The SDK's `createMarketAndPoolV4` still creates an OpenBook market first, but the program never reads its data.
 
 **Arguments**
 
@@ -73,8 +73,10 @@ init_coin_amount: u64
   **Two accepted layouts.** The 19-account list above is the recommended one. For backwards
   compatibility the program also reads a 21-account legacy layout, which inserts an ignored
   `amm_open_orders` at position 7 and an ignored `market_program` at position 16 — this is what
-  the in-repo `initialize2` instruction builder still emits. Any other length is parsed
-  positionally against the legacy layout and will fail.
+  the in-repo `initialize2` instruction builder and the TypeScript SDK's `createPoolV4` /
+  `createMarketAndPoolV4` still emit. Exactly 19 accounts selects the list above. Any other
+  count is parsed against the legacy layout: 21 accounts work, and accounts after the 21st are
+  ignored. A count of 20, or below 19, fails because the legacy layout runs out of accounts.
 </Note>
 
 **Postconditions**
@@ -82,8 +84,9 @@ init_coin_amount: u64
 - LP minted to the creator = `sqrt(init_coin_amount × init_pc_amount) − 10^coin_mint.decimals`. LP decimals equal `coin_mint.decimals`, so the subtracted amount is exactly one whole LP token; it is never minted and is permanently out of circulation. If `sqrt(...)` is below that, the instruction reverts with `InitLpAmountTooLess`.
 - `AmmInfo.lp_amount` stores the full `sqrt(...)`, **not** the minted amount — so `lp_mint.supply` is permanently one whole LP token lower than `amm.lp_amount`. All pro-rata math uses `amm.lp_amount`.
 - No OpenBook orders are posted (the order-book grid has been removed). `AmmInfo.market` records the account passed in slot 15, but `AmmInfo.open_orders` and `AmmInfo.market_program` are both written as `Pubkey::default()`, and `coin_lot_size` / `pc_lot_size` / `min_size` are initialized to `0`. On the legacy 21-account layout the extra `amm_open_orders` and `market_program` accounts are read and discarded.
+- If `AmmConfig.create_pool_fee` is non-zero, the creator pays it. The program transfers that many lamports from `user_wallet` to `create_fee_destination` and then calls `SyncNative` on it, so the destination is a wrapped-SOL token account.
 
-**Common errors** — `InvalidCoinMint` (coin and pc mint identical), `InvalidConfigAccount` (wrong `amm_config` PDA), `InvalidFee` (wrong create-pool-fee destination), `InvalidProgramAddress` (wrong `amm_authority` or wrong `nonce`), `RepeatCreateAmm` (a pool already exists for this market), `InitLpAmountTooLess`, `InvalidSupply` (either init amount is `0`, or the LP mint already has supply), `AlreadyInUse`.
+**Common errors** — `InvalidSignAccount` (`user_wallet` did not sign), `InvalidSysProgramAddress` (wrong system program), `InvalidSplTokenProgram` (wrong token or associated-token program), `ExpectedAccount` (an `amm`, `lp_mint`, vault or `target_orders` address doesn't match its PDA), `InvalidCoinMint` (coin and pc mint identical), `InvalidConfigAccount` (wrong `amm_config` PDA), `InvalidFee` (wrong create-pool-fee destination), `InvalidProgramAddress` (wrong `amm_authority` or wrong `nonce`), `RepeatCreateAmm` (a pool already exists for this market), `InitLpAmountTooLess`, `InvalidSupply` (either init amount is `0`, or the LP mint already has supply), `AlreadyInUse`.
 
 ## `Deposit`
 
@@ -92,10 +95,10 @@ Add liquidity.
 **Arguments**
 
 ```
-max_coin_amount: u64
-max_pc_amount:   u64
-base_side:       u64    // 0 = base on coin, 1 = base on pc
-// (some SDK variants also accept other_amount_min)
+max_coin_amount:  u64
+max_pc_amount:    u64
+base_side:        u64    // 0 = base on coin, 1 = base on pc
+other_amount_min: u64    // optional; the minimum for the non-base side
 ```
 
 **Accounts** — recommended 11-account layout
@@ -121,7 +124,16 @@ base_side:       u64    // 0 = base on coin, 1 = base on pc
   Any other count reverts with `WrongAccountsNumber`.
 </Warning>
 
-**Math** — standard pro-rata. Using the pool's *effective* reserves (vaults + on-book), the SDK computes the coin/pc pair that yields the given LP amount and checks it against `max_*`. Reverts with `ExceededSlippage` if either side exceeds the cap.
+**Math** — the program first realises PnL (`calc_take_pnl`). It then takes the base side's `max_*` amount as given, computes the other side from the reserves (rounding up), and mints `floor(base_amount × lp_amount / base_reserve)` LP. Full formula in [`products/amm-v4/math`](/docs/en/products/amm-v4/math#deposit-and-withdraw-math).
+
+**Checks and errors**
+
+- The status must allow deposits: `1`, `4`, `5`, `6` or `7`. Otherwise `InvalidStatus`.
+- `max_coin_amount` and `max_pc_amount` must be non-zero (`InvalidInput`).
+- The pool must already have liquidity: `lp_amount = 0` fails with `NotAllowZeroLP`.
+- The computed non-base side must not exceed its `max_*` amount, and must not fall below `other_amount_min` if that is set (`ExceededSlippage`).
+- The user must hold both amounts (`InsufficientFunds`). A zero side or zero LP fails with `InvalidInput`.
+- `CalcPnlError` if the reserves' `x · y` is below the PnL baseline.
 
 ## `Withdraw`
 
@@ -130,7 +142,9 @@ Burn LP, receive both sides.
 **Arguments**
 
 ```
-amount: u64    // LP to burn
+amount:          u64    // LP to burn
+min_coin_amount: u64    // optional; sent together with min_pc_amount
+min_pc_amount:   u64    // optional
 ```
 
 **Accounts** — recommended 11-account layout
@@ -160,6 +174,16 @@ amount: u64    // LP to burn
 
 There is no longer any settle-from-OpenBook step — the pro-rata math uses the vault balances directly.
 
+**Math** — the program realises PnL first, except when the pool is `WithdrawOnly` (`3`), where it skips that step. It then pays `floor(amount × reserve / lp_amount)` of each side. See [`products/amm-v4/math`](/docs/en/products/amm-v4/math#deposit-and-withdraw-math).
+
+**Checks and errors**
+
+- The status must allow withdrawals: `1` or `3`–`7`. Otherwise `InvalidStatus`.
+- `amount` must not exceed the user's LP balance (`InsufficientFunds`) and must be below `lp_amount` (`NotAllowZeroLP`).
+- If both minimums are set, each output must meet its minimum (`ExceededSlippage`).
+- Each output must be below its raw vault balance, or the call fails with `TakePnlError`.
+- A zero `amount` or zero output fails with `InvalidInput`.
+
 ## `SwapBaseIn`
 
 Exact-input swap. Always an **AMM-path** swap (does not route through OpenBook matching).
@@ -175,7 +199,7 @@ amount_in:            u64
 minimum_amount_out:   u64
 ```
 
-**Accounts** (abridged)
+**Accounts** — 17, or 18 with `amm_target_orders`
 
 | # | Name | W | S |
 |---|------|---|---|
@@ -183,7 +207,7 @@ minimum_amount_out:   u64
 | 2 | `amm` | W |   |
 | 3 | `amm_authority` |   |   |
 | 4 | `amm_open_orders` | W |   |
-| 5 | `amm_target_orders` | W |   |
+| 5 | `amm_target_orders` (18-account form only) | W |   |
 | 6 | `pool_coin_token_account` | W |   |
 | 7 | `pool_pc_token_account` | W |   |
 | 8 | `market_program` |   |   |
@@ -198,12 +222,14 @@ minimum_amount_out:   u64
 | 17 | `user_dest_token_account` | W |   |
 | 18 | `user_owner` |   | S |
 
+In the 17-account form, leave out `amm_target_orders` and shift the rest up one. The program reads every market account and ignores it.
+
 **Math** — see [`products/amm-v4/math`](/docs/en/products/amm-v4/math).
 
 **Preconditions**
 
 - `AmmStatus::from_u64(amm.status).swap_permission()` is true — that is, `status` is `1` (`Initialized`), `6` (`SwapOnly`) or `7` (`WaitingTrade`). `status` is an enum value, not a bitmask; see [`products/amm-v4/accounts`](/docs/en/products/amm-v4/accounts#status).
-- `amm.state_data.pool_open_time <= now`.
+- If `status` is `7` (`WaitingTrade`), the current time must be at or after `pool_open_time`; the swap then sets the status to `6`. The other statuses don't check the open time.
 - `amount_in > 0`.
 - `user_source_token_account` holds at least `amount_in`.
 
@@ -213,7 +239,17 @@ minimum_amount_out:   u64
 - The swap fee stays in the vaults, raising the invariant `k`. The `need_take_pnl_*` counters are **not** touched by swaps — protocol PnL is recomputed from the `k` delta on the next `Deposit`, `Withdraw` or `WithdrawPnl` (`Processor::calc_take_pnl`).
 - Note: the `state_data.swap_*_in_amount` / `swap_*_out_amount` analytics counters are **no longer updated** — their values are frozen. Use trade logs for volume analytics.
 
-**Common errors** — `ExceededSlippage`, `InvalidInput`, `InvalidStatus`, `NotAllowed` (coin/pc mint identical).
+**Errors**
+
+- `WrongAccountsNumber` — not 17 or 18 accounts.
+- `NotAllowed` — the pool's coin and pc mints are identical.
+- `InvalidSignAccount` — `user_owner` did not sign.
+- `InvalidSplTokenProgram`, `InvalidProgramAddress`, `InvalidCoinVault`, `InvalidPCVault` — wrong token program, authority or pool vault.
+- `InvalidUserToken` — a user account is one of the pool's vaults, or the user accounts' mints don't match the pool in either direction.
+- `InvalidStatus` — the status doesn't allow swaps, or a `WaitingTrade` pool hasn't opened yet.
+- `InsufficientFunds` — the user holds less than `amount_in`, or the output would empty the out-side reserve.
+- `ExceededSlippage` — the output is below `minimum_amount_out`.
+- `InvalidInput` — `amount_in` or the computed output is zero.
 
 ## `SwapBaseOut`
 
@@ -225,6 +261,12 @@ Exact-output, inverse of `SwapBaseIn`. Same accounts.
 max_amount_in: u64
 amount_out:    u64
 ```
+
+**Errors** — the same account and status errors as `SwapBaseIn`, plus:
+
+- `InsufficientFunds` — the user holds less than the computed input, or `amount_out` would empty the out-side reserve.
+- `ExceededSlippage` — the computed input exceeds `max_amount_in`.
+- `InvalidInput` — `amount_out` or the computed input is zero.
 
 ## `SwapBaseInV2` / `SwapBaseOutV2`
 
@@ -241,7 +283,9 @@ Variant swap entrypoints (tags **16** / **17**) that **skip the OpenBook account
 | 7 | `user_dest_token_account` | W |   |
 | 8 | `user_owner` |   | S |
 
-Pool reserves are now the vault balances (minus pending PnL), so quote math is straightforward and identical to the v1 path. Use V2 to save compute and avoid passing the (now-ignored) market accounts. The Raydium router always uses the V2 form when routing through AMM v4.
+Pool reserves are now the vault balances (minus pending PnL), so quote math is straightforward and identical to the v1 path. Use V2 to save compute and avoid passing the (now-ignored) market accounts.
+
+In the Triton mainnet sample collected on 2026-11-20, Raydium's on-chain AMM Routing program invoked AMM v4 with the 17-account v1 instructions for all 33 observed hops. By contrast, `raydium.liquidity.swap()` in SDK V2 builds the eight-account `SwapBaseInV2` or `SwapBaseOutV2` instruction for AMM v4 pools. Transaction parsers and routers should support both formats.
 
 Arguments are the same as the V1 forms (`amount_in / minimum_amount_out` for `SwapBaseInV2`; `max_amount_in / amount_out` for `SwapBaseOutV2`).
 
@@ -253,13 +297,13 @@ Arguments are the same as the V1 forms (`amount_in / minimum_amount_out` for `Sw
 
 Historically, `MonitorStep` cranked the pool's OpenBook interaction: it settled filled orders (moving proceeds from the market vaults into the pool vaults via OpenBook CPI), cancelled stale orders, and posted new orders to close the gap between `target_orders` and `amm_open_orders`. With the OpenBook dependency removed, there is nothing to crank and the instruction is gone. Any keeper or integration that still calls it must remove the call.
 
-## `WithdrawPnl` / `TakePnl`
+## `WithdrawPnl`
 
 Admin sweep of accrued protocol fees.
 
 **Arguments**
 
-- `WithdrawPnl` takes no args; it reads `need_take_pnl_*` and moves those exact amounts.
+- None. `WithdrawPnl` first realises PnL (`calc_take_pnl`), then moves the updated `need_take_pnl_*` amounts.
 
 <Warning>
   **Breaking change (admin only).** The account list dropped from 17 (+1 optional) to **10** — `amm_open_orders` and all six market accounts were removed — with **no compatibility parsing**. The old layout misaligns (old #5 was `amm_open_orders`, now `pool_coin_token_account`) and fails with errors such as `InvalidCoinVault`. Admin tooling must be updated.
@@ -275,31 +319,61 @@ Admin sweep of accrued protocol fees.
 | 4 | `amm_authority` |   |   |
 | 5 | `pool_coin_token_account` | W |   |
 | 6 | `pool_pc_token_account` | W |   |
-| 7 | `pnl_coin_token_account` | W |   | Recipient. |
-| 8 | `pnl_pc_token_account` | W |   |
-| 9 | `pnl_owner` |   | S | Admin multisig. |
+| 7 | `pnl_coin_token_account` | W |   | Recipient: any token account with the pool's coin mint. |
+| 8 | `pnl_pc_token_account` | W |   | Recipient: any token account with the pool's pc mint. |
+| 9 | `pnl_owner` |   | S | The program admin (`amm_owner`) or `AmmConfig.pnl_owner`. Anyone else fails with `InvalidSignAccount`. |
 | 10 | `amm_target_orders` | W |   |
 
 **Effect**
 
+- Realises PnL first: adds the protocol's share of the `k` growth since the last baseline to `need_take_pnl_*`, unless either side rounds to zero.
 - Transfers `need_take_pnl_coin` from `pool_coin_token_account` to `pnl_coin_token_account`.
 - Same for pc.
-- Zeros `need_take_pnl_coin` and `need_take_pnl_pc`.
-- **Logic change**: if the vault balance is insufficient to cover accrued PnL, the instruction returns `TakePnlError` directly (it no longer manipulates order-book state).
+- Zeros `need_take_pnl_coin` and `need_take_pnl_pc`, and resets the `TargetOrders` baseline.
+- **Logic change**: if either counter exceeds its vault balance, the instruction returns `TakePnlError` directly (it no longer manipulates order-book state).
+- Runs in any status except `Uninitialized` (`InvalidStatus`).
 
-No change to reserves since accrued PnL was already excluded from the invariant.
+When the realisation step books new PnL, it takes those tokens out of the curve's reserves, so `k` shrinks. Paying out PnL booked earlier doesn't change `k`, because the curve already excluded it.
 
 ## `SetParams`
 
 Admin param changes, called by the Raydium multisig. Arguments are a `param: u8` tag + payload.
 
 <Warning>
-  **Breaking change (admin only).** The account list was reduced to just `[amm (W), admin (S)]` (the authority, open-orders, target-orders, vault, and all market accounts were removed). The `param` enum was **renumbered and trimmed**: `Status` = 0, `State` = 1, `Fees` = **2** (was 9), `SetOpenTime` = **3** (was 11). All order-book-grid params and `AmmOwner`, `LastOrderDistance`, `UpdateOpenOrder` were removed, and the `SetParamsInstruction` struct dropped `new_pubkey` and `last_order_distance`. Admin tooling must be updated.
+  **Breaking change (admin only).** The account list was reduced to just `[amm (W), admin (S)]` (the authority, open-orders, target-orders, vault, and all market accounts were removed). The `param` enum was **renumbered and trimmed**: `Status` = 0, `State` = 1, `Fees` = **2** (was 9), `SetOpenTime` = **3** (was 11). All order-book-grid params and `AmmOwner`, `LastOrderDistance`, `SetSwitchTime`, `ClearOpenTime` and `UpdateOpenOrder` were removed, and the `SetParamsInstruction` struct dropped `new_pubkey` and `last_order_distance`. Admin tooling must be updated.
 </Warning>
+
+**Payload** — tag `6`, then `param: u8`, then:
+
+| `param` | Name | Payload |
+|---|---|---|
+| `0` | `Status` | `value: u64`, the new `AmmStatus`. Only `1`–`7` are accepted. |
+| `1` | `State` | `value: u64`, a legacy `AmmState` value. Only `0`–`6` are accepted. |
+| `2` | `Fees` | The full `Fees` struct: 8 × `u64` (64 bytes) in `AmmInfo.fees` order. Each numerator must be below its denominator. |
+| `3` | `SetOpenTime` | `value: u64`, the new `pool_open_time` in Unix seconds. |
+
+A payload shorter than its layout fails with `InvalidInstructionData`; an out-of-range value fails with `InvalidInput`.
 
 ## `CreateConfigAccount` / `UpdateConfigAccount`
 
-Admin management of the program-level `AmmConfig` PDA (seed `["amm_config_account_seed"]`). The account holds exactly three meaningful fields — `pnl_owner`, `cancel_owner` and `create_pool_fee` — plus two reserved padding regions; there is no pool-creation flag. `UpdateConfigAccount` sets `pnl_owner` with `param = 0`, `cancel_owner` with `param = 1`, and `create_pool_fee` with `param = 2`.
+Admin management of the program-level `AmmConfig` PDA (seed `["amm_config_account_seed"]`). The account holds exactly three meaningful fields — `pnl_owner`, `cancel_owner` and `create_pool_fee` — plus two reserved padding regions; there is no pool-creation flag. Both instructions require the program admin (`amm_owner`) as signer, or fail with `InvalidSignAccount`.
+
+`CreateConfigAccount` (tag `14`, no arguments) sets `pnl_owner` from the account in slot 3 and writes `create_pool_fee = 0`. Set the fee afterwards with `UpdateConfigAccount`. It fails with `RepeatCreateConfigAccount` if the config already exists.
+
+`UpdateConfigAccount` (tag `15`) takes two accounts:
+
+| # | Name | W | S |
+|---|------|---|---|
+| 1 | `admin` |   | S |
+| 2 | `amm_config` | W |   |
+
+Its payload is `param: u8` followed by:
+
+| `param` | Field | Payload |
+|---|---|---|
+| `0` | `pnl_owner` | 32-byte pubkey; the default key fails with `InvalidInput` |
+| `1` | `cancel_owner` | 32-byte pubkey; the default key fails with `InvalidInput` |
+| `2` | `create_pool_fee` | `u64`, in lamports |
 
 <Note>
   **Changed in 2026-09, and backwards-compatible.** `CreateConfigAccount` no longer reads the rent sysvar. Its account list is now **4 accounts**, down from 5:
@@ -349,7 +423,7 @@ The program dispatches on the source account's `owner`:
 
 **Common errors** — `InvalidSignAccount` (wrong signer), `InvalidSplTokenProgram` (wrong program in slot 3), `InvalidProgramAddress` (wrong `amm_authority`), `LamportsCalculateError` (custom code `60`; the wSOL round-trip did not net to zero), and `InsufficientFunds` from the program-owned path when an account holds less than its own rent minimum.
 
-**No SDK builder.** `@raydium-io/raydium-sdk-v2` does not ship a builder for this instruction, and neither does the `raydium-sdk-V2-demo` repo — it is an admin path. Encode it by hand, the way the wallet-side sweep in [`solana-fundamentals/rent-and-reclaimable-rent`](/docs/en/solana-fundamentals/rent-and-reclaimable-rent#building-the-instruction) does for the token-program instruction.
+**Builders.** The TypeScript SDK `@raydium-io/raydium-sdk-v2` has no builder for this admin instruction, and neither does the `raydium-sdk-V2-demo` repo. The program crate does: `withdraw_excess_lamports` in `instruction.rs`. Use a crate revision from 2026-11-18 or later, which fixed it passing the System Program where the handler expects SPL Token. From TypeScript, encode it by hand, the way the wallet-side sweep in [`solana-fundamentals/rent-and-reclaimable-rent`](/docs/en/solana-fundamentals/rent-and-reclaimable-rent#building-the-instruction) does for the token-program instruction.
 
 
 ## State-change matrix
@@ -359,11 +433,11 @@ The OpenBook column is gone — no instruction touches an order book anymore.
 | Instruction | `lp_mint` supply | Vaults | PnL counters |
 |-------------|------------------|--------|--------------|
 | `Initialize2` | init supply minted to creator | `+ init_coin_amount`, `+ init_pc_amount` | 0 |
-| `Deposit` | + | + both | — |
-| `Withdraw` | − | − both | — |
+| `Deposit` | + | + both | + (realises PnL) |
+| `Withdraw` | − | − both | + (realises PnL, except in `WithdrawOnly`) |
 | `SwapBaseIn` / `SwapBaseInV2` | — | + in, − out | — (realised later) |
 | `SwapBaseOut` / `SwapBaseOutV2` | — | + in, − out | — (realised later) |
-| `WithdrawPnl` | — | − (pnl swept) | 0 |
+| `WithdrawPnl` | — | − (pnl swept) | realised, then 0 |
 | `SetParams` | — | — | — |
 | `WithdrawExcessLamports` | — | — (token balances unchanged) | — |
 
@@ -377,4 +451,3 @@ Sources:
 
 - [Raydium AMM program — `raydium-io/raydium-amm`](https://github.com/raydium-io/raydium-amm)
 - Raydium SDK v2 `Liquidity` module
-- OpenBook program — account validations on the market side

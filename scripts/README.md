@@ -2,7 +2,8 @@
 
 Tooling for the Raydium docs repo. Currently:
 
-- [`generate-upstream-diff.py`](./generate-upstream-diff.py) compares tracked documentation and project setup with upstream, records path moves, and writes a normalized review patch under `public/tino-changes`. Run `py scripts/generate-upstream-diff.py --upstream-ref upstream/main --working-tree` after updating the [DevRel Edits page](../docs/en/resources/devrel-edits.mdx).
+- [`generate-upstream-diff.py`](./generate-upstream-diff.py) compares tracked documentation and project setup with upstream, records path moves, and writes a normalized review patch under `public/tino-changes`. Run `py scripts/generate-upstream-diff.py --upstream-ref upstream/main --working-tree` after updating the [DevRel Edits pages](../docs/en/resources/devrel-edits/). If you add a page there, add it to the `EXCLUDED` set too, because these pages are fork-only.
+- [`measure-amm-v4.py`](./measure-amm-v4.py) samples live mainnet transactions and pool accounts, and writes the evidence behind the measured AMM v4 figures (compute units, v1 versus V2 swap use, router behaviour and pool fees) under `public/tino-changes/evidence/`. Run `py scripts/measure-amm-v4.py` and cite the folder it writes. For Triton or another authenticated RPC, pass `--rpc-url`, `--rpc-label "Triton One mainnet RPC"`, and `--rpc-token-prompt`. The token prompt does not write the credential to shell history or evidence files.
 - [`translate.py`](./translate.py) — batch translator that turns the English source tree into locale-specific MDX, page by page, via the Anthropic API.
 
 ## `translate.py` — batch translator

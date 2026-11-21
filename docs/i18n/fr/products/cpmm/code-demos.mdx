@@ -10,7 +10,7 @@ description: "Exemples TypeScript complets pour chaque opération CPMM — crée
 </Info>
 
 <Info>
-  **Banneau de version.** Tous les démonstrations TypeScript ciblent `@raydium-io/raydium-sdk-v2@0.2.64-alpha` ; elles ont été exécutées pour la dernière fois contre `0.2.42-alpha` (2026-04) et leurs signatures d'appel ont été revérifiées contre la source `0.2.64-alpha` le 2026-09-09, sur Solana mainnet-beta. Le squelette CPI Rust cible `raydium-cp-swap` sur `master`, Anchor `1.0.2`. Les ID de programme sont extraits via des constantes de [`reference/program-addresses`](/docs/i18n/fr/reference/program-addresses).
+  **Bannière de version.** Toutes les démos TypeScript ciblent `@raydium-io/raydium-sdk-v2@0.2.85-alpha` sur Solana mainnet-beta. Elles ont été exécutées pour la dernière fois avec `0.2.42-alpha` (2026-04) ; leurs signatures d'appel ont été revérifiées le 2026-11-20 par rapport au paquet publié `0.2.85-alpha`. Le squelette CPI Rust cible `raydium-cp-swap` sur `master`, Anchor `1.0.2`. Les ID de programme proviennent des constantes de [`reference/program-addresses`](/docs/i18n/fr/reference/program-addresses).
 </Info>
 
 ## Prérequis
@@ -49,13 +49,16 @@ Source : [`src/cpmm/createCpmmPool.ts`](https://github.com/raydium-io/raydium-sd
 ```ts
 import { PublicKey } from "@solana/web3.js";
 import BN from "bn.js";
-import { CREATE_CPMM_POOL_PROGRAM, CREATE_CPMM_POOL_FEE_ACC }
-  from "@raydium-io/raydium-sdk-v2";
+import {
+  CREATE_CPMM_POOL_PROGRAM,
+  CREATE_CPMM_POOL_FEE_ACC,
+  FeeOn,
+} from "@raydium-io/raydium-sdk-v2";
 // (Si vous avez besoin de chaque PDA de pool à la fois, l'assistant exporté est `getCreatePoolKeys`.
 //  Il n'y a pas de `getCpmmPdas`.)
 
-const mintA = new PublicKey("So11111111111111111111111111111111111111112"); // wSOL
-const mintB = new PublicKey("EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"); // USDC
+const mintA = new PublicKey("So11111111111111111111111111111111111111112"); // wSOL; see reference/program-addresses
+const mintB = new PublicKey("EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"); // USDC; see reference/program-addresses
 
 // 1. Choisissez une configuration de frais. index=0 est le palier 0,25 %.
 const feeConfigs = await raydium.api.getCpmmConfigs();
@@ -75,6 +78,7 @@ const { execute, extInfo } = await raydium.cpmm.createPool({
   mintBAmount:     new BN(   160_000_000),  // 160 USDC (à 160/SOL)
   startTime:       new BN(0),               // ouvert immédiatement
   feeConfig,
+  creatorFeeOn:    FeeOn.OnlyTokenA,
   associatedOnly:  false,
   ownerInfo:       { useSOLBalance: true },
   txVersion:       TxVersion.V0,
@@ -93,8 +97,12 @@ Quelques éléments que le SDK gère silencieusement :
 - Choix du bon programme de tokens (SPL Token vs Token-2022) par côté.
 
 <Note>
-  **`createPool` construit `Initialize`, donc les frais de créateur du pool sont désactivés.** Pour créer un pool avec les frais de créateur activés, utilisez `InitializeV2` (ajoutée dans la mise à niveau du programme du 2026-10-30). Ses 19 premiers comptes correspondent à ceux de `Initialize`. Elle supprime `rent` et prend un argument de plus, `creator_fee_on: Option<CreatorFeeOn>`. Le pin `0.2.64-alpha` de cette page est antérieur à l'instruction. Tant que votre version du SDK ne fournit pas de builder, encodez-la à partir de l'IDL rafraîchi. Voir [`products/cpmm/instructions`](/docs/i18n/fr/products/cpmm/instructions#initializev2).
+  **Définir `creatorFeeOn` fait construire `InitializeV2` par `createPool`.** Omettez-le pour construire l'instruction `Initialize` d'origine, frais créateur désactivés. `FeeOn.OnlyTokenA`, `OnlyTokenB` et `BothToken` sélectionnent le ou les tokens des frais ; ils ne fixent ni le taux ni le destinataire. Le SDK conserve votre choix A/B lorsqu'il trie les mints.
 </Note>
+
+Le portefeuille configuré comme owner du SDK signe en tant que créateur et est enregistré dans `PoolState.pool_creator`. Il paie aussi le rent du pool, les frais de création du pool et la liquidité initiale. Un `feePayer` de transaction distinct ne change pas le créateur enregistré et ne redirige pas les frais créateur. La collecte normale exige la signature du créateur enregistré ; la collecte sans permission peut être déclenchée par un autre payeur, mais n'envoie la part du créateur qu'aux ATA canoniques de ce créateur.
+
+Le taux provient de `AmmConfig.creator_fee_rate`. S'il vaut zéro, activer le chemin des frais créateur n'accumule rien. Lors de la collecte, le programme déplace la part configurée du protocole dans le bucket du protocole et verse le reste au créateur. Voir [`products/cpmm/fees`](/docs/i18n/fr/products/cpmm/fees) et [`products/cpmm/instructions`](/docs/i18n/fr/products/cpmm/instructions#initializev2).
 
 Après confirmation, vous pouvez récupérer l'état du pool en direct avec :
 
@@ -245,7 +253,7 @@ await execute({ sendAndConfirm: true });
 
 Source : [`src/cpmm/collectCreatorFee.ts`](https://github.com/raydium-io/raydium-sdk-V2-demo/blob/master/src/cpmm/collectCreatorFee.ts), [`src/cpmm/collectAllCreatorFee.ts`](https://github.com/raydium-io/raydium-sdk-V2-demo/blob/master/src/cpmm/collectAllCreatorFee.ts)
 
-La collecte des frais de protocole et de fonds reste soumise à une autorité. Les frais de créateur suivent deux chemins : le `CollectCreatorFee` signé par le créateur, et le `CollectCreatorFeePermissionless` additif, que n'importe quel payeur peut invoquer mais qui ne peut transférer que vers les ATAs canoniques du créateur. La version `0.2.64-alpha` fournit des builders au niveau du module pour les deux chemins du créateur :
+La collecte des frais de protocole et de fonds reste soumise à une autorité. Les frais de créateur suivent deux chemins : le `CollectCreatorFee` signé par le créateur, et le `CollectCreatorFeePermissionless` additif, que n'importe quel payeur peut invoquer mais qui ne peut transférer que vers les ATAs canoniques du créateur. La version `0.2.85-alpha` fournit des builders au niveau du module pour les deux chemins du créateur :
 
 ```ts
 // signé par le créateur
@@ -267,7 +275,7 @@ await raydium.cpmm.collectMultiCreatorFees({ poolInfoList, txVersion: TxVersion.
 ```
 
 <Warning>
-  **Les deux instructions de créateur ont changé leurs listes de comptes lors de la mise à jour du programme du 2026-09-19.** Chacune prend désormais une PDA `creator_fee_share` à `["creator_fee_share", creator, ammConfig]`, et celle sans permission prend également `amm_config` — tous deux **ajoutés après `system_program`** plutôt qu'insérés, de sorte que les comptes qui étaient déjà là conservent leurs positions. Un builder épinglé à une version du SDK antérieure à la mise à jour émet la liste plus courte et la transaction est rejetée pour comptes manquants. Vérifiez que la version que vous installez contient les nouveaux comptes avant d'utiliser ces helpers avec le programme mis à jour, et actualisez l'IDL si vous générez des clients à partir de celui-ci.
+  **Les deux instructions créateur ont modifié leurs listes de comptes lors de la mise à niveau du programme du 2026-09-19.** Chacune prend désormais une PDA `creator_fee_share` à `["creator_fee_share", creator, ammConfig]`, et la version sans permission prend aussi `amm_config`. Les deux comptes sont **ajoutés après `system_program`** au lieu d'être insérés, donc les comptes existants gardent leur position. Les builders de `0.2.85-alpha` ajoutent les deux comptes. `0.2.64-alpha` produit la liste courte, et le programme rejette cette transaction pour comptes manquants. Rafraîchissez l'IDL si vous générez des clients à partir de celle-ci.
 
   Passer la PDA est obligatoire même quand elle n'a jamais été créée — dérivez-la et passez-la ; le programme revient à `AmmConfig.creator_fee_share_rate` quand le compte est vide.
 </Warning>

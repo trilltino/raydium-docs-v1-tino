@@ -48,12 +48,37 @@
     },
     {
       "source": "/docs/en/resources/tino-changes",
-      "destination": "/docs/en/resources/devrel-edits",
+      "destination": "/docs/en/resources/devrel-edits/pull-requests",
       "permanent": false
     },
     {
-      "source": "/docs/i18n/ar/resources/devrel-edits",
-      "destination": "/docs/en/resources/devrel-edits",
+      "source": "/docs/en/resources/devrel-edits",
+      "destination": "/docs/en/resources/devrel-edits/pull-requests",
+      "permanent": false
+    },
+    {
+      "source": "/docs/i18n/ar/resources/devrel-edits/amm-v4-docs-updates",
+      "destination": "/docs/en/resources/devrel-edits/amm-v4-docs-updates",
+      "permanent": false
+    },
+    {
+      "source": "/docs/i18n/ar/resources/devrel-edits/issues",
+      "destination": "/docs/en/resources/devrel-edits/issues",
+      "permanent": false
+    },
+    {
+      "source": "/docs/i18n/ar/resources/devrel-edits/pull-requests",
+      "destination": "/docs/en/resources/devrel-edits/pull-requests",
+      "permanent": false
+    },
+    {
+      "source": "/docs/i18n/ar/resources/devrel-edits/sdk-edits/create-pool",
+      "destination": "/docs/en/resources/devrel-edits/sdk-edits/create-pool",
+      "permanent": false
+    },
+    {
+      "source": "/docs/i18n/ar/resources/devrel-edits/transfer-hooks",
+      "destination": "/docs/en/resources/devrel-edits/transfer-hooks",
       "permanent": false
     },
     {
@@ -62,8 +87,28 @@
       "permanent": false
     },
     {
-      "source": "/docs/i18n/de/resources/devrel-edits",
-      "destination": "/docs/en/resources/devrel-edits",
+      "source": "/docs/i18n/de/resources/devrel-edits/amm-v4-docs-updates",
+      "destination": "/docs/en/resources/devrel-edits/amm-v4-docs-updates",
+      "permanent": false
+    },
+    {
+      "source": "/docs/i18n/de/resources/devrel-edits/issues",
+      "destination": "/docs/en/resources/devrel-edits/issues",
+      "permanent": false
+    },
+    {
+      "source": "/docs/i18n/de/resources/devrel-edits/pull-requests",
+      "destination": "/docs/en/resources/devrel-edits/pull-requests",
+      "permanent": false
+    },
+    {
+      "source": "/docs/i18n/de/resources/devrel-edits/sdk-edits/create-pool",
+      "destination": "/docs/en/resources/devrel-edits/sdk-edits/create-pool",
+      "permanent": false
+    },
+    {
+      "source": "/docs/i18n/de/resources/devrel-edits/transfer-hooks",
+      "destination": "/docs/en/resources/devrel-edits/transfer-hooks",
       "permanent": false
     },
     {
@@ -72,8 +117,28 @@
       "permanent": false
     },
     {
-      "source": "/docs/i18n/es/resources/devrel-edits",
-      "destination": "/docs/en/resources/devrel-edits",
+      "source": "/docs/i18n/es/resources/devrel-edits/amm-v4-docs-updates",
+      "destination": "/docs/en/resources/devrel-edits/amm-v4-docs-updates",
+      "permanent": false
+    },
+    {
+      "source": "/docs/i18n/es/resources/devrel-edits/issues",
+      "destination": "/docs/en/resources/devrel-edits/issues",
+      "permanent": false
+    },
+    {
+      "source": "/docs/i18n/es/resources/devrel-edits/pull-requests",
+      "destination": "/docs/en/resources/devrel-edits/pull-requests",
+      "permanent": false
+    },
+    {
+      "source": "/docs/i18n/es/resources/devrel-edits/sdk-edits/create-pool",
+      "destination": "/docs/en/resources/devrel-edits/sdk-edits/create-pool",
+      "permanent": false
+    },
+    {
+      "source": "/docs/i18n/es/resources/devrel-edits/transfer-hooks",
+      "destination": "/docs/en/resources/devrel-edits/transfer-hooks",
       "permanent": false
     },
     {
@@ -82,8 +147,28 @@
       "permanent": false
     },
     {
-      "source": "/docs/i18n/fr/resources/devrel-edits",
-      "destination": "/docs/en/resources/devrel-edits",
+      "source": "/docs/i18n/fr/resources/devrel-edits/amm-v4-docs-updates",
+      "destination": "/docs/en/resources/devrel-edits/amm-v4-docs-updates",
+      "permanent": false
+    },
+    {
+      "source": "/docs/i18n/fr/resources/devrel-edits/issues",
+      "destination": "/docs/en/resources/devrel-edits/issues",
+      "permanent": false
+    },
+    {
+      "source": "/docs/i18n/fr/resources/devrel-edits/pull-requests",
+      "destination": "/docs/en/resources/devrel-edits/pull-requests",
+      "permanent": false
+    },
+    {
+      "source": "/docs/i18n/fr/resources/devrel-edits/sdk-edits/create-pool",
+      "destination": "/docs/en/resources/devrel-edits/sdk-edits/create-pool",
+      "permanent": false
+    },
+    {
+      "source": "/docs/i18n/fr/resources/devrel-edits/transfer-hooks",
+      "destination": "/docs/en/resources/devrel-edits/transfer-hooks",
       "permanent": false
     },
     {
@@ -92,8 +177,28 @@
       "permanent": false
     },
     {
-      "source": "/docs/i18n/id/resources/devrel-edits",
-      "destination": "/docs/en/resources/devrel-edits",
+      "source": "/docs/i18n/id/resources/devrel-edits/amm-v4-docs-updates",
+      "destination": "/docs/en/resources/devrel-edits/amm-v4-docs-updates",
+      "permanent": false
+    },
+    {
+      "source": "/docs/i18n/id/resources/devrel-edits/issues",
+      "destination": "/docs/en/resources/devrel-edits/issues",
+      "permanent": false
+    },
+    {
+      "source": "/docs/i18n/id/resources/devrel-edits/pull-requests",
+      "destination": "/docs/en/resources/devrel-edits/pull-requests",
+      "permanent": false
+    },
+    {
+      "source": "/docs/i18n/id/resources/devrel-edits/sdk-edits/create-pool",
+      "destination": "/docs/en/resources/devrel-edits/sdk-edits/create-pool",
+      "permanent": false
+    },
+    {
+      "source": "/docs/i18n/id/resources/devrel-edits/transfer-hooks",
+      "destination": "/docs/en/resources/devrel-edits/transfer-hooks",
       "permanent": false
     },
     {
@@ -102,8 +207,28 @@
       "permanent": false
     },
     {
-      "source": "/docs/i18n/ja/resources/devrel-edits",
-      "destination": "/docs/en/resources/devrel-edits",
+      "source": "/docs/i18n/ja/resources/devrel-edits/amm-v4-docs-updates",
+      "destination": "/docs/en/resources/devrel-edits/amm-v4-docs-updates",
+      "permanent": false
+    },
+    {
+      "source": "/docs/i18n/ja/resources/devrel-edits/issues",
+      "destination": "/docs/en/resources/devrel-edits/issues",
+      "permanent": false
+    },
+    {
+      "source": "/docs/i18n/ja/resources/devrel-edits/pull-requests",
+      "destination": "/docs/en/resources/devrel-edits/pull-requests",
+      "permanent": false
+    },
+    {
+      "source": "/docs/i18n/ja/resources/devrel-edits/sdk-edits/create-pool",
+      "destination": "/docs/en/resources/devrel-edits/sdk-edits/create-pool",
+      "permanent": false
+    },
+    {
+      "source": "/docs/i18n/ja/resources/devrel-edits/transfer-hooks",
+      "destination": "/docs/en/resources/devrel-edits/transfer-hooks",
       "permanent": false
     },
     {
@@ -112,8 +237,28 @@
       "permanent": false
     },
     {
-      "source": "/docs/i18n/ko/resources/devrel-edits",
-      "destination": "/docs/en/resources/devrel-edits",
+      "source": "/docs/i18n/ko/resources/devrel-edits/amm-v4-docs-updates",
+      "destination": "/docs/en/resources/devrel-edits/amm-v4-docs-updates",
+      "permanent": false
+    },
+    {
+      "source": "/docs/i18n/ko/resources/devrel-edits/issues",
+      "destination": "/docs/en/resources/devrel-edits/issues",
+      "permanent": false
+    },
+    {
+      "source": "/docs/i18n/ko/resources/devrel-edits/pull-requests",
+      "destination": "/docs/en/resources/devrel-edits/pull-requests",
+      "permanent": false
+    },
+    {
+      "source": "/docs/i18n/ko/resources/devrel-edits/sdk-edits/create-pool",
+      "destination": "/docs/en/resources/devrel-edits/sdk-edits/create-pool",
+      "permanent": false
+    },
+    {
+      "source": "/docs/i18n/ko/resources/devrel-edits/transfer-hooks",
+      "destination": "/docs/en/resources/devrel-edits/transfer-hooks",
       "permanent": false
     },
     {
@@ -122,8 +267,28 @@
       "permanent": false
     },
     {
-      "source": "/docs/i18n/pt/resources/devrel-edits",
-      "destination": "/docs/en/resources/devrel-edits",
+      "source": "/docs/i18n/pt/resources/devrel-edits/amm-v4-docs-updates",
+      "destination": "/docs/en/resources/devrel-edits/amm-v4-docs-updates",
+      "permanent": false
+    },
+    {
+      "source": "/docs/i18n/pt/resources/devrel-edits/issues",
+      "destination": "/docs/en/resources/devrel-edits/issues",
+      "permanent": false
+    },
+    {
+      "source": "/docs/i18n/pt/resources/devrel-edits/pull-requests",
+      "destination": "/docs/en/resources/devrel-edits/pull-requests",
+      "permanent": false
+    },
+    {
+      "source": "/docs/i18n/pt/resources/devrel-edits/sdk-edits/create-pool",
+      "destination": "/docs/en/resources/devrel-edits/sdk-edits/create-pool",
+      "permanent": false
+    },
+    {
+      "source": "/docs/i18n/pt/resources/devrel-edits/transfer-hooks",
+      "destination": "/docs/en/resources/devrel-edits/transfer-hooks",
       "permanent": false
     },
     {
@@ -132,8 +297,28 @@
       "permanent": false
     },
     {
-      "source": "/docs/i18n/ru/resources/devrel-edits",
-      "destination": "/docs/en/resources/devrel-edits",
+      "source": "/docs/i18n/ru/resources/devrel-edits/amm-v4-docs-updates",
+      "destination": "/docs/en/resources/devrel-edits/amm-v4-docs-updates",
+      "permanent": false
+    },
+    {
+      "source": "/docs/i18n/ru/resources/devrel-edits/issues",
+      "destination": "/docs/en/resources/devrel-edits/issues",
+      "permanent": false
+    },
+    {
+      "source": "/docs/i18n/ru/resources/devrel-edits/pull-requests",
+      "destination": "/docs/en/resources/devrel-edits/pull-requests",
+      "permanent": false
+    },
+    {
+      "source": "/docs/i18n/ru/resources/devrel-edits/sdk-edits/create-pool",
+      "destination": "/docs/en/resources/devrel-edits/sdk-edits/create-pool",
+      "permanent": false
+    },
+    {
+      "source": "/docs/i18n/ru/resources/devrel-edits/transfer-hooks",
+      "destination": "/docs/en/resources/devrel-edits/transfer-hooks",
       "permanent": false
     },
     {
@@ -142,8 +327,28 @@
       "permanent": false
     },
     {
-      "source": "/docs/i18n/tr/resources/devrel-edits",
-      "destination": "/docs/en/resources/devrel-edits",
+      "source": "/docs/i18n/tr/resources/devrel-edits/amm-v4-docs-updates",
+      "destination": "/docs/en/resources/devrel-edits/amm-v4-docs-updates",
+      "permanent": false
+    },
+    {
+      "source": "/docs/i18n/tr/resources/devrel-edits/issues",
+      "destination": "/docs/en/resources/devrel-edits/issues",
+      "permanent": false
+    },
+    {
+      "source": "/docs/i18n/tr/resources/devrel-edits/pull-requests",
+      "destination": "/docs/en/resources/devrel-edits/pull-requests",
+      "permanent": false
+    },
+    {
+      "source": "/docs/i18n/tr/resources/devrel-edits/sdk-edits/create-pool",
+      "destination": "/docs/en/resources/devrel-edits/sdk-edits/create-pool",
+      "permanent": false
+    },
+    {
+      "source": "/docs/i18n/tr/resources/devrel-edits/transfer-hooks",
+      "destination": "/docs/en/resources/devrel-edits/transfer-hooks",
       "permanent": false
     },
     {
@@ -152,8 +357,28 @@
       "permanent": false
     },
     {
-      "source": "/docs/i18n/vi/resources/devrel-edits",
-      "destination": "/docs/en/resources/devrel-edits",
+      "source": "/docs/i18n/vi/resources/devrel-edits/amm-v4-docs-updates",
+      "destination": "/docs/en/resources/devrel-edits/amm-v4-docs-updates",
+      "permanent": false
+    },
+    {
+      "source": "/docs/i18n/vi/resources/devrel-edits/issues",
+      "destination": "/docs/en/resources/devrel-edits/issues",
+      "permanent": false
+    },
+    {
+      "source": "/docs/i18n/vi/resources/devrel-edits/pull-requests",
+      "destination": "/docs/en/resources/devrel-edits/pull-requests",
+      "permanent": false
+    },
+    {
+      "source": "/docs/i18n/vi/resources/devrel-edits/sdk-edits/create-pool",
+      "destination": "/docs/en/resources/devrel-edits/sdk-edits/create-pool",
+      "permanent": false
+    },
+    {
+      "source": "/docs/i18n/vi/resources/devrel-edits/transfer-hooks",
+      "destination": "/docs/en/resources/devrel-edits/transfer-hooks",
       "permanent": false
     },
     {
@@ -162,8 +387,28 @@
       "permanent": false
     },
     {
-      "source": "/docs/i18n/zh-Hant/resources/devrel-edits",
-      "destination": "/docs/en/resources/devrel-edits",
+      "source": "/docs/i18n/zh-Hant/resources/devrel-edits/amm-v4-docs-updates",
+      "destination": "/docs/en/resources/devrel-edits/amm-v4-docs-updates",
+      "permanent": false
+    },
+    {
+      "source": "/docs/i18n/zh-Hant/resources/devrel-edits/issues",
+      "destination": "/docs/en/resources/devrel-edits/issues",
+      "permanent": false
+    },
+    {
+      "source": "/docs/i18n/zh-Hant/resources/devrel-edits/pull-requests",
+      "destination": "/docs/en/resources/devrel-edits/pull-requests",
+      "permanent": false
+    },
+    {
+      "source": "/docs/i18n/zh-Hant/resources/devrel-edits/sdk-edits/create-pool",
+      "destination": "/docs/en/resources/devrel-edits/sdk-edits/create-pool",
+      "permanent": false
+    },
+    {
+      "source": "/docs/i18n/zh-Hant/resources/devrel-edits/transfer-hooks",
+      "destination": "/docs/en/resources/devrel-edits/transfer-hooks",
       "permanent": false
     },
     {
@@ -172,8 +417,28 @@
       "permanent": false
     },
     {
-      "source": "/docs/i18n/zh/resources/devrel-edits",
-      "destination": "/docs/en/resources/devrel-edits",
+      "source": "/docs/i18n/zh/resources/devrel-edits/amm-v4-docs-updates",
+      "destination": "/docs/en/resources/devrel-edits/amm-v4-docs-updates",
+      "permanent": false
+    },
+    {
+      "source": "/docs/i18n/zh/resources/devrel-edits/issues",
+      "destination": "/docs/en/resources/devrel-edits/issues",
+      "permanent": false
+    },
+    {
+      "source": "/docs/i18n/zh/resources/devrel-edits/pull-requests",
+      "destination": "/docs/en/resources/devrel-edits/pull-requests",
+      "permanent": false
+    },
+    {
+      "source": "/docs/i18n/zh/resources/devrel-edits/sdk-edits/create-pool",
+      "destination": "/docs/en/resources/devrel-edits/sdk-edits/create-pool",
+      "permanent": false
+    },
+    {
+      "source": "/docs/i18n/zh/resources/devrel-edits/transfer-hooks",
+      "destination": "/docs/en/resources/devrel-edits/transfer-hooks",
       "permanent": false
     },
     {
@@ -682,9 +947,23 @@
             "tab": "DevRel Edits",
             "groups": [
               {
-                "group": "DevRel Edits",
+                "group": "Pull Requests",
                 "pages": [
-                  "docs/en/resources/devrel-edits"
+                  "docs/en/resources/devrel-edits/pull-requests",
+                  "docs/en/resources/devrel-edits/issues"
+                ]
+              },
+              {
+                "group": "Documentation Edits",
+                "pages": [
+                  "docs/en/resources/devrel-edits/transfer-hooks",
+                  "docs/en/resources/devrel-edits/amm-v4-docs-updates"
+                ]
+              },
+              {
+                "group": "SDK Edits",
+                "pages": [
+                  "docs/en/resources/devrel-edits/sdk-edits/create-pool"
                 ]
               }
             ]

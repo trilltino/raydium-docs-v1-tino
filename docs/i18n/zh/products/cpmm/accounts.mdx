@@ -132,7 +132,7 @@ export function deriveCpmmAccounts(
 ```rust programs/cp-swap/src/states/pool.rs
 pub struct PoolState {
     pub amm_config: Pubkey,               // binds this pool to an AmmConfig
-    pub pool_creator: Pubkey,             // who ran initialize
+    pub pool_creator: Pubkey,             // creator-fee recipient; normally the initialize signer
     pub token_0_vault: Pubkey,            // == vault0 PDA
     pub token_1_vault: Pubkey,            // == vault1 PDA
 
@@ -177,7 +177,8 @@ pub struct PoolState {
 - **`status`** ——一个位掩码，控制是否允许 `Swap`、`Deposit`、`Withdraw`。由管理员通过 `UpdatePoolStatus` 更新。SDK 在构建交易前检查此项；如果你直接 CPI，自己检查。
 - **`token0_program` / `token1_program`** ——为每个金库 CPI 的代币程序。一个可以是经典 SPL Token，另一个是 Token-2022；它们是独立的。
 - **`open_time`** ——Unix 时间戳。此时间之前的交换失败。`open_time` 之前允许存款，以便可以对池进行种子填充。
-- **`creator_fee_on` / `enable_creator_fee`** ——共同控制此池的可选创建者费用是否活跃以及从交换的哪一侧收集。`enable_creator_fee == false` 完全清零创建者费用路径。启用时，`creator_fee_on` 选择：`0` = 从交换输入的任何代币收取费用（`BothToken`）；`1` = 仅从 `token_0` 收取费用（跳过 `token_1 → token_0` 交换）；`2` = 仅从 `token_1` 收取费用。在池创建时设置：`Initialize` 始终将其存储为禁用，`InitializeV2` 存储创建者的选择（2026-10-30 添加），`InitializeWithPermission` 始终以调用者的 `creator_fee_on` 将其存储为启用。之后无法更改。
+- **`pool_creator`** — 创建者费的接收方。`Initialize` 和 `InitializeV2` 记录创建者签名者。`InitializeWithPermission` 记录其单独传入的创建者账户。支付交易费不会改变该字段，也不会转移创建者费。
+- **`creator_fee_on` / `enable_creator_fee`** — 共同控制可选的创建者费是否生效以及使用哪种代币。`enable_creator_fee == false` 会完全关闭创建者费路径。启用后，`BothToken`（`0`）从交换的输入代币收取费用。`OnlyToken0`（`1`）始终使用 token0：在 `token_0 → token_1` 交换中从输入收取，在 `token_1 → token_0` 交换中从输出收取。`OnlyToken1`（`2`）则相反。在创建池时设置：`Initialize` 始终存储为关闭，`InitializeV2` 存储创建者的选择（2026-10-30 新增），`InitializeWithPermission` 始终存储为开启并使用调用方的 `creator_fee_on`。之后无法更改。
 - **`creator_fees_token_{0,1}`** ——累积的创建者费用，由 `CollectCreatorFee` 或 `CollectCreatorFeePermissionless` 扫除。两条路径都清零完整计数器，但自 2026-09-19 创建者费用分享升级以来，只有部分余额离开池：协议的份额**添加到 `protocol_fees_token_{0,1}`**，其余部分转移给创建者。无权限路径将收件人固定为 `pool_creator` 的规范 ATA。`PoolState` 本身没有更改——没有共享金额的单独计数器。
 
 ### `AmmConfig`

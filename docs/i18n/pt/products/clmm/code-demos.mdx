@@ -4,7 +4,7 @@ description: "Exemplos completos em TypeScript: criar um pool CLMM, abrir uma po
 ---
 
 <Info>
-  **Banner de versão.** Todas as demos em TypeScript têm como alvo `@raydium-io/raydium-sdk-v2@0.2.64-alpha`; elas foram executadas pela última vez com `0.2.42-alpha` (2026-04), e as assinaturas de chamada foram verificadas novamente contra o código-fonte de `0.2.64-alpha` em 2026-09-09, na mainnet-beta da Solana. O esqueleto de CPI em Rust no final tem como alvo `raydium-clmm` na branch `master`, com Anchor `1.0.2`, a mesma versão fixada da página do CPMM, para que as duas possam coexistir no mesmo crate. Os IDs dos programas vêm de [`reference/program-addresses`](/docs/i18n/pt/reference/program-addresses) por meio do SDK.
+  **Aviso de versão.** Todas as demos em TypeScript usam `@raydium-io/raydium-sdk-v2@0.2.85-alpha` na Solana mainnet-beta. Elas foram executadas pela última vez com `0.2.42-alpha` (2026-04); suas assinaturas de chamada foram reverificadas com o pacote publicado `0.2.85-alpha` em 2026-11-20. O esqueleto de CPI em Rust no final usa `raydium-clmm` em `master`, Anchor `1.0.2`, a mesma versão da página do CPMM, então os dois podem ficar no mesmo crate. Os IDs de programa vêm de [`reference/program-addresses`](/docs/i18n/pt/reference/program-addresses) por meio do SDK.
 </Info>
 
 ## Configuração
@@ -314,22 +314,23 @@ Sempre passe o `remainingAccounts` retornado pela simulação: se faltarem conta
 
 ## Criar um pool CLMM personalizável
 
-`createCustomizablePool` é o ponto de entrada que expõe as opções de taxa dinâmica e de taxa de lado único no momento da criação do pool. Ele recebe a mesma estrutura de `createPool`, com **dois** campos adicionais:
+Os builders de pools personalizáveis oferecem taxas dinâmicas e cobrança de taxa em um único lado. Use `createCustomizablePool` para o pool canônico de uma tripla `(config, mint0, mint1)`. Use `createCustomizablePoolV2` para um pool adicional cuja PDA inclui um `seed_index` diferente de zero.
+
+Este exemplo reproduz a demo atualizada e cria um pool V2 adicional:
 
 ```ts
-import { CLMM_PROGRAM_ID, CollectFeeOn } from "@raydium-io/raydium-sdk-v2";
+import { CLMM_PROGRAM_ID } from "@raydium-io/raydium-sdk-v2";
 
 const dynamicFeeConfigs = await raydium.api.getClmmDynamicConfigs();    // GET /main/clmm-dynamic-config
 const dynamicFeeConfig  = dynamicFeeConfigs.find((c) => c.index === 0); // escolha uma faixa de calibração
 
-const { execute, extInfo } = await raydium.clmm.createCustomizablePool({
+const { execute, extInfo } = await raydium.clmm.createCustomizablePoolV2({
   programId: CLMM_PROGRAM_ID,
   mint1:     mintA,
   mint2:     mintB,
   ammConfig,
   initialPrice,
-  // Os dois campos adicionais:
-  collectFeeOn:      CollectFeeOn.TokenOnlyB,   // FromInput | TokenOnlyA | TokenOnlyB
+  collectFeeOnMint:  new PublicKey(mintB.address),
   dynamicFeeConfig:  new PublicKey(dynamicFeeConfig!.id),
   txVersion: TxVersion.V0,
 });
@@ -338,15 +339,15 @@ await execute({ sendAndConfirm: true });
 console.log("Pool personalizável:", extInfo.address.id);   // string base58
 ```
 
+`collectFeeOnMint` deve ser um dos dois mints do pool. O SDK ordena os mints e mapeia sua seleção para o modo on-chain `Token0Only` ou `Token1Only`. Omita-o para usar `FromInput`. O antigo parâmetro `collectFeeOn` do SDK está obsoleto e é rejeitado; o enum on-chain `CollectFeeOn` continua existindo.
+
 <Warning>
-  Não existe um parâmetro `enableDynamicFee`, nem `dynamicFeeConfigId`, nem `startTime`.
-  **Fornecer `dynamicFeeConfig` é o que habilita as taxas dinâmicas** — se você omiti-lo, obtém um pool
-  com taxa estática, sem nenhum erro. Observe também que os membros do enum no SDK são `TokenOnlyA` /
-  `TokenOnlyB`, enquanto o enum Rust on-chain os escreve como `Token0Only` / `Token1Only`; os valores
-  numéricos são os mesmos (`FromInput` = 0).
+  **O V2 muda a derivação do endereço do pool, não apenas o parâmetro de taxa.** O SDK verifica os primeiros 100 seed index diferentes de zero e escolhe o primeiro disponível. Não use o V2 se você pretende criar o pool canônico. Para esse caminho, chame `createCustomizablePool` com os mesmos parâmetros `collectFeeOnMint` e `dynamicFeeConfig`.
+
+  Não existem os parâmetros `enableDynamicFee`, `dynamicFeeConfigId` nem `startTime`. **Passar `dynamicFeeConfig` ativa as taxas dinâmicas.** Omita-o para um pool de taxa estática.
 </Warning>
 
-`createPool` continua funcionando para o caminho de taxa padrão, sem taxa dinâmica. Use `createCustomizablePool` sempre que precisar de qualquer uma dessas opções. Para a lista de contas on-chain, consulte [`/pt/products/clmm/instructions`](/docs/i18n/pt/products/clmm/instructions).
+O `createPool` comum continua funcionando para pools com a taxa padrão. Veja [`products/clmm/instructions`](/docs/i18n/pt/products/clmm/instructions) para as listas de contas distintas das instruções on-chain `CreateCustomizablePool` e `CreateCustomizablePoolV2`.
 
 ## Ordens limitadas
 

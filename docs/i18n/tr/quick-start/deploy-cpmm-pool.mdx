@@ -104,8 +104,8 @@ console.log(`Tx:       https://solscan.io/tx/${txId}`);
 Örnek: 1 SOL ve 160 USDC tohum ile SOL/USDC havuzu oluşturun:
 
 ```bash icon="terminal"
-export MINT_A="So11111111111111111111111111111111111111112"   # wSOL
-export MINT_B="EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"   # USDC
+export MINT_A="So11111111111111111111111111111111111111112"   # wSOL; see reference/program-addresses
+export MINT_B="EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"   # USDC; see reference/program-addresses
 export AMOUNT_A="1000000000"   # 1 SOL (9 decimals)
 export AMOUNT_B="160000000"    # 160 USDC (6 decimals)
 
@@ -134,6 +134,10 @@ Tx:       https://solscan.io/tx/5dQ...
    - vault'ları `AMOUNT_A` ve `AMOUNT_B` ile sağlar.
 4. **İlk fiyat** tohum oranı tarafından belirlenir: ondalık ayarlamadan sonra `price = AMOUNT_B / AMOUNT_A`. Bunu dikkatle seçin — botlar havuz açıldıktan saniyeler içinde herhangi bir yanlış fiyatlandırmayı arbitraj yapacaktır.
 5. **`startTime: new BN(0)`** ticareti hemen açar. Halka açılmadan önce likiditeyi hazırlamak için gelecekteki bir Unix zaman damgası ayarlayın.
+
+Bu örnek `creatorFeeOn` değerini atlar; bu yüzden SDK `Initialize` oluşturur ve havuzun yaratıcı ücreti yolu devre dışıdır. SDK `0.2.85-alpha` ile etkinleştirmek için `FeeOn` içe aktarın ve `creatorFeeOn: FeeOn.OnlyTokenA`, `OnlyTokenB` veya `BothToken` ekleyin. SDK bu durumda `InitializeV2` oluşturur. Yapılandırdığınız owner yaratıcı olarak imzalar ve `PoolState.pool_creator` olur; işlem ücretlerini başka bir hesaptan ödemek yaratıcı ücretlerini başka yere yönlendirmez.
+
+`creatorFeeOn` oranı değil, token'ı seçer. Havuz `AmmConfig.creator_fee_rate` kullanır ve yol etkin olsa bile sıfır oran hiçbir şey biriktirmez. Oluşturmadan önce güncel yapılandırmayı okuyun. Girdi/çıktı davranışı ve tahsilat için [`products/cpmm/fees`](/docs/i18n/tr/products/cpmm/fees) sayfasına bakın.
 
 ## Yaygın hatalar
 

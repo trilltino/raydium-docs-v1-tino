@@ -1,6 +1,6 @@
 ---
 title: "Infraestructura compartida"
-description: "Las primitivas que comparten todos los programas de Raydium — PDAs de autoridad, cuentas AmmConfig, la división de comisiones de protocolo/fondo/creador, cuentas de observación y la superficie pública de la API REST — definidas una sola vez para que los capítulos por producto puedan referirse aquí."
+description: "Las primitivas que comparten todos los programas de Raydium — PDA de autoridad, cuentas AmmConfig, contabilidad de la comisión de intercambio y de la comisión del creador de CPMM, cuentas de observación y la superficie pública de la API REST — definidas una sola vez para que los capítulos de cada producto puedan remitir aquí."
 ---
 
 <Info>
@@ -17,7 +17,7 @@ description: "Las primitivas que comparten todos los programas de Raydium — PD
 
 Tres tipos de compartición recorren la base de código:
 
-- **Compartición de convenciones.** Cada programa usa el mismo patrón de derivación de PDA, la misma forma de división de comisiones y la misma idea de cuenta de observación — pero cada uno los implementa en su propio programa con sus propias semillas.
+- **Convenciones compartidas.** Los programas reutilizan patrones de derivación de PDA, cuentas de configuración, contabilidad de comisiones y cuentas de observación, pero cada programa define sus propias semillas y su comportamiento. Que los campos se llamen parecido no garantiza reglas de liquidación idénticas.
 - **Compartición de cuentas.** Un puñado de cuentas son *literalmente* el mismo registro en muchos pools (el PDA de autoridad global en CPMM, las cuentas AmmConfig).
 - **Compartición fuera de cadena.** Una API REST y un SDK de TypeScript frontal para los cuatro programas. Los integradores interactúan con un host HTTP y un paquete NPM sin importar qué programa terminen llamando.
 
@@ -77,31 +77,35 @@ AMM v4 no tiene `AmmConfig` — sus parámetros de comisión son por pool, codif
 
 Una tabla completa de quién puede cambiar qué está en [`security/admin-and-multisig`](/docs/i18n/es/security/admin-and-multisig). Las divisiones de comisiones actuales visibles para el usuario están en [`ray/protocol-fees`](/docs/i18n/es/ray/protocol-fees).
 
-## 3. La división de comisiones de protocolo / fondo / creador
+## 3. Contabilidad de la comisión de intercambio y de la comisión del creador
 
-Cada comisión de swap de CPMM y CLMM se divide entre hasta cuatro destinos en el camino:
+CPMM y CLMM reparten su **comisión de intercambio** entre los LP, el protocolo y el fondo. CPMM también puede cobrar una comisión opcional del creador con una tasa propia. No modeles esa comisión del creador como una cuarta porción de la comisión de intercambio:
 
 ```
-                         total swap fee
-                              │
-              ┌───────────────┼───────────────┬──────────────┐
-              ▼               ▼               ▼              ▼
-        LP pool side     Protocol         Fund         Creator
-        (raises k)       treasury         multisig     (LaunchLab pools)
+CPMM / CLMM trade fee
+  ├── LP share
+  ├── Protocol share
+  └── Fund share
+
+CPMM creator fee (independent rate, when enabled)
+  └── Accrued creator bucket
+      ├── Protocol share, applied at collection
+      └── Remainder paid to PoolState.pool_creator
 ```
 
 Mecánicamente:
 
-1. **La comisión comercial se acumula en el pool.** La comisión se elimina del lado de entrada del swap y la cantidad *post-comisión* es lo que ve la matemática de producto constante. Esto es lo que significa "el LP gana la comisión" — `k` sube y también lo hace el valor implícito de token por LP.
-2. **Las porciones de protocolo/fondo/creador se deducen de esa acumulación del lado LP en cuentas de contador por pool.** Se sientan en el estado del pool (`protocol_fees_token{0,1}`, `fund_fees_token{0,1}`, etc.) hasta que alguien llama a la instrucción de recopilación correspondiente. No salen de las bóvedas del pool hasta entonces; desde la perspectiva de un swap todavía están "en el pool".
-3. **La recopilación las saca.** Las rutas de protocolo y fondo requieren el firmante respectivo `protocol_owner` / `fund_owner` de `AmmConfig`. Las comisiones de creador de CPMM usan la ruta `CollectCreatorFee` firmada por el creador o `CollectCreatorFeePermissionless`, que cualquier pagador puede activar pero que fija los destinos a los ATAs canónicos del creador.
+1. **La comisión de intercambio usa `trade_fee_rate`.** La parte de los LP permanece en la contabilidad del pool. CPMM cobra su comisión de intercambio de la entrada del swap. CLMM también admite el cobro de comisiones en un solo lado a nivel de pool, así que revisa el modo de comisión del producto antes de asumir una deducción solo sobre la entrada.
+2. **La comisión del creador de CPMM usa `creator_fee_rate` de forma independiente.** Nunca reduce las partes de los LP, del protocolo ni del fondo en la comisión de intercambio. `PoolState.creator_fee_on` determina si la comisión del creador se descuenta de la entrada o de la salida en cada swap. CLMM no tiene este bucket de comisión del creador al estilo de CPMM.
+3. **Las partes que no son de los LP se acumulan en contadores separados.** Permanecen en las bóvedas, pero se excluyen de las reservas que usa la curva hasta que se ejecuta la instrucción de recolección correspondiente.
+4. **La recolección liquida los destinos.** Las rutas del protocolo y del fondo requieren la autoridad correspondiente de `AmmConfig`. La recolección del creador en CPMM requiere la firma del creador registrado o usa la ruta sin permisos, que cualquier pagador puede activar pero que fija como destino las ATA canónicas de ese creador. Ambas rutas del creador aplican en la recolección la parte configurada del protocolo sobre el bucket del creador.
 
 Algunas observaciones críticas:
 
-- **Los porcentajes de división son de la comisión comercial, no del comercio.** Una comisión comercial del 0,25% con una participación de protocolo del 12% significa que el protocolo obtiene `0,25% × 12% = 0,03%` del comercio — no el 12% del comercio.
-- **Las comisiones de creador son opcionales por pool y se fijan en la creación.** Un pool sin ellas tiene una división de 3 vías (LP / protocolo / fondo). En CPMM, una cuarta ranura se enruta al creador del pool registrado. Las graduaciones de LaunchLab la habilitan mediante `InitializeWithPermission`, y desde 2026-10-30 cualquier creador puede habilitarla mediante `InitializeV2`. La configuración no puede cambiar después de la creación.
-- **AMM v4 se divide solo de dos formas**, codificadas por pool: LP y protocolo. Sin ranura de fondo, sin ranura de creador.
-- **Fondo vs protocolo** — ambos son destinos de tesorería de protocolo, pero tienen diferentes firmantes y diferentes usos previstos. `protocol` históricamente financia operaciones; `fund` es la tesorería a más largo plazo. La división entre los dos es en sí misma ajustable.
+- **Los porcentajes de reparto se aplican a la comisión de intercambio, no a toda la operación.** Una comisión de intercambio del 0,25% con una parte del protocolo del 12% da al protocolo `0.25% × 12% = 0.03%` de la operación, antes de considerar cualquier comisión del creador aparte.
+- **Las comisiones del creador de CPMM son opcionales por pool y se fijan al crearlo.** Las graduaciones de LaunchLab pueden activarlas mediante `InitializeWithPermission`. Desde el 2026-10-30, cualquier creador puede activar la ruta mediante `InitializeV2`; el SDK elige esa instrucción cuando se define `creatorFeeOn`. Aun así, se necesita un `creator_fee_rate` distinto de cero para que se acumule algo.
+- **AMM v4 usa una liquidación diferida del PnL.** Su fracción `pnl_numerator / pnl_denominator` se aplica al crecimiento calculado por `calc_take_pnl`, no directamente a la comisión de cada swap. No tiene bucket de fondo ni de creador.
+- **Fondo frente a protocolo** — ambos son destinos de la tesorería del protocolo, pero tienen firmantes distintos y usos previstos distintos. `protocol` ha financiado históricamente las operaciones; `fund` es la tesorería de largo plazo.
 
 Las tasas específicas están en [`reference/fee-comparison`](/docs/i18n/es/reference/fee-comparison) y [`ray/protocol-fees`](/docs/i18n/es/ray/protocol-fees).
 

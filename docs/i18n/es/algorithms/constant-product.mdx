@@ -110,32 +110,36 @@ La verificación del invariante asume que la comisión del LP permanece en las r
 
 ### Convención CPMM
 
-Las comisiones son tasas de tipo basis-point `u64` con denominador `1_000_000`. La comisión de operación se divide en `trade_fee_rate` (total) y luego se subdivide mediante `protocol_fee_rate`, `fund_fee_rate`, `creator_fee_rate`. En cada swap:
+Las comisiones son tasas `u64` sobre un denominador de `1_000_000`. `protocol_fee_rate` y `fund_fee_rate` subdividen la **comisión de intercambio**. `creator_fee_rate` es independiente: se aplica al volumen del swap y nunca reduce las partes de la comisión de intercambio.
+
+Cuando ambas comisiones se cobran de la entrada, el programa redondea una sola vez la deducción combinada y luego la divide según las tasas:
 
 ```
-trade_fee     = ceil(Δx · trade_fee_rate   / 1_000_000)
-creator_fee   = ceil(Δx · creator_fee_rate / 1_000_000)   // its own rate on volume,
-                                                          // NOT a slice of trade_fee
-protocol_fee  = floor(trade_fee · protocol_fee_rate / 1_000_000)
-fund_fee      = floor(trade_fee · fund_fee_rate     / 1_000_000)
-lp_fee        = trade_fee − protocol_fee − fund_fee
+total_fee      = ceil(Δx · (trade_fee_rate + creator_fee_rate) / 1_000_000)
+creator_fee    = floor(total_fee · creator_fee_rate / (trade_fee_rate + creator_fee_rate))
+trade_fee      = total_fee − creator_fee
+protocol_fee   = floor(trade_fee · protocol_fee_rate / 1_000_000)
+fund_fee       = floor(trade_fee · fund_fee_rate / 1_000_000)
+lp_fee         = trade_fee − protocol_fee − fund_fee
 ```
 
-Las tres partes que no son LP se acumulan en contadores separados (`protocol_fees_*`, `fund_fees_*`, `creator_fees_*`) que se **excluyen** de las reservas utilizadas en el invariante. Así es como las comisiones pueden retirarse sin mover la curva. Ver [`products/cpmm/fees`](/docs/i18n/es/products/cpmm/fees).
+Cuando `creator_fee_on` selecciona el token de salida, solo la comisión de intercambio se descuenta de la entrada. La comisión del creador es entonces `ceil(Δy · creator_fee_rate / 1_000_000)` y se descuenta de la salida de la curva. Consulta [`products/cpmm/fees`](/docs/i18n/es/products/cpmm/fees#which-side-of-the-trade-the-fees-are-taken-from).
+
+Los tres buckets que no son de los LP se acumulan por separado y se excluyen de las reservas usadas en el invariante. Al recolectar las comisiones del creador, una parte configurable del protocolo pasa del bucket del creador al del protocolo; solo el resto va al creador.
 
 ### Convención AMM v4
 
-Las comisiones son ratios `numerator / denominator` con denominador `10_000`. La división se fija en la creación del pool y se almacena en `AmmInfo.fees`:
+La comisión bruta del swap usa `swap_fee_numerator / swap_fee_denominator`, normalmente `25 / 10_000`:
 
 ```
-swap_fee  = ceil(Δx · swap_fee_numerator / swap_fee_denominator)    // por ejemplo, 0.25%
-pnl_share = swap_fee · pnl_numerator / pnl_denominator               // 12 / 100 = 12% de swap_fee
-lp_share  = swap_fee − pnl_share                                     // 0.22% del volumen
+gross_fee = ceil(Δx · swap_fee_numerator / swap_fee_denominator)   // 0.25% by default
 ```
 
-`pnl_share` se acumula en `state_data.need_take_pnl_*` y se excluye de las reservas; `lp_share` permanece en el vault. Ver [`products/amm-v4/fees`](/docs/i18n/es/products/amm-v4/fees).
+El programa **no** calcula `pnl_numerator / pnl_denominator × gross_fee` en cada swap. Toda la comisión permanece inicialmente en las reservas y eleva `k`. Más tarde, `calc_take_pnl` mide el crecimiento respecto a la línea base de `TargetOrders`, deriva los importes de PnL de cada lado de token y aplica `pnl_numerator / pnl_denominator` a ese crecimiento. Con los valores predeterminados esta fracción es `12 / 100`; el 0,03% del volumen que se suele citar es un equivalente económico de la comisión, no una deducción exacta por swap. El redondeo entero cambia el resultado, y el programa solo registra PnL cuando los importes de ambos lados de token son distintos de cero.
 
-Ambas convenciones preservan el invariante de la misma manera — la diferencia es cosmética (denominador + número de subcategorías).
+El PnL registrado se acumula en `state_data.need_take_pnl_*` y se excluye de las reservas. Los LP conservan el resto del crecimiento. Consulta [`products/amm-v4/math`](/docs/i18n/es/products/amm-v4/math#settlement-step-pnl).
+
+Ambos programas excluyen de las reservas de la curva las comisiones registradas que no son de los LP, pero difieren en el momento de la liquidación y en la contabilidad.
 
 ## Reglas de redondeo
 

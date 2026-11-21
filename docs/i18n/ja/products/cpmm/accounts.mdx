@@ -132,7 +132,7 @@ export function deriveCpmmAccounts(
 ```rust programs/cp-swap/src/states/pool.rs
 pub struct PoolState {
     pub amm_config: Pubkey,               // binds this pool to an AmmConfig
-    pub pool_creator: Pubkey,             // who ran initialize
+    pub pool_creator: Pubkey,             // creator-fee recipient; normally the initialize signer
     pub token_0_vault: Pubkey,            // == vault0 PDA
     pub token_1_vault: Pubkey,            // == vault1 PDA
 
@@ -177,7 +177,8 @@ pub struct PoolState {
 - **`status`** — `Swap`、`Deposit`、`Withdraw` が許可されているかどうかを制御するビットマスク。`UpdatePoolStatus` を介して管理者によって更新されます。SDK はトランザクションを構築する前にこれをチェックします；CPI で直接実行している場合は、自分でチェックしてください。
 - **`token0_program` / `token1_program`** — 各ボルトの CPI に使用するトークンプログラム。1 つはクラシック SPL Token で、もう 1 つは Token-2022 である可能性があります；それらは独立しています。
 - **`open_time`** — Unix タイムスタンプ。この時刻前のスワップは失敗します。デポジットは `open_time` 前に許可されるため、プールをシードできます。
-- **`creator_fee_on` / `enable_creator_fee`** — 一緒にこのプールのオプションのクリエイターフィーがアクティブかどうか、およびスワップのどちら側から収集されるかを制御します。`enable_creator_fee == false` はクリエイターフィーパスを完全にゼロにします。有効な場合、`creator_fee_on` は以下を選択します：`0` = スワップ入力であるトークンからフィーを取得（`BothToken`）；`1` = `token_0` からのみフィーを取得（`token_1 → token_0` スワップをスキップ）；`2` = `token_1` からのみフィーを取得。プール作成時に設定：`Initialize` は常に無効として保存し、`InitializeV2` はクリエイターの選択を保存し（2026-10-30 追加）、`InitializeWithPermission` は常に呼び出し元の `creator_fee_on` とともに有効として保存します。その後変更できません。
+- **`pool_creator`** — クリエイターフィーの受取人です。`Initialize` と `InitializeV2` はクリエイターの署名者を記録します。`InitializeWithPermission` は別途渡されたクリエイターアカウントを記録します。トランザクション手数料を支払っても、このフィールドは変わらず、クリエイターフィーの送り先も変わりません。
+- **`creator_fee_on` / `enable_creator_fee`** — オプションのクリエイターフィーが有効かどうか、またどのトークンを使うかを合わせて制御します。`enable_creator_fee == false` の場合、クリエイターフィーのパスは完全に無効になります。有効な場合、`BothToken`（`0`）はスワップの入力トークンから手数料を取ります。`OnlyToken0`（`1`）は常に token0 を使い、`token_0 → token_1` のスワップでは入力から、`token_1 → token_0` のスワップでは出力から取ります。`OnlyToken1`（`2`）はその逆です。プール作成時に設定されます。`Initialize` は常に無効として保存し、`InitializeV2` はクリエイターの選択を保存し（2026-10-30 追加）、`InitializeWithPermission` は常に有効として呼び出し元の `creator_fee_on` を保存します。後から変更することはできません。
 - **`creator_fees_token_{0,1}`** — 蓄積されたクリエイターフィー、`CollectCreatorFee` または `CollectCreatorFeePermissionless` によってスイープされます。両方のパスは完全なカウンターをゼロにしますが、2026-09-19 クリエイターフィー配分アップグレード以降、残高の一部だけがプールを離れます：プロトコルのシェアは **`protocol_fees_token_{0,1}` に追加され**、残りはクリエイターに転送されます。パーミッションレスパスは受信者を `pool_creator` の正規 ATA に固定します。`PoolState` 自体は変更されていません — 共有額の個別カウンターはありません。
 
 ### `AmmConfig`

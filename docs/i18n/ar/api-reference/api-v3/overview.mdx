@@ -91,9 +91,9 @@ description: "واجهة REST API للاستعلام عن حمامات السي�
 
 ### تكوينات CLMM للرسوم الديناميكية وأوامر الحد
 
-تكشف نقطتا نهاية جديدتان عن بيانات المعايرة لتدفق `CreateCustomizablePool` في CLMM:
+توفّر نقطتا نهاية بيانات المعايرة لمجمعات CLMM القابلة للتخصيص والأوامر المحددة السعر:
 
-- `GET /main/clmm-dynamic-config` — قائمة مستويات `DynamicFeeConfig` (فترة التصفية، فترة الانحطاط، عامل التقليل، الحد الأقصى للبسط، عنصر تحكم الرسم الديناميكي). مرّر `id` واحد من هذه عند إنشاء `createCustomizablePool` مع `enableDynamicFee=true`.
+- `GET /main/clmm-dynamic-config` — قائمة بمستويات `DynamicFeeConfig` (فترة التصفية، وفترة التلاشي، وعامل التخفيض، والبسط الأقصى، والتحكم في الرسوم الديناميكية). مرّر `id` أحد المستويات بوصفه `dynamicFeeConfig` إلى `createCustomizablePool` للمجمع القياسي أو إلى `createCustomizablePoolV2` لمجمع إضافي ذي seed index. تمرير هذا المعامل يفعّل الرسوم الديناميكية؛ ولا يوجد معامل باسم `enableDynamicFee`.
 - `GET /main/clmm-limit-order-config` — تكوين أوامر الحد لكل حمام: ما إذا كانت أوامر الحد مفعلة والحد الأدنى من مبلغ الإدخال وحارس `limit_order_admin` خارج السلسلة المصرح به بتسوية الطلبات المملوءة.
 
 بيانات أوامر الحد لكل محفظة (مفتوح / ممتلأ / مغلق) توجد على Temp API؛ انظر [`api-reference/temp-api-v1/overview`](/docs/i18n/ar/api-reference/temp-api-v1/overview).

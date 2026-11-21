@@ -161,7 +161,7 @@ flowchart TB
 |-----------|------------|---------------------|
 | **Authority PDA** | موقّع مملوك للبرنامج يتحكم فعلاً في أقبية الرموز. لا يمتلك المستخدمون سلطة القبو. | لكل برنامج؛ CPMM يستخدم `vault_and_lp_mint_auth_seed` — انظر [`products/cpmm/accounts`](/docs/i18n/ar/products/cpmm/accounts). |
 | **حسابات الإعدادات** | حسابات لكل برنامج تحتفظ بمعدلات الرسوم، مفاتيح الإدارة، وجهات الصندوق/المنشئ. مفهرسة بـ `u16` في CPMM (`amm_config[index]`). | [`reference/program-addresses`](/docs/i18n/ar/reference/program-addresses) يسرد نقاط نهاية API التي تعيدها. |
-| **تقسيم رسوم البروتوكول/الصندوق/المنشئ** | يتم تقسيم رسوم التجارة الواحدة ثلاث (أحياناً أربع) طرق عند التسوية. نفس النمط في CPMM و CLMM، أزرار مختلفة. | [`reference/fee-comparison`](/docs/i18n/ar/reference/fee-comparison) |
+| **رسوم التداول ورسوم المنشئ** | يقسّم CPMM وCLMM رسم التداول بين مزودي السيولة والبروتوكول والصندوق. ويمكن لـ CPMM فرض رسم منشئ منفصل، مع تطبيق حصة البروتوكول عند جمع حاوية المنشئ. | [`protocol-overview/shared-infrastructure`](/docs/i18n/ar/protocol-overview/shared-infrastructure#3-trade-fee-and-creator-fee-accounting) |
 | **حساب الملاحظة** | حلقة دائرية من عينات الأسعار المستخدمة لـ TWAP. مكتوب على كل مبادلة. | [`products/cpmm/accounts`](/docs/i18n/ar/products/cpmm/accounts)، [`products/clmm/accounts`](/docs/i18n/ar/products/clmm/accounts) |
 | **REST API (`api-v3.raydium.io`)** | API القراءة العامة الوحيدة لبيانات وصف المجموعة، المراكز، حالة المزرعة، وحساب الاقتباس. | [`sdk-api/rest-api`](/docs/i18n/ar/sdk-api/rest-api) |
 | **سجل IDL** | Anchor IDLs لكل برنامج، معكوس في [`github.com/raydium-io/raydium-idl`](https://github.com/raydium-io/raydium-idl). يقوم SDK و CPI المدمجون بفك التسلسل ضدها. | [`sdk-api/anchor-idl`](/docs/i18n/ar/sdk-api/anchor-idl) |

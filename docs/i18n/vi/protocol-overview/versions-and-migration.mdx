@@ -58,7 +58,7 @@ CPMM (constant-product market maker, tên nội bộ `raydium-cp-swap`) được
 
 ### Những gì CPMM mang lại cho bạn so với AMM v4
 
-- **Kinh tế LP tốt hơn theo mặc định.** AmmConfig mặc định của CPMM định tuyến 100% phí giao dịch cho LP (với phí giao thức có thể bật tắt theo tầng). AMM v4 mã hóa cứng ~12% cho giao thức.
+- **Các bậc phí giao dịch có thể cấu hình.** CPMM đọc tỷ lệ chia cho LP, giao thức và quỹ từ `AmmConfig`. Cấu hình chuẩn 0,25% dùng tỷ lệ chia phí giao dịch 84% / 12% / 4%. Có thể áp dụng thêm phí người tạo pool tùy chọn riêng khi được bật và cấu hình với mức khác 0. Ngược lại, AMM v4 thanh toán PnL của giao thức từ mức tăng trưởng pool đã tính; tỷ lệ khoảng 88% / 12% của nó là giá trị tương đương về kinh tế với tham số mặc định.
 - **Chi phí tạo pool thấp hơn.** Không cần thị trường OpenBook. Tạo là một giao dịch, ~0,15 SOL tiền thuê so với ~0,6 SOL cho v4.
 - **Token-2022.** Các mint phí chuyển, mint hook chuyển (với cảnh báo), chuyển bảo mật — tất cả được hỗ trợ trên CPMM, không có trên v4.
 - **Bề mặt tích hợp sạch hơn.** CPMM có một crate thân thiện với Anchor-CPI được xuất bản (`raydium-cp-swap`), danh sách tài khoản đơn giản hơn và IDL ổn định. AMM v4 gửi IDL nhưng không bao giờ có crate CPI Rust được duy trì.
@@ -66,9 +66,9 @@ CPMM (constant-product market maker, tên nội bộ `raydium-cp-swap`) được
 
 ### Khi nào di chuyển là đáng giá
 
-Đối với một pool được giao dịch tích cực, sự nâng cao phí LP một mình thường biện minh cho việc di chuyển trong vòng vài tháng. Số học: một pool kiếm được 0,25% × \$X khối lượng hàng ngày cho 0,03% cho giao thức trên v4 (12% bị thiếu). Trên CPMM, điều đó quay trở lại LP. Trong một năm, điều đó tích lũy một cách có ý nghĩa.
+Việc chuyển đổi có thể thay đổi kinh tế của LP, nhưng hãy so sánh các giá trị `AmmConfig` thực tế và mọi phí người tạo pool CPMM riêng, thay vì giả định phần giao thức của AMM v4 sẽ tự động quay về LP. Với cấu hình chuẩn của CPMM, phí giao dịch vẫn dành 12% cho giao thức và 4% cho quỹ. Mức tương đương 0,03% cho giao thức thường được nhắc tới ở AMM v4 không phải là khoản khấu trừ chính xác cho mỗi swap.
 
-Đối với một pool khối lượng thấp, di chuyển là hơn về bảo vệ tương lai — các mặc định tốt hơn, hỗ trợ Token-2022 nếu bạn bao giờ cần nó, tích hợp dễ dàng hơn.
+Với pool có khối lượng thấp, việc chuyển đổi có thể chủ yếu nhằm chuẩn bị cho tương lai — hỗ trợ Token-2022 và tích hợp dễ hơn.
 
 ### Cách di chuyển hoạt động
 

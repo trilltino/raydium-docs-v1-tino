@@ -58,7 +58,7 @@ CPMM (creador de mercado de producto constante, nombre interno `raydium-cp-swap`
 
 ### Qué obtiene CPMM sobre AMM v4
 
-- **Mejores economías de LP por defecto.** La AmmConfig predeterminada de CPMM enruta el 100% de las comisiones de trading a los LPs (con la comisión del protocolo conmutable por nivel). AMM v4 codifica ~12% para el protocolo.
+- **Niveles de comisión de intercambio configurables.** CPMM lee el reparto entre LP, protocolo y fondo desde `AmmConfig`. Su configuración estándar del 0,25% usa un reparto de la comisión de intercambio de 84% / 12% / 4%. Puede aplicarse además una comisión opcional del creador cuando está activada y configurada con una tasa distinta de cero. AMM v4, en cambio, liquida el PnL del protocolo a partir del crecimiento calculado del pool; su reparto aproximado de 88% / 12% es un equivalente económico con los valores predeterminados.
 - **Costo de creación de pool más bajo.** No se necesita mercado de OpenBook. La creación es una transacción, ~0.15 SOL de alquiler vs ~0.6 SOL para v4.
 - **Token-2022.** Mints de comisión de transferencia, mints de gancho de transferencia (con advertencias), transferencias confidenciales — todo soportado en CPMM, nada en v4.
 - **Superficie de integrador más limpia.** CPMM tiene un crate publicado amigable con Anchor-CPI (`raydium-cp-swap`), una lista de cuentas más simple e IDL estable. AMM v4 envía un IDL pero nunca tuvo un crate CPI de Rust mantenido.
@@ -66,9 +66,9 @@ CPMM (creador de mercado de producto constante, nombre interno `raydium-cp-swap`
 
 ### Cuándo vale la pena la migración
 
-Para un pool activamente negociado, el aumento de comisión de LP por sí solo generalmente justifica la migración en unos pocos meses. La aritmética: un pool que gana 0.25% × \$X de volumen diario da 0.03% al protocolo en v4 (el 12% faltante). En CPMM eso vuelve a los LPs. Durante un año, eso se compone significativamente.
+La migración puede cambiar la economía de los LP, pero compara los valores reales de `AmmConfig` y cualquier comisión del creador de CPMM aparte, en lugar de suponer que la parte del protocolo de AMM v4 vuelve automáticamente a los LP. Con la configuración estándar de CPMM, la comisión de intercambio sigue asignando un 12% al protocolo y un 4% al fondo. El equivalente del 0,03% que se suele citar para el protocolo en AMM v4 no es una deducción exacta por swap.
 
-Para un pool de bajo volumen, la migración es más sobre preparación para el futuro — mejores valores predeterminados, soporte de Token-2022 si alguna vez lo necesitas, integraciones más fáciles.
+Para un pool de bajo volumen, migrar puede servir más para prepararse para el futuro: compatibilidad con Token-2022 e integraciones más sencillas.
 
 ### Cómo funciona la migración
 

@@ -10,7 +10,7 @@ description: "Полные примеры на TypeScript для каждой о
 </Info>
 
 <Info>
-  **Информация о версии.** Все примеры на TypeScript ориентированы на `@raydium-io/raydium-sdk-v2@0.2.64-alpha`; они были последний раз выполнены для `0.2.42-alpha` (2026-04), а их сигнатуры вызовов перепроверены для исходного кода `0.2.64-alpha` 09.09.2026 на Solana mainnet-beta. Скелет Rust CPI ориентирован на `raydium-cp-swap` в ветке `master`, Anchor `1.0.2`. Идентификаторы программ получаются через константы из [`reference/program-addresses`](/docs/i18n/ru/reference/program-addresses).
+  **Версия.** Все демо на TypeScript рассчитаны на `@raydium-io/raydium-sdk-v2@0.2.85-alpha` в Solana mainnet-beta. В последний раз они запускались на `0.2.42-alpha` (2026-04); сигнатуры вызовов повторно проверены по опубликованному пакету `0.2.85-alpha` 2026-11-20. Каркас Rust CPI рассчитан на `raydium-cp-swap` в ветке `master`, Anchor `1.0.2`. Идентификаторы программ берутся из констант в [`reference/program-addresses`](/docs/i18n/ru/reference/program-addresses).
 </Info>
 
 ## Предварительные требования
@@ -49,13 +49,16 @@ const raydium = await Raydium.load({
 ```ts
 import { PublicKey } from "@solana/web3.js";
 import BN from "bn.js";
-import { CREATE_CPMM_POOL_PROGRAM, CREATE_CPMM_POOL_FEE_ACC }
-  from "@raydium-io/raydium-sdk-v2";
+import {
+  CREATE_CPMM_POOL_PROGRAM,
+  CREATE_CPMM_POOL_FEE_ACC,
+  FeeOn,
+} from "@raydium-io/raydium-sdk-v2";
 // (Если вам нужны все PDA пула сразу, экспортированный вспомогательный метод — `getCreatePoolKeys`.
 //  Нет `getCpmmPdas`.)
 
-const mintA = new PublicKey("So11111111111111111111111111111111111111112"); // wSOL
-const mintB = new PublicKey("EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"); // USDC
+const mintA = new PublicKey("So11111111111111111111111111111111111111112"); // wSOL; see reference/program-addresses
+const mintB = new PublicKey("EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"); // USDC; see reference/program-addresses
 
 // 1. Выберите конфигурацию комиссии. index=0 — это уровень 0.25%.
 const feeConfigs = await raydium.api.getCpmmConfigs();
@@ -75,6 +78,7 @@ const { execute, extInfo } = await raydium.cpmm.createPool({
   mintBAmount:     new BN(   160_000_000),  // 160 USDC (при 160/SOL)
   startTime:       new BN(0),               // открыть немедленно
   feeConfig,
+  creatorFeeOn:    FeeOn.OnlyTokenA,
   associatedOnly:  false,
   ownerInfo:       { useSOLBalance: true },
   txVersion:       TxVersion.V0,
@@ -93,8 +97,12 @@ console.log("Tx:", txId);
 - Выбирает правильную программу токенов (SPL Token или Token-2022) для каждой стороны.
 
 <Note>
-  **`createPool` собирает `Initialize`, поэтому комиссия создателя пула выключена.** Чтобы создать пул с включённой комиссией создателя, используйте `InitializeV2` (добавлена в обновлении программы 2026-10-30). Её первые 19 счетов совпадают с `Initialize`. Она убирает `rent` и принимает ещё один аргумент, `creator_fee_on: Option<CreatorFeeOn>`. Закреплённая на этой странице версия `0.2.64-alpha` старше этой инструкции. Пока ваша версия SDK не включает сборщик, кодируйте её из обновлённого IDL. См. [`products/cpmm/instructions`](/docs/i18n/ru/products/cpmm/instructions#initializev2).
+  **Если задать `creatorFeeOn`, `createPool` строит `InitializeV2`.** Если его опустить, строится исходная инструкция `Initialize` с отключённой комиссией создателя. `FeeOn.OnlyTokenA`, `OnlyTokenB` и `BothToken` выбирают токен (или токены) для комиссии; они не задают ни ставку, ни получателя. При сортировке минтов SDK сохраняет ваш выбор стороны A/B.
 </Note>
+
+Кошелёк, настроенный как owner в SDK, подписывает транзакцию как создатель и записывается в `PoolState.pool_creator`. Он же оплачивает ренту пула, комиссию за создание пула и начальную ликвидность. Отдельный `feePayer` транзакции не меняет записанного создателя и не перенаправляет комиссии создателя. Обычный сбор требует подписи записанного создателя; беспрепятственный (permissionless) сбор может запустить другой плательщик, но доля создателя отправляется только на канонические ATA этого создателя.
+
+Ставка берётся из `AmmConfig.creator_fee_rate`. Если она равна нулю, включение пути комиссии создателя ничего не начисляет. При сборе программа переносит настроенную долю протокола в корзину протокола и выплачивает остаток создателю. См. [`products/cpmm/fees`](/docs/i18n/ru/products/cpmm/fees) и [`products/cpmm/instructions`](/docs/i18n/ru/products/cpmm/instructions#initializev2).
 
 После подтверждения вы можете получить текущее состояние пула:
 
@@ -245,7 +253,7 @@ await execute({ sendAndConfirm: true });
 
 Источник: [`src/cpmm/collectCreatorFee.ts`](https://github.com/raydium-io/raydium-sdk-V2-demo/blob/master/src/cpmm/collectCreatorFee.ts), [`src/cpmm/collectAllCreatorFee.ts`](https://github.com/raydium-io/raydium-sdk-V2-demo/blob/master/src/cpmm/collectAllCreatorFee.ts)
 
-Сбор комиссий протокола и фонда остаётся под контролем прав доступа. Комиссии создателя имеют два пути: подписанная создателем инструкция `CollectCreatorFee` и дополнительная `CollectCreatorFeePermissionless`, которую может вызвать любой плательщик, но которая может переводить средства только на канонические ATA создателя. В версии `0.2.64-alpha` добавлены построители уровня модуля для обоих путей создателя:
+Сбор комиссий протокола и фонда остаётся под контролем прав доступа. Комиссии создателя имеют два пути: подписанная создателем инструкция `CollectCreatorFee` и дополнительная `CollectCreatorFeePermissionless`, которую может вызвать любой плательщик, но которая может переводить средства только на канонические ATA создателя. В версии `0.2.85-alpha` добавлены построители уровня модуля для обоих путей создателя:
 
 ```ts
 // подписано создателем
@@ -267,7 +275,7 @@ await raydium.cpmm.collectMultiCreatorFees({ poolInfoList, txVersion: TxVersion.
 ```
 
 <Warning>
-  **Обе инструкции создателя изменили списки аккаунтов при обновлении программы 2026-09-19.** Каждая теперь принимает PDA `creator_fee_share` по адресу `["creator_fee_share", creator, ammConfig]`, а версия без прав доступа также принимает `amm_config` — оба **добавлены после `system_program`** вместо вставки, поэтому аккаунты, которые уже были там, сохраняют свои позиции. Построитель, привязанный к версии SDK, предшествующей обновлению, выдаёт более короткий список, и транзакция отклоняется из-за отсутствия аккаунтов. Убедитесь, что установленная вами версия содержит новые аккаунты перед использованием этих помощников с обновлённой программой, и обновите IDL, если вы генерируете клиентов из него.
+  **Обе инструкции создателя изменили списки аккаунтов в обновлении программы 2026-09-19.** Теперь каждая принимает PDA `creator_fee_share` по адресу `["creator_fee_share", creator, ammConfig]`, а беспрепятственная (permissionless) версия дополнительно принимает `amm_config`. Оба аккаунта **добавлены после `system_program`**, а не вставлены, поэтому прежние аккаунты сохраняют свои позиции. Билдеры `0.2.85-alpha` добавляют оба аккаунта. `0.2.64-alpha` формирует укороченный список, и программа отклоняет такую транзакцию из-за недостающих аккаунтов. Если вы генерируете клиенты из IDL, обновите IDL.
 
   Передача PDA обязательна даже когда он никогда не был создан — выведите его и передайте; программа использует `AmmConfig.creator_fee_share_rate` когда аккаунт пуст.
 </Warning>

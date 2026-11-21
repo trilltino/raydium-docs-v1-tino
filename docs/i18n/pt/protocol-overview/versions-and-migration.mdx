@@ -58,7 +58,7 @@ CPMM (constant-product market maker, nome interno `raydium-cp-swap`) foi deploya
 
 ### O que CPMM oferece sobre AMM v4
 
-- **Melhor economia de LP por padrão.** O AmmConfig padrão de CPMM roteia 100% das taxas de negociação para LPs (com a taxa de protocolo alternável por tier). AMM v4 hardcoda ~12% para protocolo.
+- **Níveis de taxa de negociação configuráveis.** O CPMM lê a divisão entre LP, protocolo e fundo em `AmmConfig`. Sua configuração padrão de 0,25% usa uma divisão da taxa de negociação de 84% / 12% / 4%. Uma taxa opcional do criador, separada, pode ser aplicada quando ativada e configurada com uma alíquota diferente de zero. Já o AMM v4 liquida o PnL do protocolo a partir do crescimento calculado do pool; sua divisão aproximada de 88% / 12% é um equivalente econômico com os parâmetros padrão.
 - **Custo de criação de pool menor.** Nenhum mercado OpenBook necessário. A criação é uma transação, ~0,15 SOL de rent vs ~0,6 SOL para v4.
 - **Token-2022.** Mints com taxa de transferência, mints com transfer-hook (com ressalvas), transferências confidenciais — tudo suportado em CPMM, nada em v4.
 - **Superfície de integrador mais limpa.** CPMM tem uma crate publicada amigável com Anchor-CPI (`raydium-cp-swap`), uma lista de contas mais simples e um IDL estável. AMM v4 envia um IDL mas nunca teve uma crate Rust CPI mantida.
@@ -66,9 +66,9 @@ CPMM (constant-product market maker, nome interno `raydium-cp-swap`) foi deploya
 
 ### Quando a migração vale a pena
 
-Para um pool ativamente negociado, o aumento de taxa de LP por si só geralmente justifica a migração em alguns meses. A aritmética: um pool ganhando 0,25% × \$X de volume diário dá 0,03% para protocolo em v4 (os 12% faltantes). Em CPMM isso retorna aos LPs. Ao longo de um ano, isso se compõe significativamente.
+A migração pode mudar a economia dos LPs, mas compare os valores reais de `AmmConfig` e qualquer taxa do criador do CPMM separada, em vez de supor que a parte do protocolo do AMM v4 volta automaticamente para os LPs. Na configuração padrão do CPMM, a taxa de negociação ainda destina 12% ao protocolo e 4% ao fundo. O equivalente de 0,03% para o protocolo, frequentemente citado para o AMM v4, não é uma dedução exata por swap.
 
-Para um pool de baixo volume, a migração é mais sobre à prova de futuro — melhores padrões, suporte Token-2022 se você precisar, integrações mais fáceis.
+Para um pool de baixo volume, a migração pode servir mais para preparar o futuro — suporte a Token-2022 e integrações mais simples.
 
 ### Como funciona a migração
 

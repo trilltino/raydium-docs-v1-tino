@@ -4,19 +4,19 @@ description: "How Raydium trading fees route into buybacks and how to verify the
 ---
 
 <Info>
-  12% of Raydium trading fees are used to buy back RAY. Bought-back RAY is held by the protocol at a public on-chain address.
+  For CPMM and CLMM, 12% of the **trade fee** is allocated to RAY buybacks. Bought-back RAY is held by the protocol at a public on-chain address.
 </Info>
 
 ## Flow at a glance
 
 ```text
-Swap fee
+Trade fee
   -> LP share
   -> RAY buyback share
   -> Treasury share, where applicable
 ```
 
-For CLMM and CPMM pools, the trading-fee split is:
+For CLMM and CPMM pools, the trade-fee split is:
 
 ```text
 84% to LPs
@@ -24,26 +24,30 @@ For CLMM and CPMM pools, the trading-fee split is:
 4% to treasury
 ```
 
-For Standard AMM v4 pools, the trading-fee split is:
+CPMM's optional creator fee has an independent rate and does not reduce these trade-fee percentages. When creator fees are collected, the configured protocol share moves into protocol accounting and the remainder goes to the pool creator. It is not a fixed 12% deduction from the creator fee.
+
+For Standard AMM v4, the commonly quoted split is approximately:
 
 ```text
 88% to LPs
-12% to RAY buybacks
+12% to protocol
 ```
+
+Those AMM v4 figures are economic fee equivalents under the default parameters. The program applies `pnl_numerator / pnl_denominator` to pool growth calculated by `calc_take_pnl`; it does not deduct 12% from each swap fee. See [`products/amm-v4/fees`](/docs/en/products/amm-v4/fees).
 
 ## What buyback share means
 
-The buyback percentage applies to the **trading fee**, not to the full trade amount.
+For CPMM and CLMM, the buyback percentage applies to the **trade fee**, not to the full trade amount.
 
-Example: a pool charges a `0.25%` swap fee. The buyback share is `12%` of that fee.
+Example: a pool charges a `0.25%` trade fee. The buyback share is `12%` of that fee.
 
 ```text
 Trade amount:       1,000 USDC
-Swap fee:           1,000 * 0.25% = 2.50 USDC
+Trade fee:          1,000 * 0.25% = 2.50 USDC
 RAY buyback share:  2.50 * 12% = 0.30 USDC
 ```
 
-The effective buyback amount is `0.03%` of the trade amount in this example.
+The effective buyback amount is `0.03%` of the trade amount in this example. Any separate CPMM creator fee is additional.
 
 ## Collection addresses
 

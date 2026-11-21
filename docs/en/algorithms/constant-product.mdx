@@ -104,32 +104,36 @@ The invariant check assumes the LP fee stays in the reserves. Different Raydium 
 
 ### CPMM convention
 
-Fees are `u64` basis-point-like rates on a `1_000_000` denominator. The trade fee is split into `trade_fee_rate` (total) and then subdivided via `protocol_fee_rate`, `fund_fee_rate`, `creator_fee_rate`. On each swap:
+Fees are `u64` rates on a `1_000_000` denominator. `protocol_fee_rate` and `fund_fee_rate` subdivide the **trade fee**. `creator_fee_rate` is independent: it applies to swap volume and never reduces the trade-fee shares.
+
+When both fees are taken from input, the program rounds their combined deduction once, then splits it by rate:
 
 ```
-trade_fee     = ceil(Δx · trade_fee_rate   / 1_000_000)
-creator_fee   = ceil(Δx · creator_fee_rate / 1_000_000)   // its own rate on volume,
-                                                          // NOT a slice of trade_fee
-protocol_fee  = floor(trade_fee · protocol_fee_rate / 1_000_000)
-fund_fee      = floor(trade_fee · fund_fee_rate     / 1_000_000)
-lp_fee        = trade_fee − protocol_fee − fund_fee
+total_fee      = ceil(Δx · (trade_fee_rate + creator_fee_rate) / 1_000_000)
+creator_fee    = floor(total_fee · creator_fee_rate / (trade_fee_rate + creator_fee_rate))
+trade_fee      = total_fee − creator_fee
+protocol_fee   = floor(trade_fee · protocol_fee_rate / 1_000_000)
+fund_fee       = floor(trade_fee · fund_fee_rate / 1_000_000)
+lp_fee         = trade_fee − protocol_fee − fund_fee
 ```
 
-The three non-LP shares accrue into separate counters (`protocol_fees_*`, `fund_fees_*`, `creator_fees_*`) that are **excluded** from the reserves used in the invariant. This is how fees can be swept without moving the curve. See [`products/cpmm/fees`](/docs/en/products/cpmm/fees).
+When `creator_fee_on` selects the output token, only the trade fee is deducted from input. The creator fee is instead `ceil(Δy · creator_fee_rate / 1_000_000)`, deducted from the curve output. See [`products/cpmm/fees`](/docs/en/products/cpmm/fees#which-side-of-the-trade-the-fees-are-taken-from).
+
+The three non-LP buckets accrue separately and are excluded from the reserves used in the invariant. When creator fees are collected, a configurable protocol share moves from the creator bucket into the protocol bucket; only the remainder goes to the creator.
 
 ### AMM v4 convention
 
-Fees are `numerator / denominator` ratios on a `10_000` denominator. The split is fixed at pool creation and stored on `AmmInfo.fees`:
+The gross swap fee uses `swap_fee_numerator / swap_fee_denominator`, normally `25 / 10_000`:
 
 ```
-swap_fee  = ceil(Δx · swap_fee_numerator / swap_fee_denominator)    // e.g. 0.25%
-pnl_share = swap_fee · pnl_numerator / pnl_denominator               // 12 / 100 = 12% of swap_fee
-lp_share  = swap_fee − pnl_share                                     // 0.22% of volume
+gross_fee = ceil(Δx · swap_fee_numerator / swap_fee_denominator)   // 0.25% by default
 ```
 
-`pnl_share` accrues into `state_data.need_take_pnl_*` and is excluded from reserves; `lp_share` stays in the vault. See [`products/amm-v4/fees`](/docs/en/products/amm-v4/fees).
+The program does **not** calculate `pnl_numerator / pnl_denominator × gross_fee` on each swap. The whole fee initially stays in the reserves and raises `k`. Later, `calc_take_pnl` measures growth against the `TargetOrders` baseline, derives token-side PnL amounts, and applies `pnl_numerator / pnl_denominator` to that growth. Under the defaults this fraction is `12 / 100`; the commonly quoted 0.03% of volume is an economic fee equivalent, not an exact per-swap deduction. Integer rounding changes the result, and the program books PnL only when both token-side amounts are nonzero.
 
-Both conventions preserve the invariant the same way — the difference is cosmetic (denominator + number of sub-categories).
+Booked PnL accrues into `state_data.need_take_pnl_*` and is excluded from reserves. LPs retain the remaining growth. See [`products/amm-v4/math`](/docs/en/products/amm-v4/math#settlement-step-pnl).
+
+Both programs exclude booked non-LP fees from curve reserves, but their settlement timing and accounting differ.
 
 ## Rounding rules
 

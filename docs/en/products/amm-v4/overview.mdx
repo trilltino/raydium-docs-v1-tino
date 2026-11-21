@@ -13,7 +13,7 @@ description: "Raydium's original constant-product AMM. Originally a hybrid desig
 
 ## One-paragraph summary
 
-AMM v4 is the program Raydium launched with. It maintains a constant-product invariant (`x · y = k`). It was originally designed as a **hybrid AMM**: each pool sat on top of an OpenBook (formerly Serum) limit-order-book market and mirrored portions of its curve as limit orders on that book, so users and aggregators could swap directly against the pool (AMM path) or against the limit orders the pool owned on OpenBook (CLOB path). **The OpenBook dependency has since been removed from the program** — pools no longer post or maintain orders on OpenBook, and all current swap traffic flows through the AMM-only V2 swap entrypoints. Token-2022 is not supported. AMM v4 is **still fully operational as a constant-product AMM** — every pool keeps trading, fees still accrue, LPs still earn — but the UI and SDK default new pool creation to [CPMM](/docs/en/products/cpmm) because CPMM is cheaper and supports more mint types.
+AMM v4 is the program Raydium launched with. It maintains a constant-product invariant (`x · y = k`). It was originally designed as a **hybrid AMM**: each pool sat on top of an OpenBook (formerly Serum) limit-order-book market and mirrored portions of its curve as limit orders on that book, so users and aggregators could swap directly against the pool (AMM path) or against the limit orders the pool owned on OpenBook (CLOB path). **The OpenBook dependency has since been removed from the program** — pools no longer post or maintain orders on OpenBook. Swaps reach the curve through both the v1 entrypoints, whose market accounts are now ignored, and the V2 entrypoints, which drop them. Token-2022 is not supported. AMM v4 is **still fully operational as a constant-product AMM** — every pool keeps trading, fees still accrue, LPs still earn — but Raydium recommends [CPMM](/docs/en/products/cpmm) for new constant-product pools because it supports Token-2022 mints. The SDK can still create AMM v4 pools.
 
 ## Hybrid history (context)
 
@@ -22,6 +22,7 @@ At launch, standing up a pool alongside Serum's order book risked fragmenting li
 ## What AMM v4 gives you (that CPMM does not)
 
 - **Deep liquidity for legacy pairs.** Major pairs (SOL-USDC, mSOL-USDC, etc.) with large AMM v4 TVL remain the deepest venue for those trades.
+- **Lower sampled compute per swap.** In the 2026-11-20 mainnet sample, median program consumption was 15,397 CU for `SwapBaseInV2`, compared with 25,152 CU for CPMM `swap_base_input`.
 
 (Historically, AMM v4 also offered orderbook-side visibility via the OpenBook hybrid mechanism, but that path is no longer active. Any integrator that previously routed through the AMM's OpenBook orders should now route directly via the AMM swap entrypoints.)
 
@@ -29,8 +30,7 @@ At launch, standing up a pool alongside Serum's order book risked fragmenting li
 
 - **Token-2022.** Not supported. AMM v4 was written before Token-2022 existed; its account layouts presume classic SPL Token.
 - **Low account count on v1 swaps.** The legacy `SwapBaseIn` / `SwapBaseOut` layouts still carry the OpenBook market accounts as positional placeholders (they are accepted but no longer validated or used). Use `SwapBaseInV2` / `SwapBaseOutV2` to drop them and shrink the transaction.
-- **Low compute usage.** Even a V2 swap costs more than a CPMM swap.
-- **Default new-pool flow.** New pools are created with `Initialize2` (the legacy `Initialize` / `PreInitialize` entrypoints have been removed and now revert). The Raydium UI, SDK, and `api-v3.raydium.io` no longer surface a "create AMM v4 pool" button — the default path for new pools is CPMM.
+- **Default new-pool flow.** CPMM, not AMM v4, is Raydium's recommended pool type for new constant-product pools. You can still create an AMM v4 pool: `raydium.liquidity` exports `createPoolV4` and `createMarketAndPoolV4`, and both send `Initialize2`. The legacy `Initialize` and `PreInitialize` entrypoints were removed and now revert.
 
 ## How AMM v4 differs from CPMM
 
@@ -39,30 +39,31 @@ At launch, standing up a pool alongside Serum's order book risked fragmenting li
 | Curve | Constant product | Constant product |
 | OpenBook dependency | Removed (originally yes; now deleted from the program) | No |
 | Token-2022 | No | Yes |
-| Account count per V2 swap | ~9 | ~11 |
-| Compute units per swap | ~80k–120k (V2 path) | ~60k–100k |
-| LP fee | 0.22% of volume | Varies by `AmmConfig` |
-| Protocol fee | 0.03% of volume (fixed) | Varies by `AmmConfig` |
+| Accounts per swap | 8 (`SwapBaseInV2`, `SwapBaseOutV2`) | 13 (`SwapBaseInput`) |
+| Compute per swap (typical, mainnet, 20 Nov 2026) | ~15,400 CU with `SwapBaseInV2` (98 swaps); ~16,100 CU with v1 `SwapBaseIn` (34 swaps) | ~25,200 CU with `swap_base_input` (384 swaps) |
+| LP fee | ≈0.22% economic equivalent under the defaults; actual value follows PnL settlement | Varies by `AmmConfig` |
+| Protocol fee | ≈0.03% economic equivalent under the defaults; the configured fraction applies to calculated pool growth, and the admin can change it per pool with `SetParams` | Varies by `AmmConfig` |
 | Fund fee | None | Yes |
 | TWAP oracle | No native observation account | `observation` ring buffer |
 | Default for new pools | No (still accepted) | Yes |
+
+Compute figures are medians of the pool program's own consumption in a sample of mainnet swaps. A full transaction uses more.
 
 More detail on fees: [`products/amm-v4/fees`](/docs/en/products/amm-v4/fees) and [`reference/fee-comparison`](/docs/en/reference/fee-comparison).
 
 ## Mental model
 
-An AMM v4 pool today is a constant-product `x · y = k` AMM. Both vaults are entirely available to the curve — no fraction is committed to OpenBook orders, because the OpenBook integration has been removed. Operations are **swap** (user ↔ pool, via `SwapBaseInV2` / `SwapBaseOutV2`) and **deposit** / **withdraw** (LP ops). The old **crank** (`MonitorStep`) has been removed and now reverts if called.
+An AMM v4 pool today is a constant-product `x · y = k` AMM. Both vaults are entirely available to the curve — no fraction is committed to OpenBook orders, because the OpenBook integration has been removed. Operations are **swap** (user ↔ pool, via the V2 entrypoints `SwapBaseInV2` / `SwapBaseOutV2` or the legacy v1 `SwapBaseIn` / `SwapBaseOut`) and **deposit** / **withdraw** (LP ops). The old **crank** (`MonitorStep`) has been removed and now reverts if called.
 
-*Historical mental model (pre-deactivation):* a fraction of each vault was escrowed as open-book orders; settlement of filled orders happened during swap and LP operations; routed swaps could fill against the pool's own OpenBook orders. None of this is in operation today.
+*Historical mental model (pre-deactivation):* a fraction of each vault was escrowed as OpenBook orders; settlement of filled orders happened during swap and LP operations; routed swaps could fill against the pool's own OpenBook orders. None of this is in operation today.
 
 ## Why CPMM is the recommended default
 
-CPMM drops the OpenBook dependency. The tradeoffs:
+Neither program depends on OpenBook: AMM v4 dropped it in the 2026-07 upgrade. CPMM is the default for these reasons:
 
-- CPMM transactions are 2×–3× cheaper in compute.
 - CPMM supports Token-2022 mints.
 - Aggregators now integrate CPMM directly via Raydium SDK, so the order-book-visibility benefit is largely moot.
-- Operational risk: historically OpenBook outages or pauses could degrade AMM v4 pools (stale orders). With the OpenBook dependency now removed from the program, that coupling is gone — but CPMM remains the recommended, lower-cost default.
+- Operational risk: historically OpenBook outages or pauses could degrade AMM v4 pools (stale orders). With the OpenBook dependency now removed from the program, that coupling is gone — but CPMM remains the recommended default.
 
 See [`protocol-overview/versions-and-migration`](/docs/en/protocol-overview/versions-and-migration) for the migration guidance.
 
@@ -80,11 +81,11 @@ For a fresh constant-product pool, [CPMM](/docs/en/products/cpmm) is the simpler
 
 - [Accounts](/docs/en/products/amm-v4/accounts) — the AMM's accounts, plus the (now-vestigial) OpenBook reference fields.
 - [Math](/docs/en/products/amm-v4/math) — constant-product swap math with AMM v4's fee convention.
-- [Instructions](/docs/en/products/amm-v4/instructions) — the instruction surface: `Initialize2`, `Swap` (v1 / V2), `Deposit`, `Withdraw`, `WithdrawPnl`, `SetParams`.
+- [Instructions](/docs/en/products/amm-v4/instructions) — the instruction surface: `Initialize2`, `Swap` (v1 / V2), `Deposit`, `Withdraw`, `WithdrawPnl`, `SetParams`, `CreateConfigAccount`, `UpdateConfigAccount`, `WithdrawExcessLamports`.
 - [Fees](/docs/en/products/amm-v4/fees) — the 0.25% split and how it's collected.
 - [Code demos](/docs/en/products/amm-v4/code-demos) — TypeScript examples for swap and LP flows.
 
 Sources:
 
 - [`reference/program-addresses`](/docs/en/reference/program-addresses) for the canonical program ID
-- OpenBook program repository for the counterparty accounts this page references
+- [`raydium-io/raydium-amm`](https://github.com/raydium-io/raydium-amm) for the program source

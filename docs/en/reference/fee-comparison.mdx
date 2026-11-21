@@ -9,15 +9,17 @@ description: "Side-by-side fee matrix across all Raydium products — swap fees,
 
 ## Swap fees per product
 
-Fee values are percentages of the input amount, applied before pool math.
+The nominal trade fee is a percentage of swap volume. Check each product's fee mode for the input/output side and any separate creator fee.
 
-| Product | Available tiers | Default / most-used | Split |
-|---------|-----------------|---------------------|-------|
-| **AMM v4** | 0.25% (only) | 0.25% | 88% LP, 12% protocol (22/3 of 25) |
+| Product | Available tiers | Default / most-used | Trade-fee split |
+|---------|-----------------|---------------------|-----------------|
+| **AMM v4** | 0.25% (only) | 0.25% | Approximately 88% LP / 12% protocol as an economic equivalent; actual protocol PnL is settled from pool growth |
 | **CPMM** | 21 published tiers, 0.005% – 4% | 0.25% (`AmmConfig` index 0) | 84% LP, 12% protocol, 4% fund |
 | **CLMM** | 21 published tiers, 0.01% – 4% | 0.25% (index 1, tick spacing 60) | 84% LP, 12% protocol, 4% fund |
 | **LaunchLab (pre-graduation)** | 1% (default) | 1% | 50% to pool seed, 50% to LaunchLab treasury |
-| **LaunchLab (post-graduation CPMM)** | 0.25% | 0.25% | Inherits CPMM split |
+| **LaunchLab (post-graduation CPMM)** | 0.25% | 0.25% | Inherits the CPMM trade-fee split; any creator fee is separate |
+
+CPMM can also charge an optional creator fee at `AmmConfig.creator_fee_rate`. This rate is independent of `trade_fee_rate`; it does not reduce the 84/12/4 trade-fee split. The default creator rate is zero. When enabled and nonzero, the fee accrues to the recorded `PoolState.pool_creator`, subject to the protocol's configured share at collection. Depending on `creator_fee_on`, it is deducted from input or output.
 
 ### Fee denominator convention
 
@@ -42,16 +44,16 @@ When reading on-chain data directly, use the correct denominator for the pool's 
 
 ## Protocol fee splits
 
-Within the "protocol" share of each fee, further splits apply:
+Protocol-side accounting differs by product:
 
-| Product | Protocol share of swap fee | Split within protocol |
-|---------|----------------------------|------------------------|
-| AMM v4 | 12% (3/25) | 100% to treasury |
-| CPMM | 16% of the trade fee | 12% protocol + 4% fund |
-| CLMM | 16% of the swap fee | 12% protocol + 4% fund |
-| LaunchLab | 50% of swap fee pre-graduation | 100% to LaunchLab treasury |
+| Product | Protocol-side calculation | Destinations |
+|---------|---------------------------|--------------|
+| AMM v4 | `pnl_numerator / pnl_denominator` applied to growth calculated by `calc_take_pnl`; 12% under the defaults | Protocol treasury after PnL settlement |
+| CPMM | 12% protocol + 4% fund, both taken from the **trade fee** | Protocol and fund; a configurable share of the separate creator bucket also enters protocol accounting at collection |
+| CLMM | 12% protocol + 4% fund, both taken from the trade fee | Protocol and fund |
+| LaunchLab | 50% of the pre-graduation swap fee under the default split | LaunchLab treasury |
 
-The **LP share** flows to LP token holders automatically:
+The **LP share** flows to liquidity providers:
 
 - AMM v4 / CPMM: accumulated in pool reserves, distributed pro-rata on withdrawal.
 - CLMM: accumulated in `fee_growth_global_X/Y`, claimable via `collectFee`.

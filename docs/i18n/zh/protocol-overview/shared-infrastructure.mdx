@@ -1,6 +1,6 @@
 ---
 title: "共享基础设施"
-description: "Raydium 每个程序都共享的原语——权限 PDA、AmmConfig 账户、协议/基金/创建者费用分割、观察账户和公共 REST API 表面——定义一次，以便各产品章节可以回溯参考。"
+description: "每个 Raydium 程序共享的基础组件——权限 PDA、AmmConfig 账户、交易费与 CPMM 创建者费的记账、观察账户以及公开 REST API 接口——在此统一定义，方便各产品章节回引。"
 ---
 
 <Info>
@@ -17,7 +17,7 @@ description: "Raydium 每个程序都共享的原语——权限 PDA、AmmConfig
 
 代码库中有三种共享方式：
 
-- **约定共享。** 每个程序都使用相同的 PDA 推导模式、相同的费用分割形状和相同的观察账户概念——但每个都在自己的程序中用自己的种子实现它们。
+- **约定共享。** 各程序复用 PDA 推导、配置账户、费用记账和观察账户等模式，但每个程序都定义自己的种子和行为。字段名称相似并不代表结算规则相同。
 - **账户共享。** 少数几个账户在许多池中*字面上*是相同的记录（CPMM 中的全局权限 PDA、AmmConfig 账户）。
 - **链下共享。** 一个 REST API 和一个 TypeScript SDK 为所有四个程序提供服务。集成者与一个 HTTP 主机和一个 NPM 包交互，无论他们最终调用哪个程序。
 
@@ -77,31 +77,35 @@ AMM v4 没有 `AmmConfig`——其费用参数是每个池的，在创建时硬�
 
 谁可以更改什么的完整表格在 [`security/admin-and-multisig`](/docs/i18n/zh/security/admin-and-multisig) 中。当前用户面向的费用分割在 [`ray/protocol-fees`](/docs/i18n/zh/ray/protocol-fees) 中。
 
-## 3. 协议/基金/创建者费用分割
+## 3. 交易费与创建者费的记账
 
-每个 CPMM 和 CLMM 交换费都在输出时分割到最多四个目的地：
+CPMM 和 CLMM 将其**交易费**分配给 LP、协议和基金。CPMM 还可以按单独的费率收取可选的创建者费。不要把创建者费当作交易费的第四份：
 
 ```
-                         总交换费
-                              │
-              ┌───────────────┼───────────────┬──────────────┐
-              ▼               ▼               ▼              ▼
-        LP 池边         协议              基金         创建者
-        (提高 k)       金库              多签      (LaunchLab 池)
+CPMM / CLMM trade fee
+  ├── LP share
+  ├── Protocol share
+  └── Fund share
+
+CPMM creator fee (independent rate, when enabled)
+  └── Accrued creator bucket
+      ├── Protocol share, applied at collection
+      └── Remainder paid to PoolState.pool_creator
 ```
 
 机制上：
 
-1. **交易费累积到池中。** 费用从交换的输入端移除，*扣费后*的金额是常数乘积数学看到的。这就是"LP 赚取费用"的含义——`k` 上升，隐含的每 LP 代币价值也上升。
-2. **协议/基金/创建者部分从该 LP 端累积中扣除到每个池的计数器账户中。** 它们位于池状态（`protocol_fees_token{0,1}`、`fund_fees_token{0,1}` 等）上，直到有人调用相应的收集指令。它们在那之前不会离开池的金库；从交换的角度来看，它们仍然"在池中"。
-3. **收集将它们移出。** 协议和基金路径需要来自 `AmmConfig` 的各自 `protocol_owner` / `fund_owner` 签名者。CPMM 创建者费用使用创建者签名的 `CollectCreatorFee` 路径或 `CollectCreatorFeePermissionless`，任何支付者都可以触发，但它将目的地固定为创建者的规范 ATA。
+1. **交易费使用 `trade_fee_rate`。** LP 份额保留在池的记账中。CPMM 从交换输入收取交易费。CLMM 还支持池级的单边收费，因此在假定只从输入扣费之前，请先确认该产品的收费模式。
+2. **CPMM 的创建者费独立使用 `creator_fee_rate`。** 它从不减少交易费中的 LP、协议或基金份额。`PoolState.creator_fee_on` 决定每次交换时创建者费是从输入还是输出中扣除。CLMM 没有这种 CPMM 式的创建者费桶。
+3. **非 LP 份额累积在单独的计数器中。** 它们仍留在金库中，但在相应的归集指令执行之前，不计入曲线使用的储备。
+4. **归集时结算各去向。** 协议和基金路径需要 `AmmConfig` 中相应的权限。CPMM 创建者费归集要么需要记录的创建者签名，要么使用无权限路径；后者任何支付者都可以触发，但创建者的接收地址固定为该创建者的规范 ATA。两条创建者路径都会在归集时应用协议在创建者费桶中的配置份额。
 
 几个承重的观察：
 
-- **分割百分比是交易费的，不是交易的。** 一个 0.25% 的交易费，有 12% 的协议份额意味着协议获得 `0.25% × 12% = 0.03%` 的交易——不是交易的 12%。
-- **创建者费用按池选择启用，并在创建时固定。** 未启用它的池有三向分割（LP / 协议 / 基金）。在 CPMM 上，第四个槽位路由到记录的池创建者。LaunchLab 毕业通过 `InitializeWithPermission` 启用它，自 2026-10-30 起任何创建者都可以通过 `InitializeV2` 启用它。该设置在创建后无法更改。
-- **AMM v4 仅分割两种方式**，每个池硬编码：LP 和协议。没有基金槽位，没有创建者槽位。
-- **基金 vs 协议**——两者都是协议金库目的地，但它们有不同的签名者和不同的预期用途。`protocol` 历史上资助运营；`fund` 是更长期的金库。两者之间的分割本身是可调的。
+- **交易费分配比例作用于交易费，而不是整笔交易。** 0.25% 的交易费加上 12% 的协议份额，意味着协议获得交易额的 `0.25% × 12% = 0.03%`，这还未考虑任何单独的创建者费。
+- **CPMM 创建者费按池选择启用，并在创建时固定。** LaunchLab 毕业可以通过 `InitializeWithPermission` 启用它。自 2026-10-30 起，任何创建者都可以通过 `InitializeV2` 启用该路径；当定义了 `creatorFeeOn` 时，SDK 会选择该指令。要有任何累积，`creator_fee_rate` 仍须为非零。
+- **AMM v4 采用延迟的 PnL 结算。** 其 `pnl_numerator / pnl_denominator` 比例作用于 `calc_take_pnl` 计算出的增长，而不是直接作用于每笔交换的费用。它没有基金桶，也没有创建者费桶。
+- **基金与协议** — 两者都是协议金库的去向，但签名者和预期用途不同。`protocol` 历来用于支付运营；`fund` 是更长期的金库。
 
 具体费率在 [`reference/fee-comparison`](/docs/i18n/zh/reference/fee-comparison) 和 [`ray/protocol-fees`](/docs/i18n/zh/ray/protocol-fees) 中。
 

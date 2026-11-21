@@ -186,8 +186,7 @@ Phí tạo pool là tùy chọn và theo pool. **Tỷ lệ** nằm trên `AmmCon
 - **Không thể được bật lại hoặc định tuyến lại sau khi tạo.** Một pool được khởi tạo với `enable_creator_fee = false` sẽ không bao giờ tính phí tạo pool; một pool được khởi tạo với một `creator_fee_on` cụ thể không thể chuyển đổi phía.
 - **Bật phí không đặt tỷ lệ.** Một pool được tạo với phí được bật sẽ tính `creator_fee_rate` của tầng phí của nó. Giá trị mặc định là `0`, vì vậy trên tầng như vậy, pool được bật sẽ không tích lũy gì. Hãy kiểm tra cấu hình trước khi tạo pool.
 
-Phí tạo pool là cơ chế đằng sau mô hình "Burn & Earn" của Raydium: token LP bị khóa theo chương trình [LP Lock](/docs/i18n/vi/reference/program-addresses) để người tạo pool không thể rút thanh khoản, nhưng phí tạo pool tích lũy vẫn có thể được thu thập vô thời hạn.
-
+Phí người tạo pool của CPMM tách biệt với Fee Key của "Burn & Earn" của Raydium. Burn & Earn khóa một vị thế LP trong chương trình [LP Lock](/docs/i18n/vi/reference/program-addresses) và chuyển phí LP của vị thế đó tới người nắm giữ Fee Key. Dòng phí người tạo pool của CPMM vẫn thuộc về `PoolState.pool_creator`, sau khi trừ phần giao thức lúc thu phí; cả việc khóa LP lẫn việc chuyển nhượng Fee Key đều không chuyển giao quyền này.
 
 ## Phần giao thức của phí tạo pool
 

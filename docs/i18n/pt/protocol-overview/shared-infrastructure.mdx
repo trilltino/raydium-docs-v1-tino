@@ -1,6 +1,6 @@
 ---
 title: "Infraestrutura compartilhada"
-description: "Os primitivos que todo programa Raydium compartilha — PDAs de autoridade, contas AmmConfig, a divisão de taxas de protocolo/fundo/criador, contas de observação e a superfície pública da API REST — definidos uma vez para que os capítulos por produto possam fazer referência aqui."
+description: "As primitivas compartilhadas por todos os programas da Raydium — PDAs de autoridade, contas AmmConfig, contabilidade da taxa de negociação e da taxa do criador do CPMM, contas de observação e a API REST pública — definidas uma única vez para que os capítulos de cada produto possam se referir a elas."
 ---
 
 <Info>
@@ -17,7 +17,7 @@ description: "Os primitivos que todo programa Raydium compartilha — PDAs de au
 
 Três tipos de compartilhamento percorrem a base de código:
 
-- **Compartilhamento de convenção.** Todo programa usa o mesmo padrão de derivação de PDA, a mesma forma de divisão de taxas e a mesma ideia de conta de observação — mas cada um os implementa em seu próprio programa com suas próprias sementes.
+- **Convenções compartilhadas.** Os programas reutilizam padrões de derivação de PDA, contas de configuração, contabilidade de taxas e contas de observação, mas cada programa define suas próprias seeds e seu comportamento. Nomes de campos parecidos não garantem regras de liquidação idênticas.
 - **Compartilhamento de conta.** Um punhado de contas são *literalmente* o mesmo registro em muitos pools (o PDA de autoridade global em CPMM, as contas AmmConfig).
 - **Compartilhamento off-chain.** Uma API REST e um SDK TypeScript fronteiam todos os quatro programas. Os integradores interagem com um host HTTP e um pacote NPM independentemente de qual programa acabam chamando.
 
@@ -77,31 +77,35 @@ AMM v4 não tem `AmmConfig` — seus parâmetros de taxa são por pool, codifica
 
 Uma tabela completa de quem pode alterar o quê está em [`security/admin-and-multisig`](/docs/i18n/pt/security/admin-and-multisig). As divisões de taxas atuais voltadas para o usuário estão em [`ray/protocol-fees`](/docs/i18n/pt/ray/protocol-fees).
 
-## 3. A divisão de taxa de protocolo / fundo / criador
+## 3. Contabilidade da taxa de negociação e da taxa do criador
 
-Cada taxa de swap CPMM e CLMM é dividida em até quatro destinos no caminho:
+O CPMM e o CLMM dividem a **taxa de negociação** entre LPs, protocolo e fundo. O CPMM também pode cobrar uma taxa opcional do criador com uma alíquota própria. Não modele essa taxa do criador como uma quarta fatia da taxa de negociação:
 
 ```
-                         total swap fee
-                              │
-              ┌───────────────┼───────────────┬──────────────┐
-              ▼               ▼               ▼              ▼
-        LP pool side     Protocol         Fund         Creator
-        (raises k)       treasury         multisig     (LaunchLab pools)
+CPMM / CLMM trade fee
+  ├── LP share
+  ├── Protocol share
+  └── Fund share
+
+CPMM creator fee (independent rate, when enabled)
+  └── Accrued creator bucket
+      ├── Protocol share, applied at collection
+      └── Remainder paid to PoolState.pool_creator
 ```
 
 Mecanicamente:
 
-1. **A taxa de negociação se acumula no pool.** A taxa é removida do lado de entrada do swap e a *quantidade pós-taxa* é o que a matemática de produto constante vê. Isso é o que "o LP ganha a taxa" significa — `k` sobe e assim também o valor de token por LP implícito.
-2. **As porções de protocolo/fundo/criador são deduzidas dessa acumulação do lado LP em contas de contador por pool.** Elas ficam no estado do pool (`protocol_fees_token{0,1}`, `fund_fees_token{0,1}`, etc.) até que alguém chame a instrução de coleta correspondente. Elas não saem dos cofres do pool até então; da perspectiva de um swap, elas ainda estão "no pool".
-3. **A coleta as move para fora.** Os caminhos de protocolo e fundo exigem o signatário `protocol_owner` / `fund_owner` respectivo do `AmmConfig`. As taxas de criador CPMM usam o caminho `CollectCreatorFee` assinado pelo criador ou `CollectCreatorFeePermissionless`, que qualquer pagador pode disparar, mas que fixa os destinos aos ATAs canônicos do criador.
+1. **A taxa de negociação usa `trade_fee_rate`.** A parte dos LPs permanece na contabilidade do pool. O CPMM cobra sua taxa de negociação da entrada do swap. O CLMM também suporta cobrança de taxa em um só lado no nível do pool, então verifique o modo de taxa do produto antes de supor uma dedução apenas na entrada.
+2. **A taxa do criador do CPMM usa `creator_fee_rate` de forma independente.** Ela nunca reduz as partes dos LPs, do protocolo ou do fundo na taxa de negociação. `PoolState.creator_fee_on` determina se a taxa do criador é deduzida da entrada ou da saída em cada swap. O CLMM não tem esse bucket de taxa do criador no estilo do CPMM.
+3. **As partes que não são de LP se acumulam em contadores separados.** Elas permanecem nos vaults, mas ficam fora das reservas usadas pela curva até que a instrução de coleta correspondente seja executada.
+4. **A coleta define os destinos.** Os caminhos do protocolo e do fundo exigem a respectiva autoridade de `AmmConfig`. A coleta do criador no CPMM exige a assinatura do criador registrado ou usa o caminho sem permissão, que qualquer pagador pode acionar, mas que fixa como destino as ATAs canônicas desse criador. Os dois caminhos do criador aplicam, na coleta, a parte configurada do protocolo sobre o bucket do criador.
 
 Algumas observações que carregam carga:
 
-- **Os percentuais de divisão são da taxa de negociação, não da negociação.** Uma taxa de negociação de 0,25% com uma participação de protocolo de 12% significa que o protocolo obtém `0,25% × 12% = 0,03%` da negociação — não 12% da negociação.
-- **As taxas de criador são opcionais por pool e fixadas na criação.** Um pool sem elas tem uma divisão de 3 vias (LP / protocolo / fundo). No CPMM, um quarto slot é roteado para o criador do pool registrado. As graduações do LaunchLab a habilitam via `InitializeWithPermission` e, desde 2026-10-30, qualquer criador pode habilitá-la via `InitializeV2`. A configuração não pode mudar após a criação.
-- **AMM v4 divide apenas de duas maneiras**, codificado por pool: LP e protocolo. Sem slot de fundo, sem slot de criador.
-- **Fundo vs protocolo** — ambos são destinos de tesouro do protocolo, mas têm signatários diferentes e usos pretendidos diferentes. `protocol` historicamente financia operações; `fund` é o tesouro de longo prazo. A divisão entre os dois é em si ajustável.
+- **Os percentuais de divisão se aplicam à taxa de negociação, não à negociação inteira.** Uma taxa de negociação de 0,25% com uma parte de 12% para o protocolo dá ao protocolo `0.25% × 12% = 0.03%` da negociação, antes de considerar qualquer taxa do criador separada.
+- **As taxas do criador do CPMM são opcionais por pool e fixadas na criação.** As graduações do LaunchLab podem ativá-las por meio de `InitializeWithPermission`. Desde 2026-10-30, qualquer criador pode ativar o caminho por meio de `InitializeV2`; o SDK escolhe essa instrução quando `creatorFeeOn` é definido. Ainda é preciso um `creator_fee_rate` diferente de zero para que algo se acumule.
+- **O AMM v4 usa liquidação diferida de PnL.** Sua fração `pnl_numerator / pnl_denominator` se aplica ao crescimento calculado por `calc_take_pnl`, não diretamente à taxa de cada swap. Ele não tem bucket de fundo nem de criador.
+- **Fundo vs. protocolo** — ambos são destinos da tesouraria do protocolo, mas têm signatários e usos previstos diferentes. `protocol` historicamente financia as operações; `fund` é a tesouraria de longo prazo.
 
 As taxas específicas estão em [`reference/fee-comparison`](/docs/i18n/pt/reference/fee-comparison) e [`ray/protocol-fees`](/docs/i18n/pt/ray/protocol-fees).
 

@@ -104,8 +104,8 @@ console.log(`Tx:       https://solscan.io/tx/${txId}`);
 Beispiel: Erstellen Sie einen SOL/USDC-Pool mit 1 SOL und 160 USDC Seed:
 
 ```bash icon="terminal"
-export MINT_A="So11111111111111111111111111111111111111112"   # wSOL
-export MINT_B="EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"   # USDC
+export MINT_A="So11111111111111111111111111111111111111112"   # wSOL; see reference/program-addresses
+export MINT_B="EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"   # USDC; see reference/program-addresses
 export AMOUNT_A="1000000000"   # 1 SOL (9 decimals)
 export AMOUNT_B="160000000"    # 160 USDC (6 decimals)
 
@@ -134,6 +134,10 @@ Tx:       https://solscan.io/tx/5dQ...
    - die Vaults mit `AMOUNT_A` und `AMOUNT_B` initialisiert.
 4. Der **Anfangspreis** wird durch das Seed-Verhältnis festgelegt: `price = AMOUNT_B / AMOUNT_A` nach Dezimalanpassung. Wählen Sie dies sorgfältig — Bots werden jede Fehlbewertung innerhalb von Sekunden nach dem Pool-Start arbitragieren.
 5. **`startTime: new BN(0)`** öffnet den Handel sofort. Um Liquidität vor der Öffnung für die Öffentlichkeit bereitzustellen, setzen Sie einen zukünftigen Unix-Zeitstempel.
+
+Dieses Beispiel lässt `creatorFeeOn` weg, daher baut das SDK `Initialize`, und der Creator-Gebührenpfad des Pools ist deaktiviert. Um ihn mit SDK `0.2.85-alpha` zu aktivieren, importieren Sie `FeeOn` und ergänzen `creatorFeeOn: FeeOn.OnlyTokenA`, `OnlyTokenB` oder `BothToken`. Dann baut das SDK `InitializeV2`. Ihr konfigurierter Owner signiert als Creator und wird zu `PoolState.pool_creator`; wenn ein anderes Konto die Transaktionsgebühren zahlt, werden die Creator-Gebühren nicht umgeleitet.
+
+`creatorFeeOn` wählt den Token, nicht den Satz. Der Pool verwendet `AmmConfig.creator_fee_rate`, und bei einem Satz von null sammelt sich auch mit aktiviertem Pfad nichts an. Lesen Sie die aktuelle Konfiguration vor der Erstellung. Input-/Output-Verhalten und Einzug finden Sie unter [`products/cpmm/fees`](/docs/i18n/de/products/cpmm/fees).
 
 ## Häufige Fehler
 

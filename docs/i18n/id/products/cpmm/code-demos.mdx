@@ -10,7 +10,7 @@ description: "Contoh TypeScript end-to-end untuk setiap operasi CPMM — buat po
 </Info>
 
 <Info>
-  **Spanduk versi.** Semua demo TypeScript menargetkan `@raydium-io/raydium-sdk-v2@0.2.64-alpha`; terakhir dijalankan terhadap `0.2.42-alpha` (2026-04) dan tanda tangan panggilan mereka diperiksa ulang terhadap sumber `0.2.64-alpha` pada 2026-09-09, terhadap Solana mainnet-beta. Skeleton CPI Rust menargetkan `raydium-cp-swap` di `master`, Anchor `1.0.2`. ID program ditarik melalui konstanta dari [`reference/program-addresses`](/docs/i18n/id/reference/program-addresses).
+  **Banner versi.** Semua demo TypeScript menargetkan `@raydium-io/raydium-sdk-v2@0.2.85-alpha` di Solana mainnet-beta. Demo terakhir dijalankan dengan `0.2.42-alpha` (2026-04); tanda tangan pemanggilannya diperiksa ulang terhadap paket `0.2.85-alpha` yang telah dirilis pada 2026-11-20. Kerangka CPI Rust menargetkan `raydium-cp-swap` di `master`, Anchor `1.0.2`. ID program diambil melalui konstanta dari [`reference/program-addresses`](/docs/i18n/id/reference/program-addresses).
 </Info>
 
 ## Prasyarat
@@ -49,13 +49,16 @@ Sumber: [`src/cpmm/createCpmmPool.ts`](https://github.com/raydium-io/raydium-sdk
 ```ts
 import { PublicKey } from "@solana/web3.js";
 import BN from "bn.js";
-import { CREATE_CPMM_POOL_PROGRAM, CREATE_CPMM_POOL_FEE_ACC }
-  from "@raydium-io/raydium-sdk-v2";
+import {
+  CREATE_CPMM_POOL_PROGRAM,
+  CREATE_CPMM_POOL_FEE_ACC,
+  FeeOn,
+} from "@raydium-io/raydium-sdk-v2";
 // (Jika Anda memerlukan setiap PDA pool sekaligus, helper yang diekspor adalah `getCreatePoolKeys`.
 //  Tidak ada `getCpmmPdas`.)
 
-const mintA = new PublicKey("So11111111111111111111111111111111111111112"); // wSOL
-const mintB = new PublicKey("EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"); // USDC
+const mintA = new PublicKey("So11111111111111111111111111111111111111112"); // wSOL; see reference/program-addresses
+const mintB = new PublicKey("EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"); // USDC; see reference/program-addresses
 
 // 1. Pilih konfigurasi biaya. index=0 adalah tier 0,25%.
 const feeConfigs = await raydium.api.getCpmmConfigs();
@@ -75,6 +78,7 @@ const { execute, extInfo } = await raydium.cpmm.createPool({
   mintBAmount:     new BN(   160_000_000),  // 160 USDC (pada 160/SOL)
   startTime:       new BN(0),               // buka segera
   feeConfig,
+  creatorFeeOn:    FeeOn.OnlyTokenA,
   associatedOnly:  false,
   ownerInfo:       { useSOLBalance: true },
   txVersion:       TxVersion.V0,
@@ -93,8 +97,12 @@ Beberapa hal yang SDK tangani secara diam-diam:
 - Memilih program token yang tepat (SPL Token vs Token-2022) per sisi.
 
 <Note>
-  **`createPool` membangun `Initialize`, sehingga biaya kreator pool nonaktif.** Untuk membuat pool dengan biaya kreator diaktifkan, gunakan `InitializeV2` (ditambahkan dalam upgrade program 2026-10-30). 19 akun pertamanya cocok dengan `Initialize`. Instruksi ini menghapus `rent` dan menerima satu argumen tambahan, `creator_fee_on: Option<CreatorFeeOn>`. Pin `0.2.64-alpha` di halaman ini lebih lama dari instruksi tersebut. Sampai versi SDK Anda menyediakan builder, enkode dari IDL yang diperbarui. Lihat [`products/cpmm/instructions`](/docs/i18n/id/products/cpmm/instructions#initializev2).
+  **Menetapkan `creatorFeeOn` membuat `createPool` membangun `InitializeV2`.** Hilangkan untuk membangun instruksi `Initialize` asli dengan biaya kreator dinonaktifkan. `FeeOn.OnlyTokenA`, `OnlyTokenB`, dan `BothToken` memilih token biaya; parameter ini tidak menetapkan tarif atau penerima. SDK mempertahankan pilihan A/B Anda saat mengurutkan mint.
 </Note>
+
+Dompet yang dikonfigurasi sebagai owner SDK menandatangani sebagai kreator dan dicatat di `PoolState.pool_creator`. Dompet ini juga membayar rent pool, biaya pembuatan pool, dan likuiditas awal. `feePayer` transaksi yang terpisah tidak mengubah kreator yang tercatat dan tidak mengalihkan biaya kreator. Penarikan normal memerlukan tanda tangan kreator yang tercatat; penarikan tanpa izin dapat dipicu oleh pembayar lain, tetapi bagian kreator hanya dikirim ke ATA kanonis milik kreator tersebut.
+
+Tarifnya berasal dari `AmmConfig.creator_fee_rate`. Jika nilainya nol, mengaktifkan jalur biaya kreator tidak mengakumulasi apa pun. Saat penarikan, program memindahkan bagian protokol yang dikonfigurasi ke bucket protokol dan membayarkan sisanya kepada kreator. Lihat [`products/cpmm/fees`](/docs/i18n/id/products/cpmm/fees) dan [`products/cpmm/instructions`](/docs/i18n/id/products/cpmm/instructions#initializev2).
 
 Setelah konfirmasi Anda dapat mengambil status pool langsung dengan:
 
@@ -245,7 +253,7 @@ await execute({ sendAndConfirm: true });
 
 Sumber: [`src/cpmm/collectCreatorFee.ts`](https://github.com/raydium-io/raydium-sdk-V2-demo/blob/master/src/cpmm/collectCreatorFee.ts), [`src/cpmm/collectAllCreatorFee.ts`](https://github.com/raydium-io/raydium-sdk-V2-demo/blob/master/src/cpmm/collectAllCreatorFee.ts)
 
-Pengumpulan protokol dan dana tetap dibatasi oleh otoritas. Biaya kreator memiliki dua jalur: `CollectCreatorFee` yang ditandatangani kreator, dan `CollectCreatorFeePermissionless` yang aditif, yang dapat dipanggil oleh pembayar mana pun tetapi hanya dapat mentransfer ke ATA kanonik kreator. `0.2.64-alpha` dilengkapi dengan builder tingkat modul untuk kedua jalur kreator:
+Pengumpulan protokol dan dana tetap dibatasi oleh otoritas. Biaya kreator memiliki dua jalur: `CollectCreatorFee` yang ditandatangani kreator, dan `CollectCreatorFeePermissionless` yang aditif, yang dapat dipanggil oleh pembayar mana pun tetapi hanya dapat mentransfer ke ATA kanonik kreator. `0.2.85-alpha` dilengkapi dengan builder tingkat modul untuk kedua jalur kreator:
 
 ```ts
 // creator-signed
@@ -267,7 +275,7 @@ await raydium.cpmm.collectMultiCreatorFees({ poolInfoList, txVersion: TxVersion.
 ```
 
 <Warning>
-  **Kedua instruksi kreator mengubah daftar akun mereka dalam upgrade program 2026-09-19.** Masing-masing sekarang mengambil PDA `creator_fee_share` di `["creator_fee_share", creator, ammConfig]`, dan yang permissionless juga mengambil `amm_config` — keduanya **ditambahkan setelah `system_program`** daripada disisipkan, sehingga akun yang sudah ada tetap mempertahankan posisi mereka. Builder yang dikunci ke rilis SDK sebelum upgrade memancarkan daftar yang lebih pendek dan transaksi ditolak karena akun yang hilang. Pastikan versi yang Anda instal membawa akun baru sebelum menggunakan helper ini terhadap program yang diupgrade, dan segarkan IDL jika Anda membuat klien darinya.
+  **Kedua instruksi kreator mengubah daftar akunnya dalam peningkatan program 2026-09-19.** Masing-masing kini menerima PDA `creator_fee_share` di `["creator_fee_share", creator, ammConfig]`, dan versi tanpa izin juga menerima `amm_config`. Kedua akun **ditambahkan setelah `system_program`**, bukan disisipkan, sehingga akun yang sudah ada tetap pada posisinya. Builder `0.2.85-alpha` menambahkan kedua akun tersebut. `0.2.64-alpha` menghasilkan daftar yang lebih pendek, dan program menolak transaksi itu karena akun yang hilang. Perbarui IDL jika Anda membuat klien darinya.
 
   Melewatkan PDA adalah wajib bahkan ketika belum pernah dibuat — turunkan dan lewatkan; program kembali ke `AmmConfig.creator_fee_share_rate` ketika akun kosong.
 </Warning>

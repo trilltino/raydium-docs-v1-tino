@@ -186,8 +186,7 @@ Die Creator-Gebühr ist optional und pro Pool. Der **Satz** befindet sich auf `A
 - **Kann nach der Erstellung nicht erneut aktiviert oder umgeleitet werden.** Ein Pool, der mit `enable_creator_fee = false` initialisiert wurde, wird nie eine Creator-Gebühr erheben; einer, der mit einem bestimmten `creator_fee_on` initialisiert wurde, kann nicht die Seiten wechseln.
 - **Das Aktivieren legt nicht den Satz fest.** Ein Pool, der mit aktivierter Gebühr erstellt wurde, erhebt die `creator_fee_rate` seiner Gebühren-Stufe. Der Standardwert ist `0`, daher sammelt ein aktivierter Pool auf einer solchen Stufe nichts an. Prüfen Sie die Konfiguration, bevor Sie den Pool erstellen.
 
-Creator-Gebühren sind der Mechanismus hinter Raydiums „Burn & Earn"-Muster: LP-Token werden unter dem [LP Lock](/docs/i18n/de/reference/program-addresses)-Programm gesperrt, damit der Creator keine Liquidität abheben kann, aber die aufgelaufenen Creator-Gebühren können immer noch unbegrenzt eingezogen werden.
-
+CPMM-Creator-Gebühren sind vom "Burn & Earn"-Fee-Key von Raydium getrennt. Burn & Earn sperrt eine LP-Position im Programm [LP Lock](/docs/i18n/de/reference/program-addresses) und leitet die LP-Gebühren dieser Position an den Inhaber des Fee Key. Der CPMM-Creator-Gebührenstrom gehört weiterhin `PoolState.pool_creator`, abzüglich des Protokollanteils beim Einzug; weder das Sperren der LP-Position noch die Übertragung des Fee Key überträgt diese Zuordnung.
 
 ## Protokoll-Anteil der Creator-Gebühr
 

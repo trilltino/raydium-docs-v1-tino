@@ -112,32 +112,36 @@ require!(k_after >= k_before, ErrorCode::InvariantViolation);
 
 ### اتفاقية CPMM
 
-الرسوم هي معدلات نقطة أساس تشبه `u64` على مقام `1_000_000`. رسوم التداول مقسومة إلى `trade_fee_rate` (الإجمالي) ثم مقسمة فرعياً عبر `protocol_fee_rate` و `fund_fee_rate` و `creator_fee_rate`. على كل مبادلة:
+الرسوم معدلات من النوع `u64` على مقام قدره `1_000_000`. يقسّم `protocol_fee_rate` و`fund_fee_rate` **رسم التداول**. أما `creator_fee_rate` فمستقل: يُطبَّق على حجم المبادلة ولا يقلّل أبدًا حصص رسم التداول.
+
+عندما يُؤخذ الرسمان كلاهما من المُدخل، يقرّب البرنامج مجموع الخصم مرة واحدة ثم يقسمه بحسب المعدلات:
 
 ```
-trade_fee     = ceil(Δx · trade_fee_rate   / 1_000_000)
-creator_fee   = ceil(Δx · creator_fee_rate / 1_000_000)   // its own rate on volume,
-                                                          // NOT a slice of trade_fee
-protocol_fee  = floor(trade_fee · protocol_fee_rate / 1_000_000)
-fund_fee      = floor(trade_fee · fund_fee_rate     / 1_000_000)
-lp_fee        = trade_fee − protocol_fee − fund_fee
+total_fee      = ceil(Δx · (trade_fee_rate + creator_fee_rate) / 1_000_000)
+creator_fee    = floor(total_fee · creator_fee_rate / (trade_fee_rate + creator_fee_rate))
+trade_fee      = total_fee − creator_fee
+protocol_fee   = floor(trade_fee · protocol_fee_rate / 1_000_000)
+fund_fee       = floor(trade_fee · fund_fee_rate / 1_000_000)
+lp_fee         = trade_fee − protocol_fee − fund_fee
 ```
 
-الحصص الثلاث غير LP تتراكم في عدادات منفصلة (`protocol_fees_*` و `fund_fees_*` و `creator_fees_*`) وهي **مستثناة** من الاحتياطيات المستخدمة في المتغير. هذا هو كيفية أخذ الرسوم دون تحريك المنحنى. انظر [`products/cpmm/fees`](/docs/i18n/ar/products/cpmm/fees).
+عندما يختار `creator_fee_on` رمز المُخرج، يُخصم رسم التداول وحده من المُدخل. ويصبح رسم المنشئ عندئذ `ceil(Δy · creator_fee_rate / 1_000_000)` ويُخصم من مُخرج المنحنى. انظر [`products/cpmm/fees`](/docs/i18n/ar/products/cpmm/fees#which-side-of-the-trade-the-fees-are-taken-from).
+
+تتراكم الحاويات الثلاث غير الخاصة بمزودي السيولة بشكل منفصل وتُستبعد من الاحتياطيات المستخدمة في الثابت. وعند جمع رسوم المنشئ، تنتقل حصة بروتوكول قابلة للضبط من حاوية المنشئ إلى حاوية البروتوكول؛ ولا يذهب إلى المنشئ إلا الباقي.
 
 ### اتفاقية AMM v4
 
-الرسوم هي نسب `numerator / denominator` على مقام `10_000`. الانقسام ثابت عند إنشاء البركة ومخزن على `AmmInfo.fees`:
+يستخدم رسم المبادلة الإجمالي `swap_fee_numerator / swap_fee_denominator`، وعادةً ما يكون `25 / 10_000`:
 
 ```
-swap_fee  = ceil(Δx · swap_fee_numerator / swap_fee_denominator)    // مثلاً 0.25%
-pnl_share = swap_fee · pnl_numerator / pnl_denominator               // 12 / 100 = 12% من swap_fee
-lp_share  = swap_fee − pnl_share                                     // 0.22% من الحجم
+gross_fee = ceil(Δx · swap_fee_numerator / swap_fee_denominator)   // 0.25% by default
 ```
 
-`pnl_share` يتراكم في `state_data.need_take_pnl_*` ومستثنى من الاحتياطيات؛ `lp_share` يبقى في القبو. انظر [`products/amm-v4/fees`](/docs/i18n/ar/products/amm-v4/fees).
+لا يحسب البرنامج `pnl_numerator / pnl_denominator × gross_fee` في كل مبادلة. يبقى الرسم كاملًا في الاحتياطيات أولًا ويرفع `k`. لاحقًا، تقيس `calc_take_pnl` النمو مقارنة بخط الأساس `TargetOrders`، وتستخرج مبالغ PnL لكل جانب من الرموز، وتطبّق `pnl_numerator / pnl_denominator` على ذلك النمو. في الإعدادات الافتراضية تبلغ هذه النسبة `12 / 100`؛ ونسبة 0.03% من الحجم التي يُستشهد بها كثيرًا هي مكافئ اقتصادي للرسم، لا خصمًا دقيقًا لكل مبادلة. يغيّر التقريب الصحيح النتيجة، ولا يسجّل البرنامج PnL إلا إذا كان المبلغان على جانبي الرمزين غير صفريين.
 
-كلا الاتفاقيتين تحافظان على المتغير بنفس الطريقة — الفارق مجرد زخرفة (مقام + عدد الفئات الفرعية).
+يتراكم الـ PnL المسجَّل في `state_data.need_take_pnl_*` ويُستبعد من الاحتياطيات. ويحتفظ مزودو السيولة بباقي النمو. انظر [`products/amm-v4/math`](/docs/i18n/ar/products/amm-v4/math#settlement-step-pnl).
+
+يستبعد البرنامجان كلاهما الرسوم المسجَّلة غير الخاصة بمزودي السيولة من احتياطيات المنحنى، لكن توقيت التسوية وطريقة المحاسبة تختلفان بينهما.
 
 ## قواعد التقريب
 

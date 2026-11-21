@@ -58,7 +58,7 @@ CPMM (Constant-Product Market Maker, interner Name `raydium-cp-swap`) wurde 2024
 
 ### Was CPMM gegenüber AMM v4 bietet
 
-- **Bessere LP-Ökonomie standardmäßig.** CPMMs Standard-AmmConfig leitet 100% der Handelsgebühren an LPs weiter (mit umschaltbarer Protokollgebühr pro Tier). AMM v4 hardcodiert ~12% für das Protokoll.
+- **Konfigurierbare Handelsgebühren-Stufen.** CPMM liest die Aufteilung zwischen LP, Protokoll und Fonds aus `AmmConfig`. Seine Standardkonfiguration mit 0,25 % nutzt eine Handelsgebührenaufteilung von 84 % / 12 % / 4 %. Eine separate optionale Creator-Gebühr kann hinzukommen, wenn sie aktiviert und mit einem von null verschiedenen Satz konfiguriert ist. AMM v4 rechnet den Protokoll-PnL dagegen aus dem berechneten Pool-Wachstum ab; seine ungefähre Aufteilung von 88 % / 12 % ist ein wirtschaftliches Äquivalent unter den Standardwerten.
 - **Niedrigere Pool-Erstellungskosten.** Kein OpenBook-Markt erforderlich. Die Erstellung ist eine Transaktion, ~0,15 SOL Miete vs ~0,6 SOL für v4.
 - **Token-2022.** Transfer-Fee-Mints, Transfer-Hook-Mints (mit Einschränkungen), vertrauliche Transfers — alle auf CPMM unterstützt, keine auf v4.
 - **Saubere Integrator-Oberfläche.** CPMM hat eine Anchor-CPI-freundliche veröffentlichte Crate (`raydium-cp-swap`), eine einfachere Kontenliste und ein stabiles IDL. AMM v4 liefert ein IDL, hatte aber nie eine gepflegte Rust-CPI-Crate.
@@ -66,9 +66,9 @@ CPMM (Constant-Product Market Maker, interner Name `raydium-cp-swap`) wurde 2024
 
 ### Wann Migration lohnenswert ist
 
-Für einen aktiv gehandelten Pool rechtfertigt die LP-Gebührenverbesserung allein die Migration normalerweise innerhalb weniger Monate. Die Rechnung: Ein Pool mit 0,25% × \$X täglichem Volumen gibt 0,03% an das Protokoll auf v4 ab (die fehlenden 12%). Auf CPMM kehrt das zu LPs zurück. Über ein Jahr verteilt sich das bedeutsam.
+Eine Migration kann die LP-Ökonomie verändern. Vergleichen Sie aber die tatsächlichen `AmmConfig`-Werte und eine etwaige separate CPMM-Creator-Gebühr, statt anzunehmen, dass der Protokollanteil von AMM v4 automatisch an die LPs zurückfließt. In der Standardkonfiguration von CPMM gehen von der Handelsgebühr weiterhin 12 % an das Protokoll und 4 % an den Fonds. Das oft genannte Protokoll-Äquivalent von 0,03 % bei AMM v4 ist kein exakter Abzug pro Swap.
 
-Für einen Pool mit niedrigem Volumen geht es bei der Migration mehr um Zukunftssicherung — bessere Standards, Token-2022-Unterstützung, falls Sie sie jemals brauchen, einfachere Integrationen.
+Bei einem Pool mit geringem Volumen dient eine Migration eher der Zukunftssicherheit — Token-2022-Unterstützung und einfachere Integrationen.
 
 ### Wie Migration funktioniert
 

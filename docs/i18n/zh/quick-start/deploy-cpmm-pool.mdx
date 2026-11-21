@@ -104,8 +104,8 @@ console.log(`Tx:       https://solscan.io/tx/${txId}`);
 示例：创建一个 SOL/USDC 池，初始流动性为 1 SOL 和 160 USDC：
 
 ```bash icon="terminal"
-export MINT_A="So11111111111111111111111111111111111111112"   # wSOL
-export MINT_B="EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"   # USDC
+export MINT_A="So11111111111111111111111111111111111111112"   # wSOL; see reference/program-addresses
+export MINT_B="EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"   # USDC; see reference/program-addresses
 export AMOUNT_A="1000000000"   # 1 SOL (9 decimals)
 export AMOUNT_B="160000000"    # 160 USDC (6 decimals)
 
@@ -134,6 +134,10 @@ Tx:       https://solscan.io/tx/5dQ...
    - 用 `AMOUNT_A` 和 `AMOUNT_B` 注入金库。
 4. **初始价格** 由初始金额比例决定：`price = AMOUNT_B / AMOUNT_A`（调整小数位后）。仔细选择这个值 — 机器人会在池开放后的几秒内套利任何错误定价。
 5. **`startTime: new BN(0)`** 立即开放交易。要在向公众开放前暂存流动性，设置一个未来的 Unix 时间戳。
+
+本示例省略了 `creatorFeeOn`，因此 SDK 构建的是 `Initialize`，池的创建者费路径处于关闭状态。若要在 SDK `0.2.85-alpha` 中启用，请导入 `FeeOn` 并添加 `creatorFeeOn: FeeOn.OnlyTokenA`、`OnlyTokenB` 或 `BothToken`。SDK 随后会构建 `InitializeV2`。你配置的 owner 以创建者身份签名并成为 `PoolState.pool_creator`；由其他账户支付交易费不会转移创建者费。
+
+`creatorFeeOn` 选择的是代币，而不是费率。池使用 `AmmConfig.creator_fee_rate`，即使启用了该路径，零费率也不会累积任何费用。创建前请读取当前配置。关于输入/输出行为和归集，请参见 [`products/cpmm/fees`](/docs/i18n/zh/products/cpmm/fees)。
 
 ## 常见错误
 

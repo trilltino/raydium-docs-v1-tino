@@ -91,9 +91,9 @@ Las solicitudes que superan los límites se rechazan con un error.
 
 ### Configuraciones de tarifa dinámica y orden límite de CLMM
 
-Dos nuevos endpoints exponen datos de calibración para el flujo `CreateCustomizablePool` de CLMM:
+Dos endpoints exponen datos de calibración para los pools personalizables y las órdenes límite de CLMM:
 
-- `GET /main/clmm-dynamic-config` — lista de tiers `DynamicFeeConfig` (período de filtro, período de decaimiento, factor de reducción, numerador máximo, control de tarifa dinámica). Pasa el `id` de uno de estos a `createCustomizablePool` cuando `enableDynamicFee=true`.
+- `GET /main/clmm-dynamic-config` — lista de niveles `DynamicFeeConfig` (periodo de filtro, periodo de decaimiento, factor de reducción, numerador máximo, control de comisión dinámica). Pasa el `id` de un nivel como `dynamicFeeConfig` a `createCustomizablePool` para el pool canónico o a `createCustomizablePoolV2` para un pool adicional con seed index. Pasar este parámetro activa las comisiones dinámicas; no existe el parámetro `enableDynamicFee`.
 - `GET /main/clmm-limit-order-config` — configuración de órdenes límite por pool: si las órdenes límite están habilitadas, el monto de entrada mínimo y el `limit_order_admin` fuera de la cadena autorizado para liquidar órdenes completadas.
 
 Los datos de órdenes límite por monedero (abiertas / completadas / cerradas) residen en Temp API; consulta [`api-reference/temp-api-v1/overview`](/docs/i18n/es/api-reference/temp-api-v1/overview).

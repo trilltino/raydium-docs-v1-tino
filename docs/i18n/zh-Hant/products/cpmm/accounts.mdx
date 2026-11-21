@@ -132,7 +132,7 @@ export function deriveCpmmAccounts(
 ```rust programs/cp-swap/src/states/pool.rs
 pub struct PoolState {
     pub amm_config: Pubkey,               // binds this pool to an AmmConfig
-    pub pool_creator: Pubkey,             // who ran initialize
+    pub pool_creator: Pubkey,             // creator-fee recipient; normally the initialize signer
     pub token_0_vault: Pubkey,            // == vault0 PDA
     pub token_1_vault: Pubkey,            // == vault1 PDA
 
@@ -177,7 +177,8 @@ pub struct PoolState {
 - **`status`** — 控制是否允許 `Swap`、`Deposit`、`Withdraw` 的位元遮罩。由管理員通過 `UpdatePoolStatus` 更新。SDK 在構建交易前檢查此項；如果你直接 CPI，請自己檢查。
 - **`token0_program` / `token1_program`** — 為每個金庫 CPI 的代幣程式。一個可以是經典 SPL Token，另一個是 Token-2022；它們是獨立的。
 - **`open_time`** — Unix 時間戳。此時間之前的交換失敗。此時間之前允許存入，以便資金池可以被播種。
-- **`creator_fee_on` / `enable_creator_fee`** — 一起控制此資金池是否啟用可選建立者費用以及從交換的哪一側收集。`enable_creator_fee == false` 完全清零建立者費用路徑。啟用時，`creator_fee_on` 選擇：`0` = 從交換輸入的任何代幣收取費用（`BothToken`）；`1` = 僅從 `token_0` 收取費用（跳過 `token_1 → token_0` 交換）；`2` = 僅從 `token_1` 收取費用。在資金池建立時設定：`Initialize` 始終將其儲存為停用，`InitializeV2` 儲存建立者的選擇（2026-10-30 新增），`InitializeWithPermission` 始終以呼叫者的 `creator_fee_on` 將其儲存為啟用。之後無法更改。
+- **`pool_creator`** — 創作者費的接收方。`Initialize` 和 `InitializeV2` 記錄創作者簽名者。`InitializeWithPermission` 記錄其單獨傳入的創作者帳戶。支付交易費不會改變該欄位，也不會轉移創作者費。
+- **`creator_fee_on` / `enable_creator_fee`** — 共同控制可選的創作者費是否生效以及使用哪種代幣。`enable_creator_fee == false` 會完全關閉創作者費路徑。啟用後，`BothToken`（`0`）從交換的輸入代幣收取費用。`OnlyToken0`（`1`）始終使用 token0：在 `token_0 → token_1` 交換中從輸入收取，在 `token_1 → token_0` 交換中從輸出收取。`OnlyToken1`（`2`）則相反。在建立池時設定：`Initialize` 始終儲存為關閉，`InitializeV2` 儲存創作者的選擇（2026-10-30 新增），`InitializeWithPermission` 始終儲存為開啟並使用呼叫方的 `creator_fee_on`。之後無法變更。
 - **`creator_fees_token_{0,1}`** — 累積的建立者費用，由 `CollectCreatorFee` 或 `CollectCreatorFeePermissionless` 掃除。兩條路徑都清零完整計數器，但由於 2026-09-19 建立者費用分享升級，只有部分餘額離開資金池：協議的份額**新增到 `protocol_fees_token_{0,1}`**，其餘部分轉移給建立者。無許可路徑將收件人固定為 `pool_creator` 的規範 ATA。`PoolState` 本身未更改 — 沒有共享金額的單獨計數器。
 
 ### `AmmConfig`

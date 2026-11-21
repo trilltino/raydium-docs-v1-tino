@@ -167,7 +167,7 @@ flowchart TB
 |-----------|------------|---------------------|
 | **권한 PDA** | 실제로 토큰 볼트를 제어하는 프로그램 소유 서명자입니다. 사용자는 절대 볼트 권한을 보유하지 않습니다. | 프로그램별; CPMM은 `vault_and_lp_mint_auth_seed`를 사용합니다 — [`products/cpmm/accounts`](/docs/i18n/ko/products/cpmm/accounts) 참조. |
 | **설정 계정** | 수수료율, 관리자 키 및 펀드/크리에이터 목적지를 보유하는 프로그램별 계정입니다. CPMM에서 `u16`으로 인덱싱됩니다(`amm_config[index]`). | [`reference/program-addresses`](/docs/i18n/ko/reference/program-addresses)는 이들을 반환하는 API 엔드포인트를 나열합니다. |
-| **프로토콜/펀드/크리에이터 수수료 분할** | 단일 거래 수수료는 정산 시 세 가지(때로는 네 가지) 방식으로 분할됩니다. CPMM 및 CLMM에서 동일한 패턴, 다른 노브. | [`reference/fee-comparison`](/docs/i18n/ko/reference/fee-comparison) |
+| **거래 수수료와 크리에이터 수수료** | CPMM과 CLMM은 거래 수수료를 LP, 프로토콜, 펀드에 나눕니다. CPMM은 별도의 크리에이터 수수료를 부과할 수 있으며, 그 버킷을 회수할 때 프로토콜 몫이 적용됩니다. | [`protocol-overview/shared-infrastructure`](/docs/i18n/ko/protocol-overview/shared-infrastructure#3-trade-fee-and-creator-fee-accounting) |
 | **관찰 계정** | TWAP에 사용되는 가격 샘플의 링 버퍼입니다. 모든 스왑에서 작성됩니다. | [`products/cpmm/accounts`](/docs/i18n/ko/products/cpmm/accounts), [`products/clmm/accounts`](/docs/i18n/ko/products/clmm/accounts) |
 | **REST API(`api-v3.raydium.io`)** | 풀 메타데이터, 포지션, 팜 상태 및 견적 계산을 위한 단일 공개 읽기 API입니다. | [`sdk-api/rest-api`](/docs/i18n/ko/sdk-api/rest-api) |
 | **IDL 레지스트리** | 모든 프로그램의 Anchor IDL, [`github.com/raydium-io/raydium-idl`](https://github.com/raydium-io/raydium-idl)에서 미러링됩니다. SDK 및 CPI 통합자는 이에 대해 역직렬화합니다. | [`sdk-api/anchor-idl`](/docs/i18n/ko/sdk-api/anchor-idl) |

@@ -167,7 +167,7 @@ flowchart TB
 |-----------|------------|---------------------|
 | **オーソリティPDA** | トークンボルトを実際に制御するプログラム所有の署名者。ユーザーはボルトオーソリティを保持しません。 | プログラムごと。CPMMは`vault_and_lp_mint_auth_seed`を使用します — [`products/cpmm/accounts`](/docs/i18n/ja/products/cpmm/accounts)を参照。 |
 | **設定アカウント** | フィーレート、管理キー、およびファンド/クリエイター宛先を保持するプログラムごとのアカウント。CPMMの`u16`でインデックス付け（`amm_config[index]`）。 | [`reference/program-addresses`](/docs/i18n/ja/reference/program-addresses)はそれらを返すAPIエンドポイントをリストします。 |
-| **プロトコル/ファンド/クリエイターフィー分割** | 単一のトレードフィーは決済時に3つ（時々4つ）の方法に分割されます。CPMMとCLMMで同じパターン、異なるノブ。 | [`reference/fee-comparison`](/docs/i18n/ja/reference/fee-comparison) |
+| **トレードフィーとクリエイターフィー** | CPMM と CLMM はトレードフィーを LP、プロトコル、ファンドに配分します。CPMM は別途クリエイターフィーを課すことができ、そのバケットの回収時にプロトコル分が適用されます。 | [`protocol-overview/shared-infrastructure`](/docs/i18n/ja/protocol-overview/shared-infrastructure#3-trade-fee-and-creator-fee-accounting) |
 | **オブザベーションアカウント** | TWAP用に使用される価格サンプルのリングバッファ。すべてのスワップで書き込まれます。 | [`products/cpmm/accounts`](/docs/i18n/ja/products/cpmm/accounts)、[`products/clmm/accounts`](/docs/i18n/ja/products/clmm/accounts) |
 | **REST API（`api-v3.raydium.io`）** | プールメタデータ、ポジション、ファーム状態、および見積もり計算の単一の公開読み取りAPI。 | [`sdk-api/rest-api`](/docs/i18n/ja/sdk-api/rest-api) |
 | **IDLレジストリ** | すべてのプログラムのAnchor IDL、[`github.com/raydium-io/raydium-idl`](https://github.com/raydium-io/raydium-idl)でミラーリング。SDKとCPI統合者はこれらに対して逆シリアル化します。 | [`sdk-api/anchor-idl`](/docs/i18n/ja/sdk-api/anchor-idl) |

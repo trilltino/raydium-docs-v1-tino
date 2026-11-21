@@ -91,9 +91,9 @@ Anfragen, die diese Limits überschreiten, werden mit einem Fehler abgelehnt.
 
 ### CLMM dynamische-Gebühren und Limit-Order-Konfigurationen
 
-Zwei neue Endpoints stellen Kalibrierungsdaten für den CLMM-`CreateCustomizablePool`-Fluss bereit:
+Zwei Endpunkte liefern Kalibrierungsdaten für anpassbare CLMM-Pools und Limit-Orders:
 
-- `GET /main/clmm-dynamic-config` — Liste von `DynamicFeeConfig`-Tiers (Filter-Periode, Decay-Periode, Reduktionsfaktor, maximaler Zähler, Dynamische-Gebühren-Kontrolle). Übergeben Sie die `id` einer dieser Konfigurationen an `createCustomizablePool`, wenn `enableDynamicFee=true`.
+- `GET /main/clmm-dynamic-config` — Liste der `DynamicFeeConfig`-Stufen (Filterperiode, Abklingperiode, Reduktionsfaktor, maximaler Zähler, Steuerung der dynamischen Gebühr). Übergeben Sie die `id` einer Stufe als `dynamicFeeConfig` an `createCustomizablePool` für den kanonischen Pool oder an `createCustomizablePoolV2` für einen zusätzlichen Pool mit Seed-Index. Die Übergabe dieses Parameters aktiviert dynamische Gebühren; einen Parameter `enableDynamicFee` gibt es nicht.
 - `GET /main/clmm-limit-order-config` — Pro-Pool-Limit-Order-Konfiguration: ob Limit Orders aktiviert sind, der Mindesteinzahlungsbetrag und der Off-Chain-`limit_order_admin`-Keeper, der berechtigt ist, erfüllte Orders zu begleichen.
 
 Wallet-spezifische Limit-Order-Daten (offen / erfüllt / geschlossen) befinden sich auf der Temp API; siehe [`api-reference/temp-api-v1/overview`](/docs/i18n/de/api-reference/temp-api-v1/overview).

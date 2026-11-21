@@ -104,8 +104,8 @@ console.log(`Tx:       https://solscan.io/tx/${txId}`);
 예: 1 SOL과 160 USDC 시드로 SOL/USDC 풀 생성:
 
 ```bash icon="terminal"
-export MINT_A="So11111111111111111111111111111111111111112"   # wSOL
-export MINT_B="EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"   # USDC
+export MINT_A="So11111111111111111111111111111111111111112"   # wSOL; see reference/program-addresses
+export MINT_B="EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"   # USDC; see reference/program-addresses
 export AMOUNT_A="1000000000"   # 1 SOL (9 decimals)
 export AMOUNT_B="160000000"    # 160 USDC (6 decimals)
 
@@ -134,6 +134,10 @@ Tx:       https://solscan.io/tx/5dQ...
    - `AMOUNT_A`와 `AMOUNT_B`로 볼트에 시드 제공.
 4. **초기 가격**은 시드 비율로 설정됩니다: 소수점 조정 후 `price = AMOUNT_B / AMOUNT_A`. 이를 신중하게 선택하세요 — 봇은 풀이 열린 후 몇 초 내에 가격 오류를 차익거래할 것입니다.
 5. **`startTime: new BN(0)`**은 거래를 즉시 개시합니다. 공개 전에 유동성을 준비하려면 미래의 Unix 타임스탬프를 설정하세요.
+
+이 예제는 `creatorFeeOn`을 생략하므로 SDK가 `Initialize`를 빌드하고 풀의 크리에이터 수수료 경로는 비활성화됩니다. SDK `0.2.85-alpha`에서 활성화하려면 `FeeOn`을 가져오고 `creatorFeeOn: FeeOn.OnlyTokenA`, `OnlyTokenB`, `BothToken` 중 하나를 추가하세요. 그러면 SDK가 `InitializeV2`를 빌드합니다. 설정한 owner가 크리에이터로 서명하고 `PoolState.pool_creator`가 됩니다. 다른 계정에서 트랜잭션 수수료를 지불해도 크리에이터 수수료가 다른 곳으로 가지 않습니다.
+
+`creatorFeeOn`은 수수료율이 아니라 토큰을 선택합니다. 풀은 `AmmConfig.creator_fee_rate`를 사용하며, 경로를 활성화해도 수수료율이 0이면 아무것도 누적되지 않습니다. 생성 전에 현재 설정을 읽어 보세요. 입력/출력 동작과 회수는 [`products/cpmm/fees`](/docs/i18n/ko/products/cpmm/fees)를 참고하세요.
 
 ## 일반적인 오류
 

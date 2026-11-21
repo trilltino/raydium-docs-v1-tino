@@ -1,6 +1,6 @@
 ---
 title: "Infrastructure partagée"
-description: "Les primitives que tous les programmes Raydium partagent — PDAs d'autorité, comptes AmmConfig, la répartition des frais protocole/fonds/créateur, comptes d'observation et la surface API REST publique — définis une seule fois pour que les chapitres par produit puissent s'y référer."
+description: "Les primitives partagées par tous les programmes Raydium — PDA d'autorité, comptes AmmConfig, comptabilité des frais de trading et des frais créateur CPMM, comptes d'observation et l'API REST publique — définies une seule fois pour que les chapitres produits puissent y renvoyer."
 ---
 
 <Info>
@@ -17,7 +17,7 @@ description: "Les primitives que tous les programmes Raydium partagent — PDAs 
 
 Trois formes de partage traversent la base de code :
 
-- **Partage de convention.** Chaque programme utilise le même motif de dérivation PDA, la même forme de répartition des frais et la même idée de compte d'observation — mais chacun les implémente dans son propre programme avec ses propres seeds.
+- **Conventions partagées.** Les programmes réutilisent les mêmes modèles de dérivation de PDA, de comptes de configuration, de comptabilité des frais et de comptes d'observation, mais chaque programme définit ses propres seeds et son propre comportement. Des noms de champs similaires ne garantissent pas des règles de règlement identiques.
 - **Partage de compte.** Une poignée de comptes sont *littéralement* le même enregistrement sur plusieurs pools (le PDA d'autorité global en CPMM, les comptes AmmConfig).
 - **Partage hors chaîne.** Une API REST et un SDK TypeScript font face à tous les quatre programmes. Les intégrateurs interagissent avec un seul hôte HTTP et un seul paquet NPM, quel que soit le programme qu'ils finissent par appeler.
 
@@ -76,31 +76,35 @@ AMM v4 n'a pas de `AmmConfig` — ses paramètres de frais sont par pool, codés
 
 Un tableau complet de qui peut modifier quoi se trouve dans [`security/admin-and-multisig`](/docs/i18n/fr/security/admin-and-multisig). Les répartitions de frais actuelles visibles par l'utilisateur se trouvent dans [`ray/protocol-fees`](/docs/i18n/fr/ray/protocol-fees).
 
-## 3. La répartition des frais protocole / fonds / créateur
+## 3. Comptabilité des frais de trading et des frais créateur
 
-Chaque frais de swap CPMM et CLMM est réparti sur jusqu'à quatre destinations en sortie :
+CPMM et CLMM répartissent leurs **frais de trading** entre les LP, le protocole et le fonds. CPMM peut aussi prélever des frais créateur optionnels à un taux distinct. Ne modélisez pas ces frais créateur comme une quatrième part des frais de trading :
 
 ```
-                         total swap fee
-                              │
-              ┌───────────────┼───────────────┬──────────────┐
-              ▼               ▼               ▼              ▼
-        LP pool side     Protocol         Fund         Creator
-        (raises k)       treasury         multisig     (LaunchLab pools)
+CPMM / CLMM trade fee
+  ├── LP share
+  ├── Protocol share
+  └── Fund share
+
+CPMM creator fee (independent rate, when enabled)
+  └── Accrued creator bucket
+      ├── Protocol share, applied at collection
+      └── Remainder paid to PoolState.pool_creator
 ```
 
 Mécaniquement :
 
-1. **Les frais de transaction s'accumulent dans le pool.** Les frais sont prélevés du côté d'entrée du swap et le montant *après frais* est ce que les mathématiques du produit constant voient. C'est ce que « le LP gagne les frais » signifie — `k` augmente et la valeur implicite par jeton LP aussi.
-2. **Les portions protocole/fonds/créateur sont déduites de cette accumulation du côté LP dans des comptes de compteur par pool.** Elles se trouvent sur l'état du pool (`protocol_fees_token{0,1}`, `fund_fees_token{0,1}`, etc.) jusqu'à ce que quelqu'un appelle l'instruction de collecte correspondante. Elles ne quittent pas les coffres du pool jusqu'à ce moment ; du point de vue d'un swap, elles sont toujours « dans le pool ».
-3. **La collecte les déplace.** Les chemins protocole et fonds nécessitent le signataire respectif `protocol_owner` / `fund_owner` de `AmmConfig`. Les frais de créateur CPMM utilisent soit le chemin `CollectCreatorFee` signé par le créateur, soit `CollectCreatorFeePermissionless`, que n'importe quel payeur peut déclencher mais qui fixe les destinations aux ATAs canoniques du créateur.
+1. **Les frais de trading utilisent `trade_fee_rate`.** La part des LP reste dans la comptabilité du pool. CPMM prélève ses frais de trading sur l'entrée du swap. CLMM prend aussi en charge la collecte des frais sur un seul côté au niveau du pool ; vérifiez donc le mode de frais du produit avant de supposer une déduction uniquement en entrée.
+2. **Les frais créateur de CPMM utilisent `creator_fee_rate` de façon indépendante.** Ils ne réduisent jamais les parts des LP, du protocole ou du fonds dans les frais de trading. `PoolState.creator_fee_on` détermine si les frais créateur sont déduits de l'entrée ou de la sortie à chaque swap. CLMM n'a pas ce bucket de frais créateur propre à CPMM.
+3. **Les parts non-LP s'accumulent dans des compteurs séparés.** Elles restent dans les vaults mais sont exclues des réserves utilisées par la courbe jusqu'à l'exécution de l'instruction de collecte correspondante.
+4. **La collecte règle les destinations.** Les chemins du protocole et du fonds exigent l'autorité `AmmConfig` correspondante. La collecte créateur CPMM exige soit la signature du créateur enregistré, soit le chemin sans permission, que n'importe quel payeur peut déclencher mais qui fixe les destinations aux ATA canoniques de ce créateur. Les deux chemins créateur appliquent, au moment de la collecte, la part configurée du protocole sur le bucket créateur.
 
 Quelques observations importantes :
 
-- **Les pourcentages de répartition sont sur les frais de transaction, pas sur la transaction.** Un frais de transaction de 0,25% avec une part de protocole de 12% signifie que le protocole obtient `0,25% × 12% = 0,03%` de la transaction — pas 12% de la transaction.
-- **Les frais de créateur sont optionnels par pool et fixés à la création.** Un pool qui n'en a pas a une répartition à 3 voies (LP / protocole / fonds). Sur CPMM, un quatrième slot est acheminé vers le créateur du pool enregistré. Les graduations LaunchLab l'activent via `InitializeWithPermission`, et depuis le 2026-10-30 n'importe quel créateur peut l'activer via `InitializeV2`. Le paramètre ne peut pas changer après la création.
-- **AMM v4 se divise en deux voies seulement**, codées en dur par pool : LP et protocole. Pas de slot fonds, pas de slot créateur.
-- **Fonds vs protocole** — les deux sont des destinations de trésorerie du protocole, mais ils ont des signataires différents et des utilisations prévues différentes. `protocol` finance historiquement les opérations ; `fund` est la trésorerie à plus long terme. La répartition entre les deux est elle-même réglable.
+- **Les pourcentages de répartition s'appliquent aux frais de trading, pas à la transaction entière.** Des frais de trading de 0,25 % avec une part protocole de 12 % donnent au protocole `0.25% × 12% = 0.03%` de la transaction, avant prise en compte d'éventuels frais créateur distincts.
+- **Les frais créateur CPMM sont optionnels par pool et fixés à la création.** Les graduations LaunchLab peuvent les activer via `InitializeWithPermission`. Depuis le 2026-10-30, n'importe quel créateur peut activer ce chemin via `InitializeV2` ; le SDK choisit cette instruction lorsque `creatorFeeOn` est défini. Un `creator_fee_rate` non nul reste nécessaire pour que quoi que ce soit s'accumule.
+- **AMM v4 utilise un règlement différé du PnL.** Sa fraction `pnl_numerator / pnl_denominator` s'applique à la croissance calculée par `calc_take_pnl`, et non directement aux frais de chaque swap. Il n'a ni bucket de fonds ni bucket créateur.
+- **Fonds vs protocole** — les deux sont des destinations de la trésorerie du protocole, mais avec des signataires et des usages prévus différents. `protocol` finance historiquement les opérations ; `fund` est la trésorerie de plus long terme.
 
 Les taux spécifiques se trouvent dans [`reference/fee-comparison`](/docs/i18n/fr/reference/fee-comparison) et [`ray/protocol-fees`](/docs/i18n/fr/ray/protocol-fees).
 

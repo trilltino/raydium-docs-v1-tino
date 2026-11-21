@@ -19,7 +19,11 @@ import subprocess
 ROOT = Path(__file__).resolve().parent.parent
 EXCLUDED = {
     'scripts/generate-upstream-diff.py',
-    'docs/en/resources/devrel-edits.mdx',
+    'docs/en/resources/devrel-edits/pull-requests.mdx',
+    'docs/en/resources/devrel-edits/transfer-hooks.mdx',
+    'docs/en/resources/devrel-edits/amm-v4-docs-updates.mdx',
+    'docs/en/resources/devrel-edits/issues.mdx',
+    'docs/en/resources/devrel-edits/sdk-edits/create-pool.mdx',
 }
 OUTPUT_PREFIX = 'public/tino-changes/'
 

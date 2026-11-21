@@ -186,8 +186,7 @@ SDK의 견적 도구는 세 가지 모두를 고려하므로 `minimum_amount_out
 - **생성 후 다시 활성화하거나 다시 라우팅할 수 없습니다.** `enable_creator_fee = false`로 초기화된 풀은 절대 크리에이터 수수료를 청구하지 않습니다; 특정 `creator_fee_on`으로 초기화된 풀은 쪽을 전환할 수 없습니다.
 - **활성화해도 요율이 설정되지는 않습니다.** 수수료가 활성화된 상태로 생성된 풀은 해당 계층의 `creator_fee_rate`를 청구합니다. 기본값은 `0`이므로 그러한 계층에서는 활성화된 풀이 아무것도 누적하지 않습니다. 풀을 생성하기 전에 구성을 확인하세요.
 
-크리에이터 수수료는 Raydium의 "Burn & Earn" 패턴의 메커니즘입니다: LP 토큰은 [LP Lock](/docs/i18n/ko/reference/program-addresses) 프로그램 아래에 잠겨 있으므로 크리에이터는 유동성을 인출할 수 없지만, 누적된 크리에이터 수수료는 무한정 수집할 수 있습니다.
-
+CPMM 크리에이터 수수료는 Raydium의 "Burn & Earn" Fee Key와 별개입니다. Burn & Earn은 LP 포지션을 [LP Lock](/docs/i18n/ko/reference/program-addresses) 프로그램에 잠그고 그 포지션의 LP 수수료를 Fee Key 보유자에게 보냅니다. CPMM 크리에이터 수수료 흐름은 여전히 `PoolState.pool_creator`에 귀속되며, 회수 시 프로토콜 몫이 차감됩니다. LP를 잠그거나 Fee Key를 양도해도 이 지정은 이전되지 않습니다.
 
 ## 크리에이터 수수료의 프로토콜 몫
 

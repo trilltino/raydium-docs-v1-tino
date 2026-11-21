@@ -110,32 +110,36 @@ Die Invarianten-Überprüfung setzt voraus, dass die LP-Gebühr in den Reserven 
 
 ### CPMM-Konvention
 
-Gebühren sind `u64`-Basispunkt-ähnliche Sätze mit einem `1_000_000`-Nenner. Die Trade-Gebühr wird in `trade_fee_rate` (Gesamt) aufgeteilt und dann über `protocol_fee_rate`, `fund_fee_rate`, `creator_fee_rate` unterteilt. Bei jedem Swap:
+Gebühren sind `u64`-Sätze mit dem Nenner `1_000_000`. `protocol_fee_rate` und `fund_fee_rate` unterteilen die **Handelsgebühr**. `creator_fee_rate` ist unabhängig: Sie gilt für das Swap-Volumen und verringert nie die Anteile der Handelsgebühr.
+
+Werden beide Gebühren vom Input genommen, rundet das Programm den kombinierten Abzug einmal und teilt ihn dann nach den Sätzen auf:
 
 ```
-trade_fee     = ceil(Δx · trade_fee_rate   / 1_000_000)
-creator_fee   = ceil(Δx · creator_fee_rate / 1_000_000)   // eigener Satz auf Volumen,
-                                                          // NICHT ein Anteil von trade_fee
-protocol_fee  = floor(trade_fee · protocol_fee_rate / 1_000_000)
-fund_fee      = floor(trade_fee · fund_fee_rate     / 1_000_000)
-lp_fee        = trade_fee − protocol_fee − fund_fee
+total_fee      = ceil(Δx · (trade_fee_rate + creator_fee_rate) / 1_000_000)
+creator_fee    = floor(total_fee · creator_fee_rate / (trade_fee_rate + creator_fee_rate))
+trade_fee      = total_fee − creator_fee
+protocol_fee   = floor(trade_fee · protocol_fee_rate / 1_000_000)
+fund_fee       = floor(trade_fee · fund_fee_rate / 1_000_000)
+lp_fee         = trade_fee − protocol_fee − fund_fee
 ```
 
-Die drei Nicht-LP-Anteile sammeln sich in separaten Zählern (`protocol_fees_*`, `fund_fees_*`, `creator_fees_*`) an, die **ausgeschlossen** sind aus den Reserven, die in der Invariante verwendet werden. So können Gebühren abgerufen werden, ohne die Kurve zu verschieben. Siehe [`products/cpmm/fees`](/docs/i18n/de/products/cpmm/fees).
+Wählt `creator_fee_on` den Output-Token, wird nur die Handelsgebühr vom Input abgezogen. Die Creator-Gebühr beträgt dann `ceil(Δy · creator_fee_rate / 1_000_000)` und wird vom Kurven-Output abgezogen. Siehe [`products/cpmm/fees`](/docs/i18n/de/products/cpmm/fees#which-side-of-the-trade-the-fees-are-taken-from).
+
+Die drei Nicht-LP-Buckets sammeln sich getrennt an und werden aus den in der Invariante verwendeten Reserven herausgerechnet. Beim Einzug der Creator-Gebühren wird ein konfigurierbarer Protokollanteil vom Creator-Bucket in den Protokoll-Bucket verschoben; nur der Rest geht an den Creator.
 
 ### AMM v4-Konvention
 
-Gebühren sind `numerator / denominator`-Verhältnisse mit einem `10_000`-Nenner. Die Aufteilung ist bei der Pool-Erstellung festgelegt und auf `AmmInfo.fees` gespeichert:
+Die Brutto-Swap-Gebühr verwendet `swap_fee_numerator / swap_fee_denominator`, normalerweise `25 / 10_000`:
 
 ```
-swap_fee  = ceil(Δx · swap_fee_numerator / swap_fee_denominator)    // z. B. 0,25%
-pnl_share = swap_fee · pnl_numerator / pnl_denominator               // 12 / 100 = 12% von swap_fee
-lp_share  = swap_fee − pnl_share                                     // 0,22% des Volumens
+gross_fee = ceil(Δx · swap_fee_numerator / swap_fee_denominator)   // 0.25% by default
 ```
 
-`pnl_share` sammelt sich in `state_data.need_take_pnl_*` an und wird aus den Reserven ausgeschlossen; `lp_share` bleibt im Vault. Siehe [`products/amm-v4/fees`](/docs/i18n/de/products/amm-v4/fees).
+Das Programm berechnet **nicht** bei jedem Swap `pnl_numerator / pnl_denominator × gross_fee`. Die gesamte Gebühr bleibt zunächst in den Reserven und erhöht `k`. Später misst `calc_take_pnl` das Wachstum gegenüber der `TargetOrders`-Basis, leitet tokenseitige PnL-Beträge ab und wendet `pnl_numerator / pnl_denominator` auf dieses Wachstum an. Unter den Standardwerten beträgt dieser Anteil `12 / 100`; die oft genannten 0,03 % des Volumens sind ein wirtschaftliches Gebührenäquivalent, kein exakter Abzug pro Swap. Ganzzahlige Rundung verändert das Ergebnis, und das Programm verbucht PnL nur, wenn beide tokenseitigen Beträge von null verschieden sind.
 
-Beide Konventionen bewahren die Invariante auf die gleiche Weise – der Unterschied ist kosmetisch (Nenner + Anzahl der Unterkategorien).
+Verbuchter PnL sammelt sich in `state_data.need_take_pnl_*` und wird aus den Reserven herausgerechnet. Das restliche Wachstum behalten die LPs. Siehe [`products/amm-v4/math`](/docs/i18n/de/products/amm-v4/math#settlement-step-pnl).
+
+Beide Programme rechnen verbuchte Nicht-LP-Gebühren aus den Kurvenreserven heraus, unterscheiden sich aber im Abrechnungszeitpunkt und in der Buchführung.
 
 ## Rundungsregeln
 

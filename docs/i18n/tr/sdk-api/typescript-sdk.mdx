@@ -10,9 +10,9 @@ description: "@raydium-io/raydium-sdk-v2 uçtan uca — kurulum, dört modül ar
 </Info>
 
 <Info>
-  **Sürüm notu.** Bu sayfa `@raydium-io/raydium-sdk-v2@0.2.64-alpha` sürümünü belgeler; bu, bu sitedeki tüm kod örneklerinin kullandığı sürümdür. SDK henüz 1.0'dan öncedir ve tür yüzeyi sürümler arasında değişmiştir — sürümünüzü sabitleyin.
+  **Sürüm notu.** Bu sayfa `@raydium-io/raydium-sdk-v2@0.2.85-alpha` sürümünü belgeler; bu, bu sitedeki tüm kod örneklerinin kullandığı sürümdür. SDK henüz 1.0'dan öncedir ve tür yüzeyi sürümler arasında değişmiştir — sürümünüzü sabitleyin.
 
-  Sürüm `0.2.42-alpha`'dan 2026-09-09 tarihinde program yükseltmeleriyle birlikte `0.2.64-alpha`'ya yükseltilmiştir; bu SDK'nın mevcut sürümüdür. Kod-demo sayfalarının bağlantı verdiği [`raydium-sdk-V2-demo`](https://github.com/raydium-io/raydium-sdk-V2-demo) deposu `0.2.62-alpha` sürümünü kurar; bir demoyu kelimesi kelimesine takip ediyorsanız her iki sürümü de sabitleyin. Bu sayfadaki demolar son olarak `0.2.42-alpha` sürümüne karşı **çalıştırılmıştır** (2026-04); çağrı imzaları 2026-09-09 tarihinde `0.2.64-alpha` kaynağına karşı yeniden kontrol edilmiştir, ancak herhangi bir uyuşmazlığı bir belgeleme hatası olarak değerlendirin ve [bir sorun açın](https://github.com/raydium-io/raydium-docs-v1/issues/new).
+  Sabitlenen sürüm 2026-11-20'de `0.2.64-alpha` sürümünden yükseltildi. [`raydium-sdk-V2-demo`](https://github.com/raydium-io/raydium-sdk-V2-demo) deposu, güncellenmiş havuz oluşturma örneklerinin kullandığı commit'te `0.2.85-alpha` sürümünü kurar. Demolar en son `0.2.42-alpha` (2026-04) ile **çalıştırıldı**. Herkese açık oluşturucu imzaları 2026-11-20'de yayımlanmış `0.2.85-alpha` paketine göre yeniden kontrol edildi. Herhangi bir uyumsuzluğu dokümantasyon hatası olarak değerlendirin ve [bir issue açın](https://github.com/raydium-io/raydium-docs-v1/issues/new).
 </Info>
 
 ## Kurulum
@@ -52,8 +52,10 @@ const raydium = await Raydium.load({
 Yüklendikten sonra, `raydium` nesnesi bir API istemcisinin yanı sıra on modül arayüzü ortaya çıkarır:
 
 ```ts
-raydium.cpmm       // CPMM havuzları: createPool, addLiquidity, withdrawLiquidity, swap, ...
-raydium.clmm       // CLMM havuzları: createPool, openPositionFromBase, increasePositionFromBase,
+raydium.cpmm       // CPMM pools: createPool with optional creatorFeeOn / InitializeV2,
+                   //             addLiquidity, withdrawLiquidity, swap, ...
+raydium.clmm       // CLMM pools: createPool, customizable pool and V2 builders,
+                   //             openPositionFromBase, increasePositionFromBase,
                    //                 decreaseLiquidity, harvestAllRewards, swap, limit emirleri, ...
 raydium.liquidity  // AMM v4 havuzları: computeAmountOut, swap, addLiquidity, removeLiquidity, ...
 raydium.farm       // Farm v3/v5/v6: deposit, withdraw, harvestAllRewards, create,
@@ -107,11 +109,13 @@ Döndürülen alanlar:
 
 Neredeyse her oluşturucu dahili olarak zincir üstü durumu getirir: havuz bilgisi (teklifler için), token programı sahipliği (Token-2022 vs SPL yönlendirmesi için), hesap kira muafiyeti (ATA oluşturma için), vb. SDK agresif bir şekilde önbelleğe alır ancak yeni bir havuz için ilk çağrı RPC gidiş-dönüşleri içerir. Yeniden getirmeyi önlemek için uzun ömürlü bir `raydium` örneği tutun.
 
-## CLMM modülü eklemeleri (en son sürüm)
+## CLMM özelleştirilebilir havuzlar ve limit emirler
 
-CLMM arayüzü yeni dinamik ücret, tek taraflı ücret ve limit sipariş özellikleri için yüzeyler kazandı:
+CLMM cephesi dinamik ücret, tek taraflı ücret ve limit emir özelliklerini sunar:
 
-- **`raydium.clmm.createCustomizablePool`** — `collectFeeOn` ve `dynamicFeeConfig` (yapılandırma hesabının `PublicKey` değeri) kabul eden `createPool` üst kümesi. Dinamik ücretleri etkinleştiren şey `dynamicFeeConfig` sağlamaktır; ayrı bir `enableDynamicFee` bayrağı ve `dynamicFeeConfigId` yoktur. Klasik `createPool`, varsayılan ücretli havuzlar için çalışmaya devam eder.
+- **`raydium.clmm.createCustomizablePool`** — kanonik özelleştirilebilir havuzu oluşturur ve `collectFeeOnMint` ile `dynamicFeeConfig` kabul eder. Ücret tahsil mint'i havuzun mint'lerinden biri olmalıdır; swap girdisinden tahsil etmek için bunu atlayın. Eski `collectFeeOn` parametresi kullanımdan kaldırılmıştır ve reddedilir.
+- **`raydium.clmm.createCustomizablePoolV2`** — sıfırdan farklı `seed_index` içeren bir PDA'da ek bir havuz oluşturur. SDK ilk 100 seed index'i kontrol eder ve ilk uygun olanı seçer. Aynı `collectFeeOnMint` ve `dynamicFeeConfig` parametrelerini kabul eder. Orijinal havuz PDA'sına ihtiyacınız varsa bunun yerine kanonik yöntemi kullanın.
+- **Dinamik ücretler** — `dynamicFeeConfig` sağlandığında etkinleşir. Ayrı bir `enableDynamicFee` bayrağı veya `dynamicFeeConfigId` yoktur. Klasik `createPool`, varsayılan ücretli havuzlar için çalışmaya devam eder.
 - **`raydium.clmm.openLimitOrder`** — tek tick'lik bir limit emri açar. `poolInfo`, `baseIn` (yön), `orderTick`, `amount` ve isteğe bağlı olarak `tickArrayBitmap`, `noneIndex`, `ownerInfo` alır. Tick'i nicelemek için dışa aktarılan `getOrderTick({ baseIn, mintADecimal, mintBDecimal, tickSpacing, price })` yardımcısını kullanın.
 - **`raydium.clmm.increaseLimitOrder` / `decreaseLimitOrder`** — mevcut bir emrin doldurulmamış kısmını ayarlar. Her ikisi de `{ poolInfo, limitOrder, amount }` alır; `decreaseLimitOrder` isteğe bağlı bir `slippage` ekler. Azaltma, tamamen doldurulmuş bir emirde `InvalidOrderPhase` ile geri döner.
 - **`raydium.clmm.settleLimitOrder` / `settleAllLimitOrder`** — doldurulmuş çıktıyı sahibinin ATA'sına süpürür. `settleLimitOrder` yalnızca `{ limitOrder }` alır — `poolInfo` almaz. Emrin sahibi veya programın `limit_order_admin` keeper'ı bunu çağırabilir.

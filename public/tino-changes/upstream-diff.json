@@ -1,21 +1,25 @@
 {
   "upstream_repository": "raydium-io/raydium-docs-v1",
   "upstream_commit": "7023f95844fb79abd1c36f1650278d024de5e175",
-  "local_base_commit": "41d137e579684b08474f39e4e214684a096bdbd0",
+  "local_base_commit": "d6526b64f69bec02cca8393a708d9ba5e6c989b4",
   "includes_tracked_working_tree": true,
   "normalization": "docs/en/ becomes the upstream root; docs/i18n/<locale>/ becomes <locale>/. These prefixes are also removed from text. LF line endings and a final newline are used.",
   "excluded": [
-    "docs/en/resources/devrel-edits.mdx",
+    "docs/en/resources/devrel-edits/amm-v4-docs-updates.mdx",
+    "docs/en/resources/devrel-edits/issues.mdx",
+    "docs/en/resources/devrel-edits/pull-requests.mdx",
+    "docs/en/resources/devrel-edits/sdk-edits/create-pool.mdx",
+    "docs/en/resources/devrel-edits/transfer-hooks.mdx",
     "scripts/generate-upstream-diff.py",
     "public/tino-changes/*",
     "all untracked files"
   ],
   "counts": {
     "unchanged": 22,
-    "moved_or_path_only": 2626,
-    "modified": 212,
-    "added": 7,
-    "removed": 28
+    "moved_or_path_only": 2509,
+    "modified": 357,
+    "added": 10,
+    "removed": 0
   },
   "files": [
     {
@@ -81,7 +85,7 @@
     {
       "upstream_path": "algorithms/constant-product.mdx",
       "local_path": "docs/en/algorithms/constant-product.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "algorithms/impermanent-loss.mdx",
@@ -111,7 +115,7 @@
     {
       "upstream_path": "api-reference/api-v3/overview.mdx",
       "local_path": "docs/en/api-reference/api-v3/overview.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "api-reference/dynamic-ipfs-v1/overview.mdx",
@@ -241,7 +245,7 @@
     {
       "upstream_path": "ar/algorithms/constant-product.mdx",
       "local_path": "docs/i18n/ar/algorithms/constant-product.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "ar/algorithms/impermanent-loss.mdx",
@@ -271,7 +275,7 @@
     {
       "upstream_path": "ar/api-reference/api-v3/overview.mdx",
       "local_path": "docs/i18n/ar/api-reference/api-v3/overview.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "ar/api-reference/dynamic-ipfs-v1/overview.mdx",
@@ -551,7 +555,7 @@
     {
       "upstream_path": "ar/products/cpmm/code-demos.mdx",
       "local_path": "docs/i18n/ar/products/cpmm/code-demos.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "ar/products/cpmm/fees.mdx",
@@ -561,7 +565,7 @@
     {
       "upstream_path": "ar/products/cpmm/index.mdx",
       "local_path": "docs/i18n/ar/products/cpmm/index.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "ar/products/cpmm/instructions.mdx",
@@ -791,7 +795,7 @@
     {
       "upstream_path": "ar/protocol-overview/architecture.mdx",
       "local_path": "docs/i18n/ar/protocol-overview/architecture.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "ar/protocol-overview/index.mdx",
@@ -801,12 +805,12 @@
     {
       "upstream_path": "ar/protocol-overview/shared-infrastructure.mdx",
       "local_path": "docs/i18n/ar/protocol-overview/shared-infrastructure.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "ar/protocol-overview/versions-and-migration.mdx",
       "local_path": "docs/i18n/ar/protocol-overview/versions-and-migration.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "ar/quick-start/deploy-clmm-pool.mdx",
@@ -816,7 +820,7 @@
     {
       "upstream_path": "ar/quick-start/deploy-cpmm-pool.mdx",
       "local_path": "docs/i18n/ar/quick-start/deploy-cpmm-pool.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "ar/quick-start/index.mdx",
@@ -955,13 +959,13 @@
     },
     {
       "upstream_path": "ar/reference/changelog/2026-10-22-clmm-customizable-pool-v2.mdx",
-      "local_path": null,
-      "status": "removed"
+      "local_path": "docs/i18n/ar/reference/changelog/2026-10-22-clmm-customizable-pool-v2.mdx",
+      "status": "moved_or_path_only"
     },
     {
       "upstream_path": "ar/reference/changelog/2026-10-30-cpmm-initialize-v2.mdx",
-      "local_path": null,
-      "status": "removed"
+      "local_path": "docs/i18n/ar/reference/changelog/2026-10-30-cpmm-initialize-v2.mdx",
+      "status": "moved_or_path_only"
     },
     {
       "upstream_path": "ar/reference/error-codes.mdx",
@@ -1051,7 +1055,7 @@
     {
       "upstream_path": "ar/sdk-api/typescript-sdk.mdx",
       "local_path": "docs/i18n/ar/sdk-api/typescript-sdk.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "ar/security/admin-and-multisig.mdx",
@@ -1261,7 +1265,7 @@
     {
       "upstream_path": "de/algorithms/constant-product.mdx",
       "local_path": "docs/i18n/de/algorithms/constant-product.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "de/algorithms/impermanent-loss.mdx",
@@ -1291,7 +1295,7 @@
     {
       "upstream_path": "de/api-reference/api-v3/overview.mdx",
       "local_path": "docs/i18n/de/api-reference/api-v3/overview.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "de/api-reference/dynamic-ipfs-v1/overview.mdx",
@@ -1571,7 +1575,7 @@
     {
       "upstream_path": "de/products/cpmm/code-demos.mdx",
       "local_path": "docs/i18n/de/products/cpmm/code-demos.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "de/products/cpmm/fees.mdx",
@@ -1581,7 +1585,7 @@
     {
       "upstream_path": "de/products/cpmm/index.mdx",
       "local_path": "docs/i18n/de/products/cpmm/index.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "de/products/cpmm/instructions.mdx",
@@ -1811,7 +1815,7 @@
     {
       "upstream_path": "de/protocol-overview/architecture.mdx",
       "local_path": "docs/i18n/de/protocol-overview/architecture.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "de/protocol-overview/index.mdx",
@@ -1821,12 +1825,12 @@
     {
       "upstream_path": "de/protocol-overview/shared-infrastructure.mdx",
       "local_path": "docs/i18n/de/protocol-overview/shared-infrastructure.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "de/protocol-overview/versions-and-migration.mdx",
       "local_path": "docs/i18n/de/protocol-overview/versions-and-migration.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "de/quick-start/deploy-clmm-pool.mdx",
@@ -1836,7 +1840,7 @@
     {
       "upstream_path": "de/quick-start/deploy-cpmm-pool.mdx",
       "local_path": "docs/i18n/de/quick-start/deploy-cpmm-pool.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "de/quick-start/index.mdx",
@@ -1975,13 +1979,13 @@
     },
     {
       "upstream_path": "de/reference/changelog/2026-10-22-clmm-customizable-pool-v2.mdx",
-      "local_path": null,
-      "status": "removed"
+      "local_path": "docs/i18n/de/reference/changelog/2026-10-22-clmm-customizable-pool-v2.mdx",
+      "status": "moved_or_path_only"
     },
     {
       "upstream_path": "de/reference/changelog/2026-10-30-cpmm-initialize-v2.mdx",
-      "local_path": null,
-      "status": "removed"
+      "local_path": "docs/i18n/de/reference/changelog/2026-10-30-cpmm-initialize-v2.mdx",
+      "status": "moved_or_path_only"
     },
     {
       "upstream_path": "de/reference/error-codes.mdx",
@@ -2071,7 +2075,7 @@
     {
       "upstream_path": "de/sdk-api/typescript-sdk.mdx",
       "local_path": "docs/i18n/de/sdk-api/typescript-sdk.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "de/security/admin-and-multisig.mdx",
@@ -2286,7 +2290,7 @@
     {
       "upstream_path": "es/algorithms/constant-product.mdx",
       "local_path": "docs/i18n/es/algorithms/constant-product.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "es/algorithms/impermanent-loss.mdx",
@@ -2316,7 +2320,7 @@
     {
       "upstream_path": "es/api-reference/api-v3/overview.mdx",
       "local_path": "docs/i18n/es/api-reference/api-v3/overview.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "es/api-reference/dynamic-ipfs-v1/overview.mdx",
@@ -2596,7 +2600,7 @@
     {
       "upstream_path": "es/products/cpmm/code-demos.mdx",
       "local_path": "docs/i18n/es/products/cpmm/code-demos.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "es/products/cpmm/fees.mdx",
@@ -2606,7 +2610,7 @@
     {
       "upstream_path": "es/products/cpmm/index.mdx",
       "local_path": "docs/i18n/es/products/cpmm/index.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "es/products/cpmm/instructions.mdx",
@@ -2836,7 +2840,7 @@
     {
       "upstream_path": "es/protocol-overview/architecture.mdx",
       "local_path": "docs/i18n/es/protocol-overview/architecture.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "es/protocol-overview/index.mdx",
@@ -2846,12 +2850,12 @@
     {
       "upstream_path": "es/protocol-overview/shared-infrastructure.mdx",
       "local_path": "docs/i18n/es/protocol-overview/shared-infrastructure.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "es/protocol-overview/versions-and-migration.mdx",
       "local_path": "docs/i18n/es/protocol-overview/versions-and-migration.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "es/quick-start/deploy-clmm-pool.mdx",
@@ -2861,7 +2865,7 @@
     {
       "upstream_path": "es/quick-start/deploy-cpmm-pool.mdx",
       "local_path": "docs/i18n/es/quick-start/deploy-cpmm-pool.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "es/quick-start/index.mdx",
@@ -3000,13 +3004,13 @@
     },
     {
       "upstream_path": "es/reference/changelog/2026-10-22-clmm-customizable-pool-v2.mdx",
-      "local_path": null,
-      "status": "removed"
+      "local_path": "docs/i18n/es/reference/changelog/2026-10-22-clmm-customizable-pool-v2.mdx",
+      "status": "moved_or_path_only"
     },
     {
       "upstream_path": "es/reference/changelog/2026-10-30-cpmm-initialize-v2.mdx",
-      "local_path": null,
-      "status": "removed"
+      "local_path": "docs/i18n/es/reference/changelog/2026-10-30-cpmm-initialize-v2.mdx",
+      "status": "moved_or_path_only"
     },
     {
       "upstream_path": "es/reference/error-codes.mdx",
@@ -3096,7 +3100,7 @@
     {
       "upstream_path": "es/sdk-api/typescript-sdk.mdx",
       "local_path": "docs/i18n/es/sdk-api/typescript-sdk.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "es/security/admin-and-multisig.mdx",
@@ -3306,7 +3310,7 @@
     {
       "upstream_path": "fr/algorithms/constant-product.mdx",
       "local_path": "docs/i18n/fr/algorithms/constant-product.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "fr/algorithms/impermanent-loss.mdx",
@@ -3336,7 +3340,7 @@
     {
       "upstream_path": "fr/api-reference/api-v3/overview.mdx",
       "local_path": "docs/i18n/fr/api-reference/api-v3/overview.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "fr/api-reference/dynamic-ipfs-v1/overview.mdx",
@@ -3616,7 +3620,7 @@
     {
       "upstream_path": "fr/products/cpmm/code-demos.mdx",
       "local_path": "docs/i18n/fr/products/cpmm/code-demos.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "fr/products/cpmm/fees.mdx",
@@ -3626,7 +3630,7 @@
     {
       "upstream_path": "fr/products/cpmm/index.mdx",
       "local_path": "docs/i18n/fr/products/cpmm/index.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "fr/products/cpmm/instructions.mdx",
@@ -3856,7 +3860,7 @@
     {
       "upstream_path": "fr/protocol-overview/architecture.mdx",
       "local_path": "docs/i18n/fr/protocol-overview/architecture.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "fr/protocol-overview/index.mdx",
@@ -3866,12 +3870,12 @@
     {
       "upstream_path": "fr/protocol-overview/shared-infrastructure.mdx",
       "local_path": "docs/i18n/fr/protocol-overview/shared-infrastructure.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "fr/protocol-overview/versions-and-migration.mdx",
       "local_path": "docs/i18n/fr/protocol-overview/versions-and-migration.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "fr/quick-start/deploy-clmm-pool.mdx",
@@ -3881,7 +3885,7 @@
     {
       "upstream_path": "fr/quick-start/deploy-cpmm-pool.mdx",
       "local_path": "docs/i18n/fr/quick-start/deploy-cpmm-pool.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "fr/quick-start/index.mdx",
@@ -4020,13 +4024,13 @@
     },
     {
       "upstream_path": "fr/reference/changelog/2026-10-22-clmm-customizable-pool-v2.mdx",
-      "local_path": null,
-      "status": "removed"
+      "local_path": "docs/i18n/fr/reference/changelog/2026-10-22-clmm-customizable-pool-v2.mdx",
+      "status": "moved_or_path_only"
     },
     {
       "upstream_path": "fr/reference/changelog/2026-10-30-cpmm-initialize-v2.mdx",
-      "local_path": null,
-      "status": "removed"
+      "local_path": "docs/i18n/fr/reference/changelog/2026-10-30-cpmm-initialize-v2.mdx",
+      "status": "moved_or_path_only"
     },
     {
       "upstream_path": "fr/reference/error-codes.mdx",
@@ -4116,7 +4120,7 @@
     {
       "upstream_path": "fr/sdk-api/typescript-sdk.mdx",
       "local_path": "docs/i18n/fr/sdk-api/typescript-sdk.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "fr/security/admin-and-multisig.mdx",
@@ -4311,7 +4315,7 @@
     {
       "upstream_path": "getting-started/faq.mdx",
       "local_path": "docs/en/getting-started/faq.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "getting-started/first-swap.mdx",
@@ -4361,7 +4365,7 @@
     {
       "upstream_path": "id/algorithms/constant-product.mdx",
       "local_path": "docs/i18n/id/algorithms/constant-product.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "id/algorithms/impermanent-loss.mdx",
@@ -4391,7 +4395,7 @@
     {
       "upstream_path": "id/api-reference/api-v3/overview.mdx",
       "local_path": "docs/i18n/id/api-reference/api-v3/overview.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "id/api-reference/dynamic-ipfs-v1/overview.mdx",
@@ -4671,7 +4675,7 @@
     {
       "upstream_path": "id/products/cpmm/code-demos.mdx",
       "local_path": "docs/i18n/id/products/cpmm/code-demos.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "id/products/cpmm/fees.mdx",
@@ -4681,7 +4685,7 @@
     {
       "upstream_path": "id/products/cpmm/index.mdx",
       "local_path": "docs/i18n/id/products/cpmm/index.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "id/products/cpmm/instructions.mdx",
@@ -4911,7 +4915,7 @@
     {
       "upstream_path": "id/protocol-overview/architecture.mdx",
       "local_path": "docs/i18n/id/protocol-overview/architecture.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "id/protocol-overview/index.mdx",
@@ -4921,12 +4925,12 @@
     {
       "upstream_path": "id/protocol-overview/shared-infrastructure.mdx",
       "local_path": "docs/i18n/id/protocol-overview/shared-infrastructure.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "id/protocol-overview/versions-and-migration.mdx",
       "local_path": "docs/i18n/id/protocol-overview/versions-and-migration.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "id/quick-start/deploy-clmm-pool.mdx",
@@ -4936,7 +4940,7 @@
     {
       "upstream_path": "id/quick-start/deploy-cpmm-pool.mdx",
       "local_path": "docs/i18n/id/quick-start/deploy-cpmm-pool.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "id/quick-start/index.mdx",
@@ -5075,13 +5079,13 @@
     },
     {
       "upstream_path": "id/reference/changelog/2026-10-22-clmm-customizable-pool-v2.mdx",
-      "local_path": null,
-      "status": "removed"
+      "local_path": "docs/i18n/id/reference/changelog/2026-10-22-clmm-customizable-pool-v2.mdx",
+      "status": "moved_or_path_only"
     },
     {
       "upstream_path": "id/reference/changelog/2026-10-30-cpmm-initialize-v2.mdx",
-      "local_path": null,
-      "status": "removed"
+      "local_path": "docs/i18n/id/reference/changelog/2026-10-30-cpmm-initialize-v2.mdx",
+      "status": "moved_or_path_only"
     },
     {
       "upstream_path": "id/reference/error-codes.mdx",
@@ -5171,7 +5175,7 @@
     {
       "upstream_path": "id/sdk-api/typescript-sdk.mdx",
       "local_path": "docs/i18n/id/sdk-api/typescript-sdk.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "id/security/admin-and-multisig.mdx",
@@ -5359,9 +5363,19 @@
       "status": "moved_or_path_only"
     },
     {
+      "upstream_path": null,
+      "local_path": "images/architecture/raydium-architecture-diagram.pdf",
+      "status": "added"
+    },
+    {
+      "upstream_path": null,
+      "local_path": "images/architecture/raydium-architecture-diagram.webp",
+      "status": "added"
+    },
+    {
       "upstream_path": "index.mdx",
       "local_path": "docs/en/index.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "integration-guides/aggregator.mdx",
@@ -5436,7 +5450,7 @@
     {
       "upstream_path": "ja/algorithms/constant-product.mdx",
       "local_path": "docs/i18n/ja/algorithms/constant-product.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "ja/algorithms/impermanent-loss.mdx",
@@ -5466,7 +5480,7 @@
     {
       "upstream_path": "ja/api-reference/api-v3/overview.mdx",
       "local_path": "docs/i18n/ja/api-reference/api-v3/overview.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "ja/api-reference/dynamic-ipfs-v1/overview.mdx",
@@ -5746,7 +5760,7 @@
     {
       "upstream_path": "ja/products/cpmm/code-demos.mdx",
       "local_path": "docs/i18n/ja/products/cpmm/code-demos.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "ja/products/cpmm/fees.mdx",
@@ -5756,7 +5770,7 @@
     {
       "upstream_path": "ja/products/cpmm/index.mdx",
       "local_path": "docs/i18n/ja/products/cpmm/index.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "ja/products/cpmm/instructions.mdx",
@@ -5986,7 +6000,7 @@
     {
       "upstream_path": "ja/protocol-overview/architecture.mdx",
       "local_path": "docs/i18n/ja/protocol-overview/architecture.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "ja/protocol-overview/index.mdx",
@@ -5996,12 +6010,12 @@
     {
       "upstream_path": "ja/protocol-overview/shared-infrastructure.mdx",
       "local_path": "docs/i18n/ja/protocol-overview/shared-infrastructure.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "ja/protocol-overview/versions-and-migration.mdx",
       "local_path": "docs/i18n/ja/protocol-overview/versions-and-migration.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "ja/quick-start/deploy-clmm-pool.mdx",
@@ -6011,7 +6025,7 @@
     {
       "upstream_path": "ja/quick-start/deploy-cpmm-pool.mdx",
       "local_path": "docs/i18n/ja/quick-start/deploy-cpmm-pool.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "ja/quick-start/index.mdx",
@@ -6150,13 +6164,13 @@
     },
     {
       "upstream_path": "ja/reference/changelog/2026-10-22-clmm-customizable-pool-v2.mdx",
-      "local_path": null,
-      "status": "removed"
+      "local_path": "docs/i18n/ja/reference/changelog/2026-10-22-clmm-customizable-pool-v2.mdx",
+      "status": "moved_or_path_only"
     },
     {
       "upstream_path": "ja/reference/changelog/2026-10-30-cpmm-initialize-v2.mdx",
-      "local_path": null,
-      "status": "removed"
+      "local_path": "docs/i18n/ja/reference/changelog/2026-10-30-cpmm-initialize-v2.mdx",
+      "status": "moved_or_path_only"
     },
     {
       "upstream_path": "ja/reference/error-codes.mdx",
@@ -6246,7 +6260,7 @@
     {
       "upstream_path": "ja/sdk-api/typescript-sdk.mdx",
       "local_path": "docs/i18n/ja/sdk-api/typescript-sdk.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "ja/security/admin-and-multisig.mdx",
@@ -6456,7 +6470,7 @@
     {
       "upstream_path": "ko/algorithms/constant-product.mdx",
       "local_path": "docs/i18n/ko/algorithms/constant-product.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "ko/algorithms/impermanent-loss.mdx",
@@ -6486,7 +6500,7 @@
     {
       "upstream_path": "ko/api-reference/api-v3/overview.mdx",
       "local_path": "docs/i18n/ko/api-reference/api-v3/overview.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "ko/api-reference/dynamic-ipfs-v1/overview.mdx",
@@ -6766,7 +6780,7 @@
     {
       "upstream_path": "ko/products/cpmm/code-demos.mdx",
       "local_path": "docs/i18n/ko/products/cpmm/code-demos.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "ko/products/cpmm/fees.mdx",
@@ -6776,7 +6790,7 @@
     {
       "upstream_path": "ko/products/cpmm/index.mdx",
       "local_path": "docs/i18n/ko/products/cpmm/index.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "ko/products/cpmm/instructions.mdx",
@@ -7006,7 +7020,7 @@
     {
       "upstream_path": "ko/protocol-overview/architecture.mdx",
       "local_path": "docs/i18n/ko/protocol-overview/architecture.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "ko/protocol-overview/index.mdx",
@@ -7016,12 +7030,12 @@
     {
       "upstream_path": "ko/protocol-overview/shared-infrastructure.mdx",
       "local_path": "docs/i18n/ko/protocol-overview/shared-infrastructure.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "ko/protocol-overview/versions-and-migration.mdx",
       "local_path": "docs/i18n/ko/protocol-overview/versions-and-migration.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "ko/quick-start/deploy-clmm-pool.mdx",
@@ -7031,7 +7045,7 @@
     {
       "upstream_path": "ko/quick-start/deploy-cpmm-pool.mdx",
       "local_path": "docs/i18n/ko/quick-start/deploy-cpmm-pool.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "ko/quick-start/index.mdx",
@@ -7170,13 +7184,13 @@
     },
     {
       "upstream_path": "ko/reference/changelog/2026-10-22-clmm-customizable-pool-v2.mdx",
-      "local_path": null,
-      "status": "removed"
+      "local_path": "docs/i18n/ko/reference/changelog/2026-10-22-clmm-customizable-pool-v2.mdx",
+      "status": "moved_or_path_only"
     },
     {
       "upstream_path": "ko/reference/changelog/2026-10-30-cpmm-initialize-v2.mdx",
-      "local_path": null,
-      "status": "removed"
+      "local_path": "docs/i18n/ko/reference/changelog/2026-10-30-cpmm-initialize-v2.mdx",
+      "status": "moved_or_path_only"
     },
     {
       "upstream_path": "ko/reference/error-codes.mdx",
@@ -7266,7 +7280,7 @@
     {
       "upstream_path": "ko/sdk-api/typescript-sdk.mdx",
       "local_path": "docs/i18n/ko/sdk-api/typescript-sdk.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "ko/security/admin-and-multisig.mdx",
@@ -7471,32 +7485,32 @@
     {
       "upstream_path": "products/amm-v4/code-demos.mdx",
       "local_path": "docs/en/products/amm-v4/code-demos.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "products/amm-v4/fees.mdx",
       "local_path": "docs/en/products/amm-v4/fees.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "products/amm-v4/index.mdx",
       "local_path": "docs/en/products/amm-v4/index.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "products/amm-v4/instructions.mdx",
       "local_path": "docs/en/products/amm-v4/instructions.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "products/amm-v4/math.mdx",
       "local_path": "docs/en/products/amm-v4/math.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "products/amm-v4/overview.mdx",
       "local_path": "docs/en/products/amm-v4/overview.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "products/clmm/accounts.mdx",
@@ -7546,7 +7560,7 @@
     {
       "upstream_path": "products/cpmm/code-demos.mdx",
       "local_path": "docs/en/products/cpmm/code-demos.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "products/cpmm/fees.mdx",
@@ -7556,7 +7570,7 @@
     {
       "upstream_path": "products/cpmm/index.mdx",
       "local_path": "docs/en/products/cpmm/index.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "products/cpmm/instructions.mdx",
@@ -7581,7 +7595,7 @@
     {
       "upstream_path": "products/farm-staking/code-demos.mdx",
       "local_path": "docs/en/products/farm-staking/code-demos.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "products/farm-staking/index.mdx",
@@ -7616,7 +7630,7 @@
     {
       "upstream_path": "products/launchlab/code-demos.mdx",
       "local_path": "docs/en/products/launchlab/code-demos.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "products/launchlab/creator-fees.mdx",
@@ -7626,7 +7640,7 @@
     {
       "upstream_path": "products/launchlab/curve-rules.mdx",
       "local_path": "docs/en/products/launchlab/curve-rules.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "products/launchlab/global-config.mdx",
@@ -7721,7 +7735,7 @@
     {
       "upstream_path": "products/routing/code-demos.mdx",
       "local_path": "docs/en/products/routing/code-demos.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "products/routing/fees.mdx",
@@ -7756,7 +7770,7 @@
     {
       "upstream_path": "products/stable/code-demos.mdx",
       "local_path": "docs/en/products/stable/code-demos.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "products/stable/fees.mdx",
@@ -7785,6 +7799,11 @@
     },
     {
       "upstream_path": null,
+      "local_path": "prompts/transfer-hooks-restructure-plan.md",
+      "status": "added"
+    },
+    {
+      "upstream_path": null,
       "local_path": "prompts/transfer-hooks-upgrade.md",
       "status": "added"
     },
@@ -7801,12 +7820,12 @@
     {
       "upstream_path": "protocol-overview/shared-infrastructure.mdx",
       "local_path": "docs/en/protocol-overview/shared-infrastructure.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "protocol-overview/versions-and-migration.mdx",
       "local_path": "docs/en/protocol-overview/versions-and-migration.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "pt/ARCHITECTURE.mdx",
@@ -7831,7 +7850,7 @@
     {
       "upstream_path": "pt/algorithms/constant-product.mdx",
       "local_path": "docs/i18n/pt/algorithms/constant-product.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "pt/algorithms/impermanent-loss.mdx",
@@ -7861,7 +7880,7 @@
     {
       "upstream_path": "pt/api-reference/api-v3/overview.mdx",
       "local_path": "docs/i18n/pt/api-reference/api-v3/overview.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "pt/api-reference/dynamic-ipfs-v1/overview.mdx",
@@ -8141,7 +8160,7 @@
     {
       "upstream_path": "pt/products/cpmm/code-demos.mdx",
       "local_path": "docs/i18n/pt/products/cpmm/code-demos.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "pt/products/cpmm/fees.mdx",
@@ -8151,7 +8170,7 @@
     {
       "upstream_path": "pt/products/cpmm/index.mdx",
       "local_path": "docs/i18n/pt/products/cpmm/index.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "pt/products/cpmm/instructions.mdx",
@@ -8381,7 +8400,7 @@
     {
       "upstream_path": "pt/protocol-overview/architecture.mdx",
       "local_path": "docs/i18n/pt/protocol-overview/architecture.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "pt/protocol-overview/index.mdx",
@@ -8391,12 +8410,12 @@
     {
       "upstream_path": "pt/protocol-overview/shared-infrastructure.mdx",
       "local_path": "docs/i18n/pt/protocol-overview/shared-infrastructure.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "pt/protocol-overview/versions-and-migration.mdx",
       "local_path": "docs/i18n/pt/protocol-overview/versions-and-migration.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "pt/quick-start/deploy-clmm-pool.mdx",
@@ -8406,7 +8425,7 @@
     {
       "upstream_path": "pt/quick-start/deploy-cpmm-pool.mdx",
       "local_path": "docs/i18n/pt/quick-start/deploy-cpmm-pool.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "pt/quick-start/index.mdx",
@@ -8545,13 +8564,13 @@
     },
     {
       "upstream_path": "pt/reference/changelog/2026-10-22-clmm-customizable-pool-v2.mdx",
-      "local_path": null,
-      "status": "removed"
+      "local_path": "docs/i18n/pt/reference/changelog/2026-10-22-clmm-customizable-pool-v2.mdx",
+      "status": "moved_or_path_only"
     },
     {
       "upstream_path": "pt/reference/changelog/2026-10-30-cpmm-initialize-v2.mdx",
-      "local_path": null,
-      "status": "removed"
+      "local_path": "docs/i18n/pt/reference/changelog/2026-10-30-cpmm-initialize-v2.mdx",
+      "status": "moved_or_path_only"
     },
     {
       "upstream_path": "pt/reference/error-codes.mdx",
@@ -8641,7 +8660,7 @@
     {
       "upstream_path": "pt/sdk-api/typescript-sdk.mdx",
       "local_path": "docs/i18n/pt/sdk-api/typescript-sdk.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "pt/security/admin-and-multisig.mdx",
@@ -8836,12 +8855,12 @@
     {
       "upstream_path": "quick-start/deploy-cpmm-pool.mdx",
       "local_path": "docs/en/quick-start/deploy-cpmm-pool.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "quick-start/index.mdx",
       "local_path": "docs/en/quick-start/index.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "quick-start/swap-from-cli.mdx",
@@ -8856,7 +8875,7 @@
     {
       "upstream_path": "ray/protocol-fees.mdx",
       "local_path": "docs/en/ray/protocol-fees.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "ray/protocol-metrics-and-analytics.mdx",
@@ -8866,7 +8885,7 @@
     {
       "upstream_path": "ray/ray-buybacks.mdx",
       "local_path": "docs/en/ray/ray-buybacks.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "ray/ray-staking.mdx",
@@ -8980,13 +8999,13 @@
     },
     {
       "upstream_path": "reference/changelog/2026-10-22-clmm-customizable-pool-v2.mdx",
-      "local_path": null,
-      "status": "removed"
+      "local_path": "docs/en/reference/changelog/2026-10-22-clmm-customizable-pool-v2.mdx",
+      "status": "moved_or_path_only"
     },
     {
       "upstream_path": "reference/changelog/2026-10-30-cpmm-initialize-v2.mdx",
-      "local_path": null,
-      "status": "removed"
+      "local_path": "docs/en/reference/changelog/2026-10-30-cpmm-initialize-v2.mdx",
+      "status": "moved_or_path_only"
     },
     {
       "upstream_path": "reference/error-codes.mdx",
@@ -8996,7 +9015,7 @@
     {
       "upstream_path": "reference/fee-comparison.mdx",
       "local_path": "docs/en/reference/fee-comparison.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "reference/glossary.mdx",
@@ -9061,7 +9080,7 @@
     {
       "upstream_path": "ru/algorithms/constant-product.mdx",
       "local_path": "docs/i18n/ru/algorithms/constant-product.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "ru/algorithms/impermanent-loss.mdx",
@@ -9091,7 +9110,7 @@
     {
       "upstream_path": "ru/api-reference/api-v3/overview.mdx",
       "local_path": "docs/i18n/ru/api-reference/api-v3/overview.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "ru/api-reference/dynamic-ipfs-v1/overview.mdx",
@@ -9371,7 +9390,7 @@
     {
       "upstream_path": "ru/products/cpmm/code-demos.mdx",
       "local_path": "docs/i18n/ru/products/cpmm/code-demos.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "ru/products/cpmm/fees.mdx",
@@ -9381,7 +9400,7 @@
     {
       "upstream_path": "ru/products/cpmm/index.mdx",
       "local_path": "docs/i18n/ru/products/cpmm/index.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "ru/products/cpmm/instructions.mdx",
@@ -9611,7 +9630,7 @@
     {
       "upstream_path": "ru/protocol-overview/architecture.mdx",
       "local_path": "docs/i18n/ru/protocol-overview/architecture.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "ru/protocol-overview/index.mdx",
@@ -9621,12 +9640,12 @@
     {
       "upstream_path": "ru/protocol-overview/shared-infrastructure.mdx",
       "local_path": "docs/i18n/ru/protocol-overview/shared-infrastructure.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "ru/protocol-overview/versions-and-migration.mdx",
       "local_path": "docs/i18n/ru/protocol-overview/versions-and-migration.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "ru/quick-start/deploy-clmm-pool.mdx",
@@ -9636,7 +9655,7 @@
     {
       "upstream_path": "ru/quick-start/deploy-cpmm-pool.mdx",
       "local_path": "docs/i18n/ru/quick-start/deploy-cpmm-pool.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "ru/quick-start/index.mdx",
@@ -9775,13 +9794,13 @@
     },
     {
       "upstream_path": "ru/reference/changelog/2026-10-22-clmm-customizable-pool-v2.mdx",
-      "local_path": null,
-      "status": "removed"
+      "local_path": "docs/i18n/ru/reference/changelog/2026-10-22-clmm-customizable-pool-v2.mdx",
+      "status": "moved_or_path_only"
     },
     {
       "upstream_path": "ru/reference/changelog/2026-10-30-cpmm-initialize-v2.mdx",
-      "local_path": null,
-      "status": "removed"
+      "local_path": "docs/i18n/ru/reference/changelog/2026-10-30-cpmm-initialize-v2.mdx",
+      "status": "moved_or_path_only"
     },
     {
       "upstream_path": "ru/reference/error-codes.mdx",
@@ -9871,7 +9890,7 @@
     {
       "upstream_path": "ru/sdk-api/typescript-sdk.mdx",
       "local_path": "docs/i18n/ru/sdk-api/typescript-sdk.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "ru/security/admin-and-multisig.mdx",
@@ -10111,7 +10130,7 @@
     {
       "upstream_path": "sdk-api/typescript-sdk.mdx",
       "local_path": "docs/en/sdk-api/typescript-sdk.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "security/admin-and-multisig.mdx",
@@ -10166,7 +10185,7 @@
     {
       "upstream_path": "solana-fundamentals/rent-and-reclaimable-rent.mdx",
       "local_path": "docs/en/solana-fundamentals/rent-and-reclaimable-rent.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "solana-fundamentals/spl-token-and-token-2022.mdx",
@@ -10176,7 +10195,7 @@
     {
       "upstream_path": "solana-fundamentals/toolchain.mdx",
       "local_path": "docs/en/solana-fundamentals/toolchain.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "solana-fundamentals/transactions-and-fees.mdx",
@@ -10211,7 +10230,7 @@
     {
       "upstream_path": "tr/algorithms/constant-product.mdx",
       "local_path": "docs/i18n/tr/algorithms/constant-product.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "tr/algorithms/impermanent-loss.mdx",
@@ -10241,7 +10260,7 @@
     {
       "upstream_path": "tr/api-reference/api-v3/overview.mdx",
       "local_path": "docs/i18n/tr/api-reference/api-v3/overview.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "tr/api-reference/dynamic-ipfs-v1/overview.mdx",
@@ -10521,7 +10540,7 @@
     {
       "upstream_path": "tr/products/cpmm/code-demos.mdx",
       "local_path": "docs/i18n/tr/products/cpmm/code-demos.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "tr/products/cpmm/fees.mdx",
@@ -10531,7 +10550,7 @@
     {
       "upstream_path": "tr/products/cpmm/index.mdx",
       "local_path": "docs/i18n/tr/products/cpmm/index.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "tr/products/cpmm/instructions.mdx",
@@ -10761,7 +10780,7 @@
     {
       "upstream_path": "tr/protocol-overview/architecture.mdx",
       "local_path": "docs/i18n/tr/protocol-overview/architecture.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "tr/protocol-overview/index.mdx",
@@ -10771,12 +10790,12 @@
     {
       "upstream_path": "tr/protocol-overview/shared-infrastructure.mdx",
       "local_path": "docs/i18n/tr/protocol-overview/shared-infrastructure.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "tr/protocol-overview/versions-and-migration.mdx",
       "local_path": "docs/i18n/tr/protocol-overview/versions-and-migration.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "tr/quick-start/deploy-clmm-pool.mdx",
@@ -10786,7 +10805,7 @@
     {
       "upstream_path": "tr/quick-start/deploy-cpmm-pool.mdx",
       "local_path": "docs/i18n/tr/quick-start/deploy-cpmm-pool.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "tr/quick-start/index.mdx",
@@ -10925,13 +10944,13 @@
     },
     {
       "upstream_path": "tr/reference/changelog/2026-10-22-clmm-customizable-pool-v2.mdx",
-      "local_path": null,
-      "status": "removed"
+      "local_path": "docs/i18n/tr/reference/changelog/2026-10-22-clmm-customizable-pool-v2.mdx",
+      "status": "moved_or_path_only"
     },
     {
       "upstream_path": "tr/reference/changelog/2026-10-30-cpmm-initialize-v2.mdx",
-      "local_path": null,
-      "status": "removed"
+      "local_path": "docs/i18n/tr/reference/changelog/2026-10-30-cpmm-initialize-v2.mdx",
+      "status": "moved_or_path_only"
     },
     {
       "upstream_path": "tr/reference/error-codes.mdx",
@@ -11021,7 +11040,7 @@
     {
       "upstream_path": "tr/sdk-api/typescript-sdk.mdx",
       "local_path": "docs/i18n/tr/sdk-api/typescript-sdk.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "tr/security/admin-and-multisig.mdx",
@@ -11216,7 +11235,7 @@
     {
       "upstream_path": "user-flows/burn-and-earn.mdx",
       "local_path": "docs/en/user-flows/burn-and-earn.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "user-flows/buying-a-launchlab-token.mdx",
@@ -11346,7 +11365,7 @@
     {
       "upstream_path": "vi/algorithms/constant-product.mdx",
       "local_path": "docs/i18n/vi/algorithms/constant-product.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "vi/algorithms/impermanent-loss.mdx",
@@ -11376,7 +11395,7 @@
     {
       "upstream_path": "vi/api-reference/api-v3/overview.mdx",
       "local_path": "docs/i18n/vi/api-reference/api-v3/overview.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "vi/api-reference/dynamic-ipfs-v1/overview.mdx",
@@ -11656,7 +11675,7 @@
     {
       "upstream_path": "vi/products/cpmm/code-demos.mdx",
       "local_path": "docs/i18n/vi/products/cpmm/code-demos.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "vi/products/cpmm/fees.mdx",
@@ -11666,7 +11685,7 @@
     {
       "upstream_path": "vi/products/cpmm/index.mdx",
       "local_path": "docs/i18n/vi/products/cpmm/index.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "vi/products/cpmm/instructions.mdx",
@@ -11896,7 +11915,7 @@
     {
       "upstream_path": "vi/protocol-overview/architecture.mdx",
       "local_path": "docs/i18n/vi/protocol-overview/architecture.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "vi/protocol-overview/index.mdx",
@@ -11906,12 +11925,12 @@
     {
       "upstream_path": "vi/protocol-overview/shared-infrastructure.mdx",
       "local_path": "docs/i18n/vi/protocol-overview/shared-infrastructure.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "vi/protocol-overview/versions-and-migration.mdx",
       "local_path": "docs/i18n/vi/protocol-overview/versions-and-migration.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "vi/quick-start/deploy-clmm-pool.mdx",
@@ -11921,7 +11940,7 @@
     {
       "upstream_path": "vi/quick-start/deploy-cpmm-pool.mdx",
       "local_path": "docs/i18n/vi/quick-start/deploy-cpmm-pool.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "vi/quick-start/index.mdx",
@@ -12060,13 +12079,13 @@
     },
     {
       "upstream_path": "vi/reference/changelog/2026-10-22-clmm-customizable-pool-v2.mdx",
-      "local_path": null,
-      "status": "removed"
+      "local_path": "docs/i18n/vi/reference/changelog/2026-10-22-clmm-customizable-pool-v2.mdx",
+      "status": "moved_or_path_only"
     },
     {
       "upstream_path": "vi/reference/changelog/2026-10-30-cpmm-initialize-v2.mdx",
-      "local_path": null,
-      "status": "removed"
+      "local_path": "docs/i18n/vi/reference/changelog/2026-10-30-cpmm-initialize-v2.mdx",
+      "status": "moved_or_path_only"
     },
     {
       "upstream_path": "vi/reference/error-codes.mdx",
@@ -12156,7 +12175,7 @@
     {
       "upstream_path": "vi/sdk-api/typescript-sdk.mdx",
       "local_path": "docs/i18n/vi/sdk-api/typescript-sdk.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "vi/security/admin-and-multisig.mdx",
@@ -12366,7 +12385,7 @@
     {
       "upstream_path": "zh-Hant/algorithms/constant-product.mdx",
       "local_path": "docs/i18n/zh-Hant/algorithms/constant-product.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "zh-Hant/algorithms/impermanent-loss.mdx",
@@ -12396,7 +12415,7 @@
     {
       "upstream_path": "zh-Hant/api-reference/api-v3/overview.mdx",
       "local_path": "docs/i18n/zh-Hant/api-reference/api-v3/overview.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "zh-Hant/api-reference/dynamic-ipfs-v1/overview.mdx",
@@ -12676,7 +12695,7 @@
     {
       "upstream_path": "zh-Hant/products/cpmm/code-demos.mdx",
       "local_path": "docs/i18n/zh-Hant/products/cpmm/code-demos.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "zh-Hant/products/cpmm/fees.mdx",
@@ -12686,7 +12705,7 @@
     {
       "upstream_path": "zh-Hant/products/cpmm/index.mdx",
       "local_path": "docs/i18n/zh-Hant/products/cpmm/index.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "zh-Hant/products/cpmm/instructions.mdx",
@@ -12916,7 +12935,7 @@
     {
       "upstream_path": "zh-Hant/protocol-overview/architecture.mdx",
       "local_path": "docs/i18n/zh-Hant/protocol-overview/architecture.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "zh-Hant/protocol-overview/index.mdx",
@@ -12926,12 +12945,12 @@
     {
       "upstream_path": "zh-Hant/protocol-overview/shared-infrastructure.mdx",
       "local_path": "docs/i18n/zh-Hant/protocol-overview/shared-infrastructure.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "zh-Hant/protocol-overview/versions-and-migration.mdx",
       "local_path": "docs/i18n/zh-Hant/protocol-overview/versions-and-migration.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "zh-Hant/quick-start/deploy-clmm-pool.mdx",
@@ -12941,7 +12960,7 @@
     {
       "upstream_path": "zh-Hant/quick-start/deploy-cpmm-pool.mdx",
       "local_path": "docs/i18n/zh-Hant/quick-start/deploy-cpmm-pool.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "zh-Hant/quick-start/index.mdx",
@@ -13080,13 +13099,13 @@
     },
     {
       "upstream_path": "zh-Hant/reference/changelog/2026-10-22-clmm-customizable-pool-v2.mdx",
-      "local_path": null,
-      "status": "removed"
+      "local_path": "docs/i18n/zh-Hant/reference/changelog/2026-10-22-clmm-customizable-pool-v2.mdx",
+      "status": "moved_or_path_only"
     },
     {
       "upstream_path": "zh-Hant/reference/changelog/2026-10-30-cpmm-initialize-v2.mdx",
-      "local_path": null,
-      "status": "removed"
+      "local_path": "docs/i18n/zh-Hant/reference/changelog/2026-10-30-cpmm-initialize-v2.mdx",
+      "status": "moved_or_path_only"
     },
     {
       "upstream_path": "zh-Hant/reference/error-codes.mdx",
@@ -13176,7 +13195,7 @@
     {
       "upstream_path": "zh-Hant/sdk-api/typescript-sdk.mdx",
       "local_path": "docs/i18n/zh-Hant/sdk-api/typescript-sdk.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "zh-Hant/security/admin-and-multisig.mdx",
@@ -13386,7 +13405,7 @@
     {
       "upstream_path": "zh/algorithms/constant-product.mdx",
       "local_path": "docs/i18n/zh/algorithms/constant-product.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "zh/algorithms/impermanent-loss.mdx",
@@ -13416,7 +13435,7 @@
     {
       "upstream_path": "zh/api-reference/api-v3/overview.mdx",
       "local_path": "docs/i18n/zh/api-reference/api-v3/overview.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "zh/api-reference/dynamic-ipfs-v1/overview.mdx",
@@ -13696,7 +13715,7 @@
     {
       "upstream_path": "zh/products/cpmm/code-demos.mdx",
       "local_path": "docs/i18n/zh/products/cpmm/code-demos.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "zh/products/cpmm/fees.mdx",
@@ -13706,7 +13725,7 @@
     {
       "upstream_path": "zh/products/cpmm/index.mdx",
       "local_path": "docs/i18n/zh/products/cpmm/index.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "zh/products/cpmm/instructions.mdx",
@@ -13936,7 +13955,7 @@
     {
       "upstream_path": "zh/protocol-overview/architecture.mdx",
       "local_path": "docs/i18n/zh/protocol-overview/architecture.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "zh/protocol-overview/index.mdx",
@@ -13946,12 +13965,12 @@
     {
       "upstream_path": "zh/protocol-overview/shared-infrastructure.mdx",
       "local_path": "docs/i18n/zh/protocol-overview/shared-infrastructure.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "zh/protocol-overview/versions-and-migration.mdx",
       "local_path": "docs/i18n/zh/protocol-overview/versions-and-migration.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "zh/quick-start/deploy-clmm-pool.mdx",
@@ -13961,7 +13980,7 @@
     {
       "upstream_path": "zh/quick-start/deploy-cpmm-pool.mdx",
       "local_path": "docs/i18n/zh/quick-start/deploy-cpmm-pool.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "zh/quick-start/index.mdx",
@@ -14100,13 +14119,13 @@
     },
     {
       "upstream_path": "zh/reference/changelog/2026-10-22-clmm-customizable-pool-v2.mdx",
-      "local_path": null,
-      "status": "removed"
+      "local_path": "docs/i18n/zh/reference/changelog/2026-10-22-clmm-customizable-pool-v2.mdx",
+      "status": "moved_or_path_only"
     },
     {
       "upstream_path": "zh/reference/changelog/2026-10-30-cpmm-initialize-v2.mdx",
-      "local_path": null,
-      "status": "removed"
+      "local_path": "docs/i18n/zh/reference/changelog/2026-10-30-cpmm-initialize-v2.mdx",
+      "status": "moved_or_path_only"
     },
     {
       "upstream_path": "zh/reference/error-codes.mdx",
@@ -14196,7 +14215,7 @@
     {
       "upstream_path": "zh/sdk-api/typescript-sdk.mdx",
       "local_path": "docs/i18n/zh/sdk-api/typescript-sdk.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "zh/security/admin-and-multisig.mdx",

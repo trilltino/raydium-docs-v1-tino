@@ -104,8 +104,8 @@ console.log(`Tx:       https://solscan.io/tx/${txId}`);
 Пример: создание пула SOL/USDC с начальной суммой 1 SOL и 160 USDC:
 
 ```bash icon="terminal"
-export MINT_A="So11111111111111111111111111111111111111112"   # wSOL
-export MINT_B="EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"   # USDC
+export MINT_A="So11111111111111111111111111111111111111112"   # wSOL; see reference/program-addresses
+export MINT_B="EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"   # USDC; see reference/program-addresses
 export AMOUNT_A="1000000000"   # 1 SOL (9 decimals)
 export AMOUNT_B="160000000"    # 160 USDC (6 decimals)
 
@@ -134,6 +134,10 @@ Tx:       https://solscan.io/tx/5dQ...
    - инициализирует хранилища с `AMOUNT_A` и `AMOUNT_B`.
 4. **Начальная цена** устанавливается по соотношению начальных сумм: `price = AMOUNT_B / AMOUNT_A` после корректировки десятичных знаков. Выбирайте это тщательно — боты будут арбитражировать любое неправильное ценообразование в течение секунд после открытия пула.
 5. **`startTime: new BN(0)`** открывает торговлю немедленно. Чтобы подготовить ликвидность перед открытием для публики, установите будущую временную метку Unix.
+
+В этом примере `creatorFeeOn` опущен, поэтому SDK строит `Initialize`, и путь комиссии создателя в пуле отключён. Чтобы включить его в SDK `0.2.85-alpha`, импортируйте `FeeOn` и добавьте `creatorFeeOn: FeeOn.OnlyTokenA`, `OnlyTokenB` или `BothToken`. Тогда SDK построит `InitializeV2`. Настроенный owner подписывает как создатель и становится `PoolState.pool_creator`; оплата комиссии транзакции с другого аккаунта не перенаправляет комиссии создателя.
+
+`creatorFeeOn` выбирает токен, а не ставку. Пул использует `AmmConfig.creator_fee_rate`, и при нулевой ставке ничего не начисляется, даже если путь включён. Перед созданием прочитайте текущую конфигурацию. Поведение на входе и выходе и сбор описаны в [`products/cpmm/fees`](/docs/i18n/ru/products/cpmm/fees).
 
 ## Частые ошибки
 

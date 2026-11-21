@@ -1,6 +1,6 @@
 ---
 title: "Infrastruktur bersama"
-description: "Primitif yang dibagikan setiap program Raydium — PDA otoritas, akun AmmConfig, pembagian biaya protokol/dana/kreator, akun observasi, dan permukaan REST API publik — didefinisikan sekali sehingga bab per-produk dapat merujuk kembali ke sini."
+description: "Primitif yang dipakai bersama oleh semua program Raydium — PDA otoritas, akun AmmConfig, pembukuan biaya perdagangan dan biaya kreator CPMM, akun observasi, dan REST API publik — didefinisikan sekali di sini agar bab tiap produk dapat merujuk kembali."
 ---
 
 <Info>
@@ -17,7 +17,7 @@ description: "Primitif yang dibagikan setiap program Raydium — PDA otoritas, a
 
 Tiga jenis berbagi berjalan melalui basis kode:
 
-- **Berbagi konvensi.** Setiap program menggunakan pola derivasi PDA yang sama, bentuk pembagian biaya yang sama, dan ide akun observasi yang sama — tetapi masing-masing mengimplementasikannya dalam program mereka sendiri dengan seed mereka sendiri.
+- **Konvensi bersama.** Program-program memakai ulang pola derivasi PDA, akun konfigurasi, pembukuan biaya, dan akun observasi, tetapi setiap program menetapkan seed dan perilakunya sendiri. Nama field yang mirip tidak menjamin aturan penyelesaian yang sama.
 - **Berbagi akun.** Segelintir akun adalah *literal* catatan yang sama di banyak pool (PDA otoritas global di CPMM, akun AmmConfig).
 - **Berbagi off-chain.** Satu REST API dan satu SDK TypeScript melayani keempat program. Integrator berinteraksi dengan satu host HTTP dan satu paket NPM terlepas dari program mana yang akhirnya mereka panggil.
 
@@ -77,31 +77,35 @@ AMM v4 tidak memiliki `AmmConfig` — parameter biayanya per-pool, dikodekan ker
 
 Tabel lengkap siapa yang dapat mengubah apa ada di [`security/admin-and-multisig`](/docs/i18n/id/security/admin-and-multisig). Pembagian biaya yang menghadap pengguna saat ini ada di [`ray/protocol-fees`](/docs/i18n/id/ray/protocol-fees).
 
-## 3. Pembagian biaya protokol / dana / kreator
+## 3. Pembukuan biaya perdagangan dan biaya kreator
 
-Setiap biaya swap CPMM dan CLMM dibagi di antara hingga empat tujuan dalam perjalanan keluar:
+CPMM dan CLMM membagi **biaya perdagangan** di antara LP, protokol, dan dana. CPMM juga dapat mengenakan biaya kreator opsional dengan tarif terpisah. Jangan memodelkan biaya kreator itu sebagai bagian keempat dari biaya perdagangan:
 
 ```
-                         total swap fee
-                              │
-              ┌───────────────┼───────────────┬──────────────┐
-              ▼               ▼               ▼              ▼
-        LP pool side     Protocol         Fund         Creator
-        (raises k)       treasury         multisig     (LaunchLab pools)
+CPMM / CLMM trade fee
+  ├── LP share
+  ├── Protocol share
+  └── Fund share
+
+CPMM creator fee (independent rate, when enabled)
+  └── Accrued creator bucket
+      ├── Protocol share, applied at collection
+      └── Remainder paid to PoolState.pool_creator
 ```
 
 Secara mekanis:
 
-1. **Biaya perdagangan terakumulasi ke dalam pool.** Biaya dihapus dari sisi input swap dan jumlah *pasca-biaya* adalah apa yang dilihat oleh matematika produk konstan. Ini adalah apa arti "LP mendapatkan biaya" — `k` naik dan begitu juga nilai token per-LP yang tersirat.
-2. **Porsi protokol/dana/kreator dikurangi dari akumulasi sisi-LP itu ke akun penghitung per-pool.** Mereka duduk di status pool (`protocol_fees_token{0,1}`, `fund_fees_token{0,1}`, dll.) sampai seseorang memanggil instruksi pengumpulan yang sesuai. Mereka tidak meninggalkan vault pool sampai saat itu; dari perspektif swap mereka masih "di pool".
-3. **Pengumpulan memindahkannya keluar.** Jalur protokol dan dana memerlukan penanda tangan `protocol_owner` / `fund_owner` masing-masing dari `AmmConfig`. Biaya kreator CPMM menggunakan jalur `CollectCreatorFee` yang ditandatangani kreator atau `CollectCreatorFeePermissionless`, yang dapat dipicu oleh pembayar apa pun tetapi menetapkan tujuan ke ATA kanonik kreator.
+1. **Biaya perdagangan memakai `trade_fee_rate`.** Bagian LP tetap berada dalam pembukuan pool. CPMM mengambil biaya perdagangannya dari input swap. CLMM juga mendukung penarikan biaya satu sisi di tingkat pool, jadi periksa mode biaya produk sebelum mengasumsikan potongan hanya dari input.
+2. **Biaya kreator CPMM memakai `creator_fee_rate` secara independen.** Biaya ini tidak pernah mengurangi bagian LP, protokol, atau dana dari biaya perdagangan. `PoolState.creator_fee_on` menentukan apakah biaya kreator dipotong dari input atau output pada setiap swap. CLMM tidak memiliki bucket biaya kreator gaya CPMM ini.
+3. **Bagian non-LP terakumulasi di penghitung terpisah.** Bagian ini tetap berada di vault tetapi dikecualikan dari cadangan yang dipakai kurva sampai instruksi penarikan yang sesuai dijalankan.
+4. **Penarikan menentukan tujuan.** Jalur protokol dan dana memerlukan otoritas `AmmConfig` masing-masing. Penarikan kreator CPMM memerlukan tanda tangan kreator yang tercatat atau memakai jalur tanpa izin, yang dapat dipicu pembayar mana pun tetapi menetapkan tujuan kreator ke ATA kanonis kreator tersebut. Kedua jalur kreator menerapkan bagian protokol yang dikonfigurasi atas bucket kreator pada saat penarikan.
 
 Beberapa pengamatan yang penting:
 
-- **Persentase pembagian adalah dari biaya perdagangan, bukan dari perdagangan.** Biaya perdagangan 0,25% dengan bagian protokol 12% berarti protokol mendapatkan `0,25% × 12% = 0,03%` dari perdagangan — bukan 12% dari perdagangan.
-- **Biaya kreator bersifat opt-in per pool dan tetap sejak pembuatan.** Pool tanpanya memiliki pembagian 3 arah (LP / protokol / dana). Pada CPMM, slot keempat diarahkan ke pembuat pool yang tercatat. Kelulusan LaunchLab mengaktifkannya melalui `InitializeWithPermission`, dan sejak 2026-10-30 kreator mana pun dapat mengaktifkannya melalui `InitializeV2`. Pengaturan ini tidak dapat diubah setelah pembuatan.
-- **AMM v4 hanya membagi dua cara**, dikodekan keras per-pool: LP dan protokol. Tidak ada slot dana, tidak ada slot kreator.
-- **Dana vs protokol** — keduanya adalah tujuan treasury protokol, tetapi mereka memiliki penanda tangan berbeda dan penggunaan yang dimaksudkan berbeda. `protocol` secara historis mendanai operasi; `fund` adalah treasury jangka panjang. Pembagian antara keduanya itu sendiri dapat disesuaikan.
+- **Persentase pembagian biaya perdagangan berlaku untuk biaya perdagangan, bukan seluruh transaksi.** Biaya perdagangan 0,25% dengan bagian protokol 12% memberi protokol `0.25% × 12% = 0.03%` dari transaksi, sebelum memperhitungkan biaya kreator terpisah.
+- **Biaya kreator CPMM bersifat opsional per pool dan ditetapkan saat pembuatan.** Kelulusan LaunchLab dapat mengaktifkannya melalui `InitializeWithPermission`. Sejak 2026-10-30, kreator mana pun dapat mengaktifkan jalur ini melalui `InitializeV2`; SDK memilih instruksi tersebut saat `creatorFeeOn` ditetapkan. Tetap diperlukan `creator_fee_rate` bukan nol agar ada yang terakumulasi.
+- **AMM v4 memakai penyelesaian PnL tertunda.** Fraksi `pnl_numerator / pnl_denominator` miliknya berlaku untuk pertumbuhan yang dihitung oleh `calc_take_pnl`, bukan langsung untuk biaya setiap swap. AMM v4 tidak memiliki bucket dana maupun kreator.
+- **Dana vs protokol** — keduanya adalah tujuan treasury protokol, tetapi memiliki penanda tangan dan tujuan penggunaan yang berbeda. `protocol` secara historis mendanai operasional; `fund` adalah treasury jangka panjang.
 
 Tingkat spesifik ada di [`reference/fee-comparison`](/docs/i18n/id/reference/fee-comparison) dan [`ray/protocol-fees`](/docs/i18n/id/ray/protocol-fees).
 

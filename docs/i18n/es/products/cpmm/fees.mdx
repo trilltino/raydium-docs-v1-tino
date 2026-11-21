@@ -186,8 +186,7 @@ La comisión del creador es opcional y por pool. La **tasa** vive en `AmmConfig.
 - **No se puede volver a habilitar o redirigir después de la creación.** Un pool inicializado con `enable_creator_fee = false` nunca cobrará una comisión del creador; uno inicializado con un `creator_fee_on` particular no puede cambiar de lado.
 - **Habilitarla no establece la tasa.** Un pool creado con la comisión habilitada cobra el `creator_fee_rate` de su nivel. El valor predeterminado es `0`, por lo que en un nivel así un pool habilitado no acumula nada. Verifica la configuración antes de crear el pool.
 
-Las comisiones del creador son el mecanismo detrás del patrón "Burn & Earn" de Raydium: los tokens LP se bloquean bajo el programa [LP Lock](/docs/i18n/es/reference/program-addresses) para que el creador no pueda retirar liquidez, pero las comisiones del creador acumuladas aún se pueden recopilar indefinidamente.
-
+Las comisiones del creador de CPMM son independientes del Fee Key de "Burn & Earn" de Raydium. Burn & Earn bloquea una posición LP en el programa [LP Lock](/docs/i18n/es/reference/program-addresses) y envía las comisiones LP de esa posición al titular del Fee Key. El flujo de comisiones del creador de CPMM sigue perteneciendo a `PoolState.pool_creator`, menos la parte del protocolo en la recolección; ni bloquear el LP ni transferir el Fee Key transfiere esa designación.
 
 ## Parte del protocolo de la comisión del creador
 

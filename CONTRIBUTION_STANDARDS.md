@@ -159,7 +159,7 @@ This fork's layout differs from upstream. Keep the two path conventions apart.
 | Translations | `docs/i18n/<locale>/...` | `<locale>/...` |
 | Internal links | `/docs/en/...` | `/products/...` |
 
-Map paths when you prepare a patch for upstream, and do not include fork-only files (`docs/en/resources/devrel-edits.mdx`, `docs/i18n` redirects, `public/tino-changes`).
+Map paths when you prepare a patch for upstream, and do not include fork-only files (`docs/en/resources/devrel-edits/`, `docs/i18n` redirects, `public/tino-changes`).
 
 ### Before you open a PR
 
@@ -174,7 +174,7 @@ Map paths when you prepare a patch for upstream, and do not include fork-only fi
 
 ### Track what you changed
 
-- Record every substantive change in [`docs/en/resources/devrel-edits.mdx`](./docs/en/resources/devrel-edits.mdx) with a dated entry. Do not remove earlier entries or closed-PR history.
+- Record every substantive change on the matching page in [`docs/en/resources/devrel-edits/`](./docs/en/resources/devrel-edits/) with a dated entry: PR status on `pull-requests.mdx`, and a page of its own for each larger body of work, such as `amm-v4-docs-updates.mdx`. Add a new page to the DevRel Edits group in `docs.json`. Do not remove earlier entries or closed-PR history.
 - If you regenerate the upstream comparison with `scripts/generate-upstream-diff.py`, pin it to the recorded base commit. Otherwise upstream's own new commits show up as differences from this checkout.
 - State PR and issue status accurately. Check it on GitHub before writing it. A page that says "open for review" about a closed PR misleads the next reader.
 

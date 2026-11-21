@@ -1,6 +1,6 @@
 ---
 title: "共享基礎設施"
-description: "Raydium 每個程式共享的基本元素——權限 PDA、AmmConfig 帳戶、協議/基金/創作者費用分配、觀察帳戶和公開 REST API 表面——定義一次，讓各產品章節可以回溯參考。"
+description: "每個 Raydium 程式共享的基礎元件——權限 PDA、AmmConfig 帳戶、交易費與 CPMM 創作者費的記帳、觀察帳戶以及公開 REST API 介面——在此統一定義，方便各產品章節回引。"
 ---
 
 <Info>
@@ -17,7 +17,7 @@ description: "Raydium 每個程式共享的基本元素——權限 PDA、AmmCon
 
 程式碼庫中有三種共享方式：
 
-- **約定共享。** 每個程式都使用相同的 PDA 推導模式、相同的費用分配形狀和相同的觀察帳戶概念——但每個都在自己的程式中用自己的種子實現它們。
+- **慣例共享。** 各程式重用 PDA 推導、設定帳戶、費用記帳和觀察帳戶等模式，但每個程式都定義自己的種子和行為。欄位名稱相似並不代表結算規則相同。
 - **帳戶共享。** 少數帳戶在許多池中*字面上*是相同的記錄（CPMM 中的全局權限 PDA、AmmConfig 帳戶）。
 - **鏈下共享。** 一個 REST API 和一個 TypeScript SDK 為所有四個程式提供服務。集成商與一個 HTTP 主機和一個 NPM 套件互動，無論他們最終調用哪個程式。
 
@@ -77,31 +77,35 @@ AMM v4 沒有 `AmmConfig`——其費用參數是每個池的，在創建時硬�
 
 誰可以更改什麼的完整表格在 [`security/admin-and-multisig`](/docs/i18n/zh-Hant/security/admin-and-multisig) 中。當前面向用戶的費用分配在 [`ray/protocol-fees`](/docs/i18n/zh-Hant/ray/protocol-fees) 中。
 
-## 3. 協議/基金/創作者費用分配
+## 3. 交易費與創作者費的記帳
 
-每個 CPMM 和 CLMM 交換費用在輸出時分配到最多四個目的地：
+CPMM 和 CLMM 將其**交易費**分配給 LP、協議和基金。CPMM 還可以按單獨的費率收取可選的創作者費。不要把創作者費當作交易費的第四份：
 
 ```
-                         total swap fee
-                              │
-              ┌───────────────┼───────────────┬──────────────┐
-              ▼               ▼               ▼              ▼
-        LP pool side     Protocol         Fund         Creator
-        (raises k)       treasury         multisig     (LaunchLab pools)
+CPMM / CLMM trade fee
+  ├── LP share
+  ├── Protocol share
+  └── Fund share
+
+CPMM creator fee (independent rate, when enabled)
+  └── Accrued creator bucket
+      ├── Protocol share, applied at collection
+      └── Remainder paid to PoolState.pool_creator
 ```
 
 機制上：
 
-1. **交易費用累積到池中。** 費用從交換的輸入端移除，*扣費後*的金額是常數乘積數學看到的。這就是「LP 賺取費用」的含義——`k` 上升，隱含的每個 LP 代幣價值也上升。
-2. **協議/基金/創作者部分從該 LP 端累積中扣除到每個池的計數器帳戶中。** 它們位於池狀態（`protocol_fees_token{0,1}`、`fund_fees_token{0,1}` 等）上，直到有人調用相應的收集指令。它們在那之前不會離開池的金庫；從交換的角度來看，它們仍然「在池中」。
-3. **收集將它們移出。** 協議和基金路徑需要來自 `AmmConfig` 的各自 `protocol_owner` / `fund_owner` 簽署者。CPMM 創作者費用使用創作者簽署的 `CollectCreatorFee` 路徑或 `CollectCreatorFeePermissionless`，任何支付者都可以觸發，但它將目的地固定為創作者的規範 ATA。
+1. **交易費使用 `trade_fee_rate`。** LP 份額保留在池的記帳中。CPMM 從交換輸入收取交易費。CLMM 還支援池級的單邊收費，因此在假定只從輸入扣費之前，請先確認該產品的收費模式。
+2. **CPMM 的創作者費獨立使用 `creator_fee_rate`。** 它從不減少交易費中的 LP、協議或基金份額。`PoolState.creator_fee_on` 決定每次交換時創作者費是從輸入還是輸出中扣除。CLMM 沒有這種 CPMM 式的創作者費桶。
+3. **非 LP 份額累積在單獨的計數器中。** 它們仍留在金庫中，但在相應的收取指令執行之前，不計入曲線使用的儲備。
+4. **收取時結算各去向。** 協議和基金路徑需要 `AmmConfig` 中相應的權限。CPMM 創作者費收取要麼需要記錄的創作者簽名，要麼使用無權限路徑；後者任何支付者都可以觸發，但創作者的接收地址固定為該創作者的標準 ATA。兩條創作者路徑都會在收取時套用協議在創作者費桶中的設定份額。
 
 幾個承重的觀察：
 
-- **分割百分比是交易費用的，不是交易的。** 一個 0.25% 的交易費用，有 12% 的協議份額意味著協議獲得 `0.25% × 12% = 0.03%` 的交易——不是交易的 12%。
-- **創作者費用按池選擇啟用，並在創建時固定。** 未啟用它的池有三向分割（LP/協議/基金）。在 CPMM 上，第四個槽位路由到記錄的池創作者。LaunchLab 畢業透過 `InitializeWithPermission` 啟用它，自 2026-10-30 起任何創作者都可以透過 `InitializeV2` 啟用它。該設定在創建後無法更改。
-- **AMM v4 只分割兩種方式**，每個池硬編碼：LP 和協議。沒有基金槽位，沒有創作者槽位。
-- **基金 vs 協議**——兩者都是協議庫目的地，但它們有不同的簽署者和不同的預期用途。`protocol` 歷史上資助運營；`fund` 是長期庫。兩者之間的分割本身是可調的。
+- **交易費分配比例作用於交易費，而不是整筆交易。** 0.25% 的交易費加上 12% 的協議份額，意味著協議獲得交易額的 `0.25% × 12% = 0.03%`，這還未考慮任何單獨的創作者費。
+- **CPMM 創作者費按池選擇啟用，並在建立時固定。** LaunchLab 畢業可以透過 `InitializeWithPermission` 啟用它。自 2026-10-30 起，任何創作者都可以透過 `InitializeV2` 啟用該路徑；當定義了 `creatorFeeOn` 時，SDK 會選擇該指令。要有任何累積，`creator_fee_rate` 仍須為非零。
+- **AMM v4 採用延遲的 PnL 結算。** 其 `pnl_numerator / pnl_denominator` 比例作用於 `calc_take_pnl` 計算出的增長，而不是直接作用於每筆交換的費用。它沒有基金桶，也沒有創作者費桶。
+- **基金與協議** — 兩者都是協議金庫的去向，但簽名者和預期用途不同。`protocol` 歷來用於支付營運；`fund` 是更長期的金庫。
 
 具體費率在 [`reference/fee-comparison`](/docs/i18n/zh-Hant/reference/fee-comparison) 和 [`ray/protocol-fees`](/docs/i18n/zh-Hant/ray/protocol-fees) 中。
 

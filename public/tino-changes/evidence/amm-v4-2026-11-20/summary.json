@@ -1,0 +1,37 @@
+{
+  "generated_at": "2026-11-20T17:03:16.985294+00:00",
+  "rpc_provider": "Triton One mainnet RPC",
+  "transactions_per_sample": 400,
+  "measure": "the program's own 'consumed' log line, including its inner calls; not the transaction total or the requested limit",
+  "median_cu": {
+    "amm_v4_SwapBaseInV2": 15397,
+    "amm_v4_SwapBaseIn_v1": 16091,
+    "cpmm_swap_base_input": 25152,
+    "amm_v4_swaps_before_redeploy": 25681,
+    "amm_v4_swaps_after_redeploy": 15404
+  },
+  "sample_sizes": {
+    "amm_v4_SwapBaseInV2": 98,
+    "amm_v4_SwapBaseIn_v1": 34,
+    "cpmm_swap_base_input": 384
+  },
+  "amm_v4_swaps_by_format": {
+    "v1": 34,
+    "V2": 98
+  },
+  "router_amm_v4_hops": {
+    "total": 33,
+    "by_instruction": {
+      "SwapBaseIn (v1)": 30,
+      "SwapBaseOut (v1)": 3
+    },
+    "by_account_count": {
+      "17": 33
+    }
+  },
+  "pool_fees": {
+    "pools_read": 3559,
+    "non_default": 0,
+    "lowest_tvl_usd": 7830
+  }
+}

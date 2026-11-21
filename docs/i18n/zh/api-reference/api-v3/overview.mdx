@@ -91,9 +91,9 @@ v2 端点通过 `nextPageId` 使用基于游标的分页。不透明令牌在响
 
 ### CLMM 动态费用和限价单配置
 
-两个新端点公开了 CLMM `CreateCustomizablePool` 流程的校准数据：
+两个端点为 CLMM 可定制池和限价单提供校准数据：
 
-- `GET /main/clmm-dynamic-config` — `DynamicFeeConfig` 层级列表（过滤周期、衰减周期、降低因子、最大分子、动态费用控制）。在 `enableDynamicFee=true` 时，将其中一个的 `id` 传入 `createCustomizablePool`。
+- `GET /main/clmm-dynamic-config` — `DynamicFeeConfig` 档位列表（过滤周期、衰减周期、缩减因子、最大分子、动态费控制）。将某个档位的 `id` 作为 `dynamicFeeConfig` 传给 `createCustomizablePool` 以创建规范池，或传给 `createCustomizablePoolV2` 以创建额外的 seed-index 池。传入该参数即启用动态费；不存在 `enableDynamicFee` 参数。
 - `GET /main/clmm-limit-order-config` — 每个池的限价单配置：是否启用限价单、最小输入金额以及获得授权处理已成交订单的链下 `limit_order_admin` 管理员。
 
 每个钱包的限价单数据（未平仓/已成交/已平仓）位于 Temp API；参见 [`api-reference/temp-api-v1/overview`](/docs/i18n/zh/api-reference/temp-api-v1/overview)。

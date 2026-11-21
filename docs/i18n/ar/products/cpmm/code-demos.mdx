@@ -10,7 +10,7 @@ description: "أمثلة TypeScript شاملة من البداية إلى الن
 </Info>
 
 <Info>
-  **بيان الإصدار.** جميع أمثلة TypeScript تستهدف `@raydium-io/raydium-sdk-v2@0.2.64-alpha`؛ تم تنفيذها آخر مرة مقابل `0.2.42-alpha` (2026-04) وتم إعادة فحص توقيعات الاستدعاء الخاصة بها مقابل مصدر `0.2.64-alpha` في 2026-09-09، مقابل Solana mainnet-beta. هيكل عظمي Rust CPI يستهدف `raydium-cp-swap` على `master`، Anchor `1.0.2`. يتم سحب معرفات البرامج عبر الثوابت من [`reference/program-addresses`](/docs/i18n/ar/reference/program-addresses).
+  **بيان الإصدار.** تستهدف جميع أمثلة TypeScript الإصدار `@raydium-io/raydium-sdk-v2@0.2.85-alpha` على Solana mainnet-beta. نُفِّذت آخر مرة مقابل `0.2.42-alpha` (2026-04)، وأُعيد فحص توقيعات الاستدعاء مقابل الحزمة المنشورة `0.2.85-alpha` في 2026-11-20. يستهدف هيكل Rust CPI المستودع `raydium-cp-swap` على `master`، وAnchor `1.0.2`. تُسحب معرّفات البرامج عبر الثوابت من [`reference/program-addresses`](/docs/i18n/ar/reference/program-addresses).
 </Info>
 
 ## المتطلبات الأساسية
@@ -49,13 +49,16 @@ const raydium = await Raydium.load({
 ```ts
 import { PublicKey } from "@solana/web3.js";
 import BN from "bn.js";
-import { CREATE_CPMM_POOL_PROGRAM, CREATE_CPMM_POOL_FEE_ACC }
-  from "@raydium-io/raydium-sdk-v2";
+import {
+  CREATE_CPMM_POOL_PROGRAM,
+  CREATE_CPMM_POOL_FEE_ACC,
+  FeeOn,
+} from "@raydium-io/raydium-sdk-v2";
 // (إذا كنت بحاجة إلى كل PDA مجمع في وقت واحد، فإن المساعد المُصدَّر هو `getCreatePoolKeys`.
 //  لا يوجد `getCpmmPdas`.)
 
-const mintA = new PublicKey("So11111111111111111111111111111111111111112"); // wSOL
-const mintB = new PublicKey("EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"); // USDC
+const mintA = new PublicKey("So11111111111111111111111111111111111111112"); // wSOL; see reference/program-addresses
+const mintB = new PublicKey("EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"); // USDC; see reference/program-addresses
 
 // 1. اختر تكوين رسوم. index=0 هو المستوى 0.25%.
 const feeConfigs = await raydium.api.getCpmmConfigs();
@@ -75,6 +78,7 @@ const { execute, extInfo } = await raydium.cpmm.createPool({
   mintBAmount:     new BN(   160_000_000),  // 160 USDC (عند 160/SOL)
   startTime:       new BN(0),               // افتح فورًا
   feeConfig,
+  creatorFeeOn:    FeeOn.OnlyTokenA,
   associatedOnly:  false,
   ownerInfo:       { useSOLBalance: true },
   txVersion:       TxVersion.V0,
@@ -93,8 +97,12 @@ console.log("Tx:", txId);
 - اختيار برنامج الرمز الصحيح (SPL Token مقابل Token-2022) لكل جانب.
 
 <Note>
-  **تبني `createPool` التعليمة `Initialize`، لذا تكون رسوم المنشئ للمجمع معطّلة.** لإنشاء مجمع مع تفعيل رسوم المنشئ، استخدم `InitializeV2` (أُضيفت في ترقية البرنامج 2026-10-30). أول 19 حسابًا فيها تطابق `Initialize`. تحذف `rent` وتأخذ معاملًا إضافيًا واحدًا، `creator_fee_on: Option<CreatorFeeOn>`. إصدار `0.2.64-alpha` المثبّت في هذه الصفحة أقدم من هذه التعليمة. إلى أن يتضمن إصدار SDK لديك منشئًا لها، رمّزها من IDL المحدَّث. انظر [`products/cpmm/instructions`](/docs/i18n/ar/products/cpmm/instructions#initializev2).
+  **عند تحديد `creatorFeeOn` تبني `createPool` التعليمة `InitializeV2`.** احذفه لبناء تعليمة `Initialize` الأصلية مع تعطيل رسوم المنشئ. تختار `FeeOn.OnlyTokenA` و`OnlyTokenB` و`BothToken` الرمز أو الرموز التي يُؤخذ منها الرسم؛ ولا تحدد المعدل ولا المستلم. يحافظ SDK على اختيارك للجانب A/B عندما يرتب الـ mints.
 </Note>
+
+توقّع المحفظة المضبوطة بوصفها owner في SDK بصفتها المنشئ، وتُسجَّل في `PoolState.pool_creator`. وتدفع هذه المحفظة أيضًا إيجار المجمع ورسم إنشاء المجمع والسيولة الأولية. لا يغيّر تعيين `feePayer` منفصل للمعاملة المنشئَ المسجَّل ولا يعيد توجيه رسوم المنشئ. يتطلب الجمع العادي توقيع المنشئ المسجَّل؛ أما الجمع غير المقيّد بالأذونات فيمكن لدافع آخر تشغيله، لكنه يرسل حصة المنشئ فقط إلى حسابات ATA القياسية الخاصة بذلك المنشئ.
+
+يأتي المعدل من `AmmConfig.creator_fee_rate`. إذا كان صفرًا، فلن يتراكم شيء حتى مع تفعيل مسار رسم المنشئ. عند الجمع، ينقل البرنامج حصة البروتوكول المضبوطة إلى حاوية البروتوكول ويدفع الباقي إلى المنشئ. انظر [`products/cpmm/fees`](/docs/i18n/ar/products/cpmm/fees) و[`products/cpmm/instructions`](/docs/i18n/ar/products/cpmm/instructions#initializev2).
 
 بعد التأكيد، يمكنك جلب حالة المجمع المباشرة باستخدام:
 
@@ -245,7 +253,7 @@ await execute({ sendAndConfirm: true });
 
 المصدر: [`src/cpmm/collectCreatorFee.ts`](https://github.com/raydium-io/raydium-sdk-V2-demo/blob/master/src/cpmm/collectCreatorFee.ts)، [`src/cpmm/collectAllCreatorFee.ts`](https://github.com/raydium-io/raydium-sdk-V2-demo/blob/master/src/cpmm/collectAllCreatorFee.ts)
 
-جمع البروتوكول والصندوق يبقى محميًا بالسلطة. رسوم المنشئ لها مساران: `CollectCreatorFee` الموقّع من المنشئ، و`CollectCreatorFeePermissionless` الإضافي، الذي يمكن لأي دافع أن يستدعيه لكنه يمكنه التحويل فقط إلى ATAs المنشئ الأساسية. يشحن الإصدار `0.2.64-alpha` منشئي مستوى الوحدة لكلا مسار المنشئ:
+جمع البروتوكول والصندوق يبقى محميًا بالسلطة. رسوم المنشئ لها مساران: `CollectCreatorFee` الموقّع من المنشئ، و`CollectCreatorFeePermissionless` الإضافي، الذي يمكن لأي دافع أن يستدعيه لكنه يمكنه التحويل فقط إلى ATAs المنشئ الأساسية. يشحن الإصدار `0.2.85-alpha` منشئي مستوى الوحدة لكلا مسار المنشئ:
 
 ```ts
 // موقّع من المنشئ
@@ -267,7 +275,7 @@ await raydium.cpmm.collectMultiCreatorFees({ poolInfoList, txVersion: TxVersion.
 ```
 
 <Warning>
-  **كلا تعليمات المنشئ غيّرت قوائم حساباتهما في ترقية البرنامج بتاريخ 2026-09-19.** كل واحدة تأخذ الآن PDA `creator_fee_share` في `["creator_fee_share", creator, ammConfig]`، والتعليمة بدون إذن تأخذ `amm_config` أيضًا — كلاهما **مُلحق بعد `system_program`** بدلاً من الإدراج، لذا الحسابات التي كانت موجودة بالفعل تحتفظ بمواضعها. منشئ مثبّت على إصدار SDK يسبق الترقية يصدر القائمة الأقصر والمعاملة مرفوضة لحسابات مفقودة. تحقق من أن الإصدار الذي تثبّته يحمل الحسابات الجديدة قبل استخدام هذه المساعدات مع البرنامج المُرقّى، وحدّث IDL إذا كنت تولّد عملاء منه.
+  **غيّرت تعليمتا المنشئ قائمتي حساباتهما في ترقية البرنامج بتاريخ 2026-09-19.** تأخذ كل منهما الآن PDA باسم `creator_fee_share` عند `["creator_fee_share", creator, ammConfig]`، وتأخذ التعليمة غير المقيّدة بالأذونات `amm_config` أيضًا. يُضاف الحسابان **بعد `system_program`** بدلًا من إدراجهما في الوسط، لذا تحتفظ الحسابات الموجودة بمواضعها. تضيف منشئات `0.2.85-alpha` الحسابين كليهما. أما `0.2.64-alpha` فتُنتج القائمة الأقصر، فيرفض البرنامج تلك المعاملة بسبب نقص الحسابات. حدّث IDL إذا كنت تولّد العملاء منه.
 
   تمرير PDA إلزامي حتى عندما لم يتم إنشاؤه أبدًا — اشتقه ومرّره؛ البرنامج يعود إلى `AmmConfig.creator_fee_share_rate` عندما يكون الحساب فارغًا.
 </Warning>

@@ -110,32 +110,36 @@ Pemeriksaan invariant mengasumsikan fee LP tetap dalam cadangan. Produk Raydium 
 
 ### Konvensi CPMM
 
-Fee adalah tarif basis-point-like `u64` pada penyebut `1_000_000`. Fee trade dibagi menjadi `trade_fee_rate` (total) kemudian dibagi melalui `protocol_fee_rate`, `fund_fee_rate`, `creator_fee_rate`. Pada setiap swap:
+Biaya adalah tarif `u64` dengan penyebut `1_000_000`. `protocol_fee_rate` dan `fund_fee_rate` membagi **biaya perdagangan**. `creator_fee_rate` bersifat independen: tarif ini berlaku pada volume swap dan tidak pernah mengurangi bagian-bagian biaya perdagangan.
+
+Saat kedua biaya diambil dari input, program membulatkan potongan gabungannya sekali, lalu membaginya menurut tarif:
 
 ```
-trade_fee     = ceil(Δx · trade_fee_rate   / 1_000_000)
-creator_fee   = ceil(Δx · creator_fee_rate / 1_000_000)   // its own rate on volume,
-                                                          // NOT a slice of trade_fee
-protocol_fee  = floor(trade_fee · protocol_fee_rate / 1_000_000)
-fund_fee      = floor(trade_fee · fund_fee_rate     / 1_000_000)
-lp_fee        = trade_fee − protocol_fee − fund_fee
+total_fee      = ceil(Δx · (trade_fee_rate + creator_fee_rate) / 1_000_000)
+creator_fee    = floor(total_fee · creator_fee_rate / (trade_fee_rate + creator_fee_rate))
+trade_fee      = total_fee − creator_fee
+protocol_fee   = floor(trade_fee · protocol_fee_rate / 1_000_000)
+fund_fee       = floor(trade_fee · fund_fee_rate / 1_000_000)
+lp_fee         = trade_fee − protocol_fee − fund_fee
 ```
 
-Tiga bagian non-LP terakumulasi dalam penghitung terpisah (`protocol_fees_*`, `fund_fees_*`, `creator_fees_*`) yang **dikecualikan** dari cadangan yang digunakan dalam invariant. Ini adalah cara fee dapat disapu tanpa menggerakkan kurva. Lihat [`products/cpmm/fees`](/docs/i18n/id/products/cpmm/fees).
+Saat `creator_fee_on` memilih token output, hanya biaya perdagangan yang dipotong dari input. Biaya kreator menjadi `ceil(Δy · creator_fee_rate / 1_000_000)` dan dipotong dari output kurva. Lihat [`products/cpmm/fees`](/docs/i18n/id/products/cpmm/fees#which-side-of-the-trade-the-fees-are-taken-from).
+
+Tiga bucket non-LP terakumulasi secara terpisah dan dikecualikan dari cadangan yang dipakai dalam invarian. Saat biaya kreator ditarik, bagian protokol yang dapat dikonfigurasi berpindah dari bucket kreator ke bucket protokol; hanya sisanya yang diterima kreator.
 
 ### Konvensi AMM v4
 
-Fee adalah rasio `numerator / denominator` pada penyebut `10_000`. Pembagian ditetapkan pada saat pembuatan pool dan disimpan pada `AmmInfo.fees`:
+Biaya swap kotor memakai `swap_fee_numerator / swap_fee_denominator`, biasanya `25 / 10_000`:
 
 ```
-swap_fee  = ceil(Δx · swap_fee_numerator / swap_fee_denominator)    // contoh 0.25%
-pnl_share = swap_fee · pnl_numerator / pnl_denominator               // 12 / 100 = 12% dari swap_fee
-lp_share  = swap_fee − pnl_share                                     // 0.22% dari volume
+gross_fee = ceil(Δx · swap_fee_numerator / swap_fee_denominator)   // 0.25% by default
 ```
 
-`pnl_share` terakumulasi dalam `state_data.need_take_pnl_*` dan dikecualikan dari cadangan; `lp_share` tetap dalam vault. Lihat [`products/amm-v4/fees`](/docs/i18n/id/products/amm-v4/fees).
+Program **tidak** menghitung `pnl_numerator / pnl_denominator × gross_fee` pada setiap swap. Seluruh biaya awalnya tetap berada di cadangan dan menaikkan `k`. Kemudian, `calc_take_pnl` mengukur pertumbuhan terhadap baseline `TargetOrders`, menurunkan jumlah PnL untuk setiap sisi token, dan menerapkan `pnl_numerator / pnl_denominator` pada pertumbuhan itu. Dengan nilai default, fraksi ini adalah `12 / 100`; angka 0,03% dari volume yang sering dikutip adalah padanan biaya secara ekonomis, bukan potongan pasti per swap. Pembulatan bilangan bulat mengubah hasilnya, dan program hanya mencatat PnL bila jumlah di kedua sisi token sama-sama bukan nol.
 
-Kedua konvensi mempertahankan invariant dengan cara yang sama — perbedaannya adalah kosmetik (penyebut + jumlah sub-kategori).
+PnL yang tercatat terakumulasi di `state_data.need_take_pnl_*` dan dikecualikan dari cadangan. LP mempertahankan sisa pertumbuhan. Lihat [`products/amm-v4/math`](/docs/i18n/id/products/amm-v4/math#settlement-step-pnl).
+
+Kedua program mengecualikan biaya non-LP yang tercatat dari cadangan kurva, tetapi waktu penyelesaian dan pembukuannya berbeda.
 
 ## Aturan pembulatan
 

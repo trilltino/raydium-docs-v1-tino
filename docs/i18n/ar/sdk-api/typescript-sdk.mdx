@@ -10,9 +10,9 @@ description: "@raydium-io/raydium-sdk-v2 من البداية إلى النهاي
 </Info>
 
 <Info>
-  **لافتة الإصدار.** توثق هذه الصفحة `@raydium-io/raydium-sdk-v2@0.2.64-alpha`، الإصدار المثبت في كل عينة كود على هذا الموقع. SDK في مرحلة ما قبل 1.0 وسطح النوع تطور عبر الإصدارات — ثبّت إصدارك.
+  **لافتة الإصدار.** توثق هذه الصفحة `@raydium-io/raydium-sdk-v2@0.2.85-alpha`، الإصدار المثبت في كل عينة كود على هذا الموقع. SDK في مرحلة ما قبل 1.0 وسطح النوع تطور عبر الإصدارات — ثبّت إصدارك.
 
-  تم تحديث الإصدار من `0.2.42-alpha` في 2026-09-09 جنباً إلى جنب مع ترقيات البرنامج: `0.2.64-alpha` هو الإصدار الحالي للـ SDK. مستودع [`raydium-sdk-V2-demo`](https://github.com/raydium-io/raydium-sdk-V2-demo) الذي تشير إليه صفحات عينات الكود يثبت `0.2.62-alpha`، لذا ثبّت أحدهما إذا كنت تتابع عينة حرفياً. تم **تنفيذ** العينات على هذه الصفحات آخر مرة مقابل `0.2.42-alpha` (2026-04)؛ تم إعادة فحص توقيعات استدعاءاتها مقابل مصدر `0.2.64-alpha` في 2026-09-09، لكن تعامل مع أي عدم تطابق كخطأ توثيق و[افتح مشكلة](https://github.com/raydium-io/raydium-docs-v1/issues/new).
+  رُفع الإصدار المثبّت من `0.2.64-alpha` في 2026-11-20. يثبّت مستودع [`raydium-sdk-V2-demo`](https://github.com/raydium-io/raydium-sdk-V2-demo) الإصدار `0.2.85-alpha` في الـ commit الذي تستخدمه أمثلة إنشاء المجمعات المحدَّثة. **نُفِّذت** الأمثلة آخر مرة مقابل `0.2.42-alpha` (2026-04). وأُعيد فحص توقيعات المنشئات العامة مقابل الحزمة المنشورة `0.2.85-alpha` في 2026-11-20. اعتبر أي اختلاف خطأً في التوثيق و[افتح issue](https://github.com/raydium-io/raydium-docs-v1/issues/new).
 </Info>
 
 ## التثبيت
@@ -52,8 +52,10 @@ const raydium = await Raydium.load({
 بمجرد التحميل، يكشف كائن `raydium` عن عشر واجهات وحدات بالإضافة إلى عميل واجهة برمجية:
 
 ```ts
-raydium.cpmm       // CPMM pools: createPool, addLiquidity, withdrawLiquidity, swap, ...
-raydium.clmm       // CLMM pools: createPool, openPositionFromBase, increasePositionFromBase,
+raydium.cpmm       // CPMM pools: createPool with optional creatorFeeOn / InitializeV2,
+                   //             addLiquidity, withdrawLiquidity, swap, ...
+raydium.clmm       // CLMM pools: createPool, customizable pool and V2 builders,
+                   //             openPositionFromBase, increasePositionFromBase,
                    //             decreaseLiquidity, harvestAllRewards, swap, limit orders, ...
 raydium.liquidity  // AMM v4 pools: computeAmountOut, swap, addLiquidity, removeLiquidity, ...
 raydium.farm       // Farm v3/v5/v6: deposit, withdraw, harvestAllRewards, create,
@@ -109,11 +111,13 @@ const { execute, builder, transaction, instructionTypes, signers, extInfo } =
 
 يجلب كل منشئ تقريباً حالة على السلسلة: معلومات المجموعة (للاقتباسات)، ملكية برنامج الرمز (لـ Token-2022 مقابل توجيه SPL)، إعفاء الحساب من الإيجار (لإنشاء ATA)، إلخ. يخزن SDK بقوة لكن الاستدعاء الأول لمجموعة جديدة ينطوي على رحلات RPC. احتفظ بمثيل `raydium` طويل الأجل لتجنب إعادة الجلب.
 
-## إضافات وحدة CLMM (الإصدار الأخير)
+## مجمعات CLMM القابلة للتخصيص والأوامر المحددة السعر
 
-اكتسبت واجهة CLMM أسطح للميزات الجديدة للرسوم الديناميكية والرسوم أحادية الجانب وأوامر الحد:
+توفّر واجهة CLMM ميزات الرسوم الديناميكية والرسوم أحادية الجانب والأوامر المحددة السعر:
 
-- **`raydium.clmm.createCustomizablePool`** — مجموعة شاملة من `createPool` تقبل `collectFeeOn` و `dynamicFeeConfig` (وهو `PublicKey` حساب التكوين). وتمرير `dynamicFeeConfig` هو ما يُمكّن الرسوم الديناميكية؛ فلا يوجد علم منفصل `enableDynamicFee` ولا `dynamicFeeConfigId`. ويستمر `createPool` الكلاسيكي في العمل لمجمعات الرسوم الافتراضية.
+- **`raydium.clmm.createCustomizablePool`** — تنشئ المجمع القياسي القابل للتخصيص وتقبل `collectFeeOnMint` و`dynamicFeeConfig`. يجب أن يكون mint تحصيل الرسوم أحد mints المجمع؛ احذفه لتحصيل الرسوم من مُدخل المبادلة. المعامل القديم `collectFeeOn` مُهمل ويُرفض.
+- **`raydium.clmm.createCustomizablePoolV2`** — تنشئ مجمعًا إضافيًا عند PDA ذي `seed_index` غير صفري. يفحص SDK أول 100 قيمة لـ seed index ويختار أول قيمة متاحة. تقبل المعاملين نفسيهما `collectFeeOnMint` و`dynamicFeeConfig`. استخدم الطريقة القياسية بدلًا منها إذا كنت تحتاج إلى PDA المجمع الأصلي.
+- **الرسوم الديناميكية** — يفعّلها تمرير `dynamicFeeConfig`. لا توجد راية منفصلة باسم `enableDynamicFee` ولا `dynamicFeeConfigId`. ما زالت `createPool` الكلاسيكية تعمل للمجمعات ذات الرسوم الافتراضية.
 - **`raydium.clmm.openLimitOrder`** — فتح أمر حد أحادي التكة. يأخذ `poolInfo` و `baseIn` (الاتجاه) و `orderTick` و `amount`، واختياريًا `tickArrayBitmap` و `noneIndex` و `ownerInfo`. استخدم المساعد المُصدَّر `getOrderTick({ baseIn, mintADecimal, mintBDecimal, tickSpacing, price })` لتكميم التكة.
 - **`raydium.clmm.increaseLimitOrder` / `decreaseLimitOrder`** — اضبط الجزء غير المملوء من أمر موجود. وكلاهما يأخذ `{ poolInfo, limitOrder, amount }`؛ ويضيف `decreaseLimitOrder` معامل `slippage` اختياريًا. والتقليل يعود بخطأ `InvalidOrderPhase` على أمر مملوء بالكامل.
 - **`raydium.clmm.settleLimitOrder` / `settleAllLimitOrder`** — كسح المخرج المملوء إلى ATA المالك. و `settleLimitOrder` تأخذ `{ limitOrder }` فقط — بلا `poolInfo`. ويمكن أن يستدعيها إما مالك الأمر أو حافظ البرنامج `limit_order_admin`.

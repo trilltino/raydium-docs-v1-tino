@@ -316,22 +316,23 @@ Selalu sertakan `remainingAccounts` yang dikembalikan simulasi: jika kurang, swa
 
 ## Membuat pool CLMM yang dapat dikustomisasi
 
-`createCustomizablePool` adalah titik masuk yang menyediakan sakelar dynamic-fee dan single-sided-fee saat pool dibuat. Fungsi ini memakai bentuk parameter `createPool` ditambah **dua** parameter tambahan:
+Builder pool yang dapat dikustomisasi menyediakan biaya dinamis dan penarikan biaya satu sisi. Gunakan `createCustomizablePool` untuk pool kanonis dari tripel `(config, mint0, mint1)`. Gunakan `createCustomizablePoolV2` untuk pool tambahan yang PDA-nya menyertakan `seed_index` bukan nol.
+
+Contoh ini mengikuti demo yang diperbarui dan membuat pool V2 tambahan:
 
 ```ts
-import { CLMM_PROGRAM_ID, CollectFeeOn } from "@raydium-io/raydium-sdk-v2";
+import { CLMM_PROGRAM_ID } from "@raydium-io/raydium-sdk-v2";
 
 const dynamicFeeConfigs = await raydium.api.getClmmDynamicConfigs();    // GET /main/clmm-dynamic-config
 const dynamicFeeConfig  = dynamicFeeConfigs.find((c) => c.index === 0); // pilih tingkat kalibrasi
 
-const { execute, extInfo } = await raydium.clmm.createCustomizablePool({
+const { execute, extInfo } = await raydium.clmm.createCustomizablePoolV2({
   programId: CLMM_PROGRAM_ID,
   mint1:     mintA,
   mint2:     mintB,
   ammConfig,
   initialPrice,
-  // Dua parameter tambahan:
-  collectFeeOn:      CollectFeeOn.TokenOnlyB,   // FromInput | TokenOnlyA | TokenOnlyB
+  collectFeeOnMint:  new PublicKey(mintB.address),
   dynamicFeeConfig:  new PublicKey(dynamicFeeConfig!.id),
   txVersion: TxVersion.V0,
 });
@@ -340,15 +341,15 @@ await execute({ sendAndConfirm: true });
 console.log("Customizable pool:", extInfo.address.id);   // string base58
 ```
 
+`collectFeeOnMint` harus salah satu dari dua mint pool. SDK mengurutkan mint dan memetakan pilihan Anda ke mode on-chain `Token0Only` atau `Token1Only`. Hilangkan untuk memakai `FromInput`. Parameter SDK lama `collectFeeOn` sudah usang dan ditolak; enum on-chain `CollectFeeOn` masih ada.
+
 <Warning>
-  Tidak ada parameter `enableDynamicFee`, `dynamicFeeConfigId`, maupun `startTime`.
-  **Menyediakan `dynamicFeeConfig` adalah yang mengaktifkan dynamic fee** — jika dihilangkan, Anda
-  mendapatkan pool dengan fee statis tanpa muncul error. Perhatikan juga bahwa anggota enum di SDK
-  adalah `TokenOnlyA` / `TokenOnlyB`, sedangkan enum Rust on-chain menulisnya sebagai `Token0Only` /
-  `Token1Only`; nilai numeriknya sama (`FromInput` = 0).
+  **V2 mengubah derivasi alamat pool, bukan hanya parameter biaya.** SDK memeriksa 100 seed index bukan nol pertama dan memilih yang pertama tersedia. Jangan gunakan V2 jika Anda ingin membuat pool kanonis. Untuk jalur itu, panggil `createCustomizablePool` dengan parameter `collectFeeOnMint` dan `dynamicFeeConfig` yang sama.
+
+  Tidak ada parameter `enableDynamicFee`, `dynamicFeeConfigId`, atau `startTime`. **Memberikan `dynamicFeeConfig` mengaktifkan biaya dinamis.** Hilangkan untuk pool dengan biaya statis.
 </Warning>
 
-`createPool` tetap berfungsi untuk jalur fee default tanpa dynamic fee. Gunakan `createCustomizablePool` jika Anda membutuhkan salah satu dari kedua opsi tersebut. Lihat [`products/clmm/instructions`](/docs/i18n/id/products/clmm/instructions) untuk daftar akun on-chain.
+`createPool` biasa tetap berfungsi untuk pool dengan biaya default. Lihat [`products/clmm/instructions`](/docs/i18n/id/products/clmm/instructions) untuk daftar akun yang berbeda dari instruksi on-chain `CreateCustomizablePool` dan `CreateCustomizablePoolV2`.
 
 ## Limit order
 

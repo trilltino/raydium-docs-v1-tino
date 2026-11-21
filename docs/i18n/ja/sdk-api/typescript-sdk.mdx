@@ -10,9 +10,9 @@ description: "@raydium-io/raydium-sdk-v2 エンドツーエンド — インス�
 </Info>
 
 <Info>
-  **バージョンバナー。** このページは `@raydium-io/raydium-sdk-v2@0.2.64-alpha` を対象としており、このサイトのすべてのコード例で使用されているバージョンです。SDK は 1.0 未満であり、型サーフェスはリリース間で進化しています — バージョンをピン留めしてください。
+  **バージョンバナー。** このページは `@raydium-io/raydium-sdk-v2@0.2.85-alpha` を対象としており、このサイトのすべてのコード例で使用されているバージョンです。SDK は 1.0 未満であり、型サーフェスはリリース間で進化しています — バージョンをピン留めしてください。
 
-  ピンは 2026-09-09 にプログラムアップグレードと共に `0.2.42-alpha` から `0.2.64-alpha` に進められました。これが SDK の現在のリリースです。コード例ページがリンクしている [`raydium-sdk-V2-demo`](https://github.com/raydium-io/raydium-sdk-V2-demo) リポジトリは `0.2.62-alpha` をインストールするため、デモに従う場合はどちらかをピン留めしてください。これらのページのデモは最後に `0.2.42-alpha`（2026-04）に対して**実行**されました。呼び出しシグネチャは 2026-09-09 に `0.2.64-alpha` ソースに対して再確認されていますが、不一致がある場合はドキュメントのバグとして扱い、[issue を開いてください](https://github.com/raydium-io/raydium-docs-v1/issues/new)。
+  バージョン固定は 2026-11-20 に `0.2.64-alpha` から更新されました。[`raydium-sdk-V2-demo`](https://github.com/raydium-io/raydium-sdk-V2-demo) リポジトリは、更新されたプール作成例が使うコミットで `0.2.85-alpha` をインストールしています。デモが最後に**実行**されたのは `0.2.42-alpha`（2026-04）です。公開ビルダーのシグネチャは 2026-11-20 に公開済みの `0.2.85-alpha` パッケージに対して再確認しました。不一致があればドキュメントのバグとして扱い、[issue を作成](https://github.com/raydium-io/raydium-docs-v1/issues/new)してください。
 </Info>
 
 ## インストール
@@ -52,8 +52,10 @@ const raydium = await Raydium.load({
 ロード後、`raydium` オブジェクトは 10 個のモジュールファサードと API クライアントを公開します：
 
 ```ts
-raydium.cpmm       // CPMM pools: createPool, addLiquidity, withdrawLiquidity, swap, ...
-raydium.clmm       // CLMM pools: createPool, openPositionFromBase, increasePositionFromBase,
+raydium.cpmm       // CPMM pools: createPool with optional creatorFeeOn / InitializeV2,
+                   //             addLiquidity, withdrawLiquidity, swap, ...
+raydium.clmm       // CLMM pools: createPool, customizable pool and V2 builders,
+                   //             openPositionFromBase, increasePositionFromBase,
                    //             decreaseLiquidity, harvestAllRewards, swap, limit orders, ...
 raydium.liquidity  // AMM v4 pools: computeAmountOut, swap, addLiquidity, removeLiquidity, ...
 raydium.farm       // Farm v3/v5/v6: deposit, withdraw, harvestAllRewards, create,
@@ -107,11 +109,13 @@ const { execute, builder, transaction, instructionTypes, signers, extInfo } =
 
 ほぼすべてのビルダーは内部的にオンチェーン状態を取得します：プール情報（クォート用）、トークンプログラム所有権（Token-2022 対 SPL ルーティング用）、アカウント家賃免除（ATA 作成用）など。SDK は積極的にキャッシュしますが、新しいプールの最初の呼び出しには RPC ラウンドトリップが含まれます。再取得を避けるために、長寿命の `raydium` インスタンスを保持してください。
 
-## CLMM モジュール追加（最新リリース）
+## CLMM のカスタマイズ可能プールと指値注文
 
-CLMM ファサードは、新しい動的フィー、片側フィー、およびリミットオーダー機能のサーフェスを獲得しました：
+CLMM ファサードは、ダイナミックフィー、片側フィー、指値注文の機能を提供します。
 
-- **`raydium.clmm.createCustomizablePool`** — `collectFeeOn` と `dynamicFeeConfig`（コンフィグアカウントの `PublicKey`）を受け入れる `createPool` のスーパーセット。動的手数料を有効にするのは `dynamicFeeConfig` を渡すことです。別途の `enableDynamicFee` フラグも `dynamicFeeConfigId` もありません。クラシック `createPool` はデフォルト手数料のプールで機能し続けます。
+- **`raydium.clmm.createCustomizablePool`** — 正規のカスタマイズ可能プールを作成し、`collectFeeOnMint` と `dynamicFeeConfig` を受け取ります。フィー徴収ミントはプールのミントのいずれかである必要があります。省略するとスワップの入力から徴収します。旧パラメータ `collectFeeOn` は非推奨で、指定するとエラーになります。
+- **`raydium.clmm.createCustomizablePoolV2`** — 非ゼロの `seed_index` を持つ PDA に追加のプールを作成します。SDK は最初の 100 個の seed index を調べ、最初に空いているものを選びます。同じ `collectFeeOnMint` と `dynamicFeeConfig` パラメータを受け取ります。元のプール PDA が必要な場合は、正規の方のメソッドを使ってください。
+- **ダイナミックフィー** — `dynamicFeeConfig` を渡すと有効になります。`enableDynamicFee` フラグや `dynamicFeeConfigId` は別途ありません。従来の `createPool` は、デフォルトフィーのプールでは引き続き使えます。
 - **`raydium.clmm.openLimitOrder`** — 単一ティックのリミットオーダーを開きます。`poolInfo`、`baseIn`（方向）、`orderTick`、`amount` を取り、オプションで `tickArrayBitmap`、`noneIndex`、`ownerInfo` を取ります。ティックの量子化にはエクスポートされた `getOrderTick({ baseIn, mintADecimal, mintBDecimal, tickSpacing, price })` ヘルパーを使用してください。
 - **`raydium.clmm.increaseLimitOrder` / `decreaseLimitOrder`** — 既存オーダーの未充足部分を調整します。どちらも `{ poolInfo, limitOrder, amount }` を取り、`decreaseLimitOrder` はオプションの `slippage` を追加します。完全に充足されたオーダーで減少すると `InvalidOrderPhase` で戻ります。
 - **`raydium.clmm.settleLimitOrder` / `settleAllLimitOrder`** — 充足された出力をオーナーの ATA に掃引します。`settleLimitOrder` は `{ limitOrder }` のみを取ります — `poolInfo` はありません。オーダーのオーナーまたはプログラムの `limit_order_admin` キーパーが呼び出すことができます。

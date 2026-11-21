@@ -91,9 +91,9 @@ Requisições que excedem os limites são rejeitadas com um erro.
 
 ### Configurações dinâmicas de taxa e limite de CLMM
 
-Dois novos endpoints expõem dados de calibração para o fluxo `CreateCustomizablePool` do CLMM:
+Dois endpoints expõem dados de calibração para pools personalizáveis e ordens limitadas do CLMM:
 
-- `GET /main/clmm-dynamic-config` — lista de tiers de `DynamicFeeConfig` (período de filtro, período de decaimento, fator de redução, numerador máximo, controle de taxa dinâmica). Passe o `id` de um desses ao chamar `createCustomizablePool` quando `enableDynamicFee=true`.
+- `GET /main/clmm-dynamic-config` — lista de níveis `DynamicFeeConfig` (período de filtro, período de decaimento, fator de redução, numerador máximo, controle de taxa dinâmica). Passe o `id` de um nível como `dynamicFeeConfig` para `createCustomizablePool`, no caso do pool canônico, ou para `createCustomizablePoolV2`, no caso de um pool adicional com seed index. Passar esse parâmetro ativa as taxas dinâmicas; não existe o parâmetro `enableDynamicFee`.
 - `GET /main/clmm-limit-order-config` — configuração de limite de pedidos por pool: se limites de pedidos estão habilitados, o valor mínimo de entrada e o `limit_order_admin` off-chain autorizado a liquidar pedidos preenchidos.
 
 Dados de limite de pedidos por wallet (abertos / preenchidos / fechados) ficam na Temp API; veja [`api-reference/temp-api-v1/overview`](/docs/i18n/pt/api-reference/temp-api-v1/overview).

@@ -10,7 +10,7 @@ description: "すべての CPMM 操作のエンドツーエンド TypeScript 例
 </Info>
 
 <Info>
-  **バージョン情報。** すべての TypeScript デモは `@raydium-io/raydium-sdk-v2@0.2.64-alpha` を対象としており、`0.2.42-alpha`（2026-04）に対して最後に実行され、2026-09-09 に Solana mainnet-beta に対して `0.2.64-alpha` ソースに対して呼び出しシグネチャが再確認されています。Rust CPI スケルトンは `master` 上の `raydium-cp-swap`、Anchor `1.0.2` を対象としています。プログラム ID は [`reference/program-addresses`](/docs/i18n/ja/reference/program-addresses) の定数から取得されます。
+  **バージョン情報。** すべての TypeScript デモは Solana mainnet-beta 上の `@raydium-io/raydium-sdk-v2@0.2.85-alpha` を対象としています。最後に実行したのは `0.2.42-alpha`（2026-04）で、呼び出しシグネチャは 2026-11-20 に公開済みの `0.2.85-alpha` パッケージに対して再確認しました。Rust CPI スケルトンは `master` 上の `raydium-cp-swap`、Anchor `1.0.2` を対象としています。プログラム ID は [`reference/program-addresses`](/docs/i18n/ja/reference/program-addresses) の定数から取得されます。
 </Info>
 
 ## 前提条件
@@ -49,13 +49,16 @@ const raydium = await Raydium.load({
 ```ts
 import { PublicKey } from "@solana/web3.js";
 import BN from "bn.js";
-import { CREATE_CPMM_POOL_PROGRAM, CREATE_CPMM_POOL_FEE_ACC }
-  from "@raydium-io/raydium-sdk-v2";
+import {
+  CREATE_CPMM_POOL_PROGRAM,
+  CREATE_CPMM_POOL_FEE_ACC,
+  FeeOn,
+} from "@raydium-io/raydium-sdk-v2";
 // (すべてのプール PDA を一度に必要とする場合、エクスポートされたヘルパーは `getCreatePoolKeys` です。
 //  `getCpmmPdas` はありません。)
 
-const mintA = new PublicKey("So11111111111111111111111111111111111111112"); // wSOL
-const mintB = new PublicKey("EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"); // USDC
+const mintA = new PublicKey("So11111111111111111111111111111111111111112"); // wSOL; see reference/program-addresses
+const mintB = new PublicKey("EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"); // USDC; see reference/program-addresses
 
 // 1. フィー設定を選択します。index=0 は 0.25% ティアです。
 const feeConfigs = await raydium.api.getCpmmConfigs();
@@ -75,6 +78,7 @@ const { execute, extInfo } = await raydium.cpmm.createPool({
   mintBAmount:     new BN(   160_000_000),  // 160 USDC（160/SOL）
   startTime:       new BN(0),               // すぐに開く
   feeConfig,
+  creatorFeeOn:    FeeOn.OnlyTokenA,
   associatedOnly:  false,
   ownerInfo:       { useSOLBalance: true },
   txVersion:       TxVersion.V0,
@@ -93,8 +97,12 @@ SDK が静かに処理するいくつかのこと：
 - 各側で正しいトークンプログラム（SPL Token vs Token-2022）を選択します。
 
 <Note>
-  **`createPool` は `Initialize` を構築するため、プールのクリエイターフィーはオフです。** クリエイターフィーを有効にしたプールを作成するには、`InitializeV2`（2026-10-30 プログラムアップグレードで追加）を使用してください。最初の 19 アカウントは `Initialize` と一致します。`rent` を除外し、引数を 1 つ追加で取ります：`creator_fee_on: Option<CreatorFeeOn>`。このページの `0.2.64-alpha` ピンはこのインストラクションより前のものです。お使いの SDK バージョンがビルダーを提供するまでは、更新された IDL からエンコードしてください。[`products/cpmm/instructions`](/docs/i18n/ja/products/cpmm/instructions#initializev2) を参照してください。
+  **`creatorFeeOn` を指定すると、`createPool` は `InitializeV2` を構築します。** 省略すると従来の `Initialize` 命令を構築し、クリエイターフィーは無効になります。`FeeOn.OnlyTokenA`、`OnlyTokenB`、`BothToken` は手数料を取るトークンを選択するもので、料率や受取人は設定しません。SDK はミントを並べ替える際にも、指定した A/B の選択を保持します。
 </Note>
+
+SDK の owner として設定したウォレットがクリエイターとして署名し、`PoolState.pool_creator` に記録されます。このウォレットはプールのレント、プール作成手数料、初期流動性も支払います。トランザクションの `feePayer` を別に指定しても、記録されたクリエイターは変わらず、クリエイターフィーの送り先も変わりません。通常の回収には記録されたクリエイターの署名が必要です。パーミッションレス回収は別のペイヤーが実行できますが、クリエイター分はそのクリエイターの正規 ATA にのみ送られます。
+
+料率は `AmmConfig.creator_fee_rate` から取得されます。これがゼロの場合、クリエイターフィーのパスを有効にしても何も累積しません。回収時に、プログラムは設定されたプロトコル分をプロトコルのバケットに移し、残りをクリエイターに支払います。[`products/cpmm/fees`](/docs/i18n/ja/products/cpmm/fees) と [`products/cpmm/instructions`](/docs/i18n/ja/products/cpmm/instructions#initializev2) を参照してください。
 
 確認後、ライブプール状態を取得できます：
 
@@ -245,7 +253,7 @@ await execute({ sendAndConfirm: true });
 
 ソース：[`src/cpmm/collectCreatorFee.ts`](https://github.com/raydium-io/raydium-sdk-V2-demo/blob/master/src/cpmm/collectCreatorFee.ts)、[`src/cpmm/collectAllCreatorFee.ts`](https://github.com/raydium-io/raydium-sdk-V2-demo/blob/master/src/cpmm/collectAllCreatorFee.ts)
 
-プロトコルおよびファンドの回収は権限ゲートで保護されています。クリエイターフィーには 2 つのパスがあります：クリエイター署名の `CollectCreatorFee` と、任意のペイヤーが呼び出せるが、クリエイターの正規 ATA にのみ転送できる `CollectCreatorFeePermissionless` です。`0.2.64-alpha` では、両方のクリエイターパスに対するモジュールレベルのビルダーが提供されます：
+プロトコルおよびファンドの回収は権限ゲートで保護されています。クリエイターフィーには 2 つのパスがあります：クリエイター署名の `CollectCreatorFee` と、任意のペイヤーが呼び出せるが、クリエイターの正規 ATA にのみ転送できる `CollectCreatorFeePermissionless` です。`0.2.85-alpha` では、両方のクリエイターパスに対するモジュールレベルのビルダーが提供されます：
 
 ```ts
 // クリエイター署名
@@ -267,7 +275,7 @@ await raydium.cpmm.collectMultiCreatorFees({ poolInfoList, txVersion: TxVersion.
 ```
 
 <Warning>
-  **両方のクリエイター命令は 2026-09-19 のプログラムアップグレードでアカウントリストが変更されました。** 各命令は `["creator_fee_share", creator, ammConfig]` の `creator_fee_share` PDA を取得し、パーミッションレス版は `amm_config` も取得します — どちらも **`system_program` の後に追加** されるため、既存のアカウントは位置が変わりません。アップグレード前の SDK リリースにピン留めされたビルダーは短いリストを出力し、トランザクションはアカウント不足で拒否されます。これらのヘルパーをアップグレード済みプログラムに対して使用する前に、インストールするバージョンが新しいアカウントを含んでいることを確認し、IDL から生成する場合は IDL をリフレッシュしてください。
+  **両方のクリエイター命令は 2026-09-19 のプログラムアップグレードでアカウントリストが変更されました。** 各命令は `["creator_fee_share", creator, ammConfig]` にある `creator_fee_share` PDA を受け取るようになり、パーミッションレス版はさらに `amm_config` も受け取ります。どちらも挿入ではなく **`system_program` の後に追加**されるため、既存のアカウントの位置は変わりません。`0.2.85-alpha` のビルダーは両方のアカウントを追加します。`0.2.64-alpha` は短いリストを生成し、プログラムはアカウント不足としてそのトランザクションを拒否します。IDL からクライアントを生成している場合は IDL を更新してください。
 
   PDA の渡却は、それが作成されたことがない場合でも必須です — PDA を導出して渡してください；プログラムはアカウントが空の場合、`AmmConfig.creator_fee_share_rate` にフォールバックします。
 </Warning>
