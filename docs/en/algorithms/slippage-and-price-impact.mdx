@@ -75,6 +75,10 @@ const clmmQuote = PoolUtils.computeAmountOutFormat({
 
 Across all three, `minAmountOut` is `amountOut × (1 − slippage)` and is what goes on-chain as the bound; `priceImpact` is deterministic from pool state alone; `fee` is the total charged.
 
+<Warning>
+  **CPMM creator-fee quotes in SDK `0.2.85-alpha`.** `raydium.cpmm.computeSwapAmount` can misquote pools that use the `OnlyTokenA` or `OnlyTokenB` creator-fee mode (`OnlyToken0` or `OnlyToken1` on-chain). It charges the creator fee on the same side in both swap directions, while the program switches sides by direction. Its quotes can also differ from the program by one base unit, because the SDK rounds the trade fee and the creator fee separately. For those pools, apply the rules in [`products/cpmm/fees`](/docs/en/products/cpmm/fees#which-side-of-the-trade-the-fees-are-taken-from) before you set `minAmountOut`.
+</Warning>
+
 The slippage tolerance is a **buffer around the price impact**, not the price impact itself. A 0.5% tolerance means "accept at most 0.5% worse than my quote" — independent of whether the price impact was 0.01% (a tiny trade) or 2% (a large trade). For a 2% price-impact trade with 0.5% tolerance, `minAmountOut` is `2.5%` below the pre-trade spot — the sum of impact and tolerance, essentially.
 
 ## Recommended slippage tolerances

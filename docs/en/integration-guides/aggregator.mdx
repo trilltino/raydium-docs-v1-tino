@@ -72,6 +72,10 @@ const ammV4Quote = raydium.liquidity.computeAmountOut({
 
 For aggregator comparison use `amountOut` (pre-slippage) from each.
 
+<Warning>
+  **CPMM creator-fee quotes in SDK `0.2.85-alpha`.** `raydium.cpmm.computeSwapAmount` can misquote pools that use the `OnlyTokenA` or `OnlyTokenB` creator-fee mode (`OnlyToken0` or `OnlyToken1` on-chain). It charges the creator fee on the same side in both swap directions, while the program switches sides by direction. Its quotes can also differ from the program by one base unit, because the SDK rounds the trade fee and the creator fee separately. Read each pool's `creator_fee_on` mode and apply the rules in [`products/cpmm/fees`](/docs/en/products/cpmm/fees#which-side-of-the-trade-the-fees-are-taken-from) before you rank routes through those pools.
+</Warning>
+
 ### Cache freshness
 
 Pool state gets stale fast. Recommended freshness targets:

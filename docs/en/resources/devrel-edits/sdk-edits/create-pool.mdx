@@ -1,20 +1,26 @@
 ---
 title: "createPool.ts"
 sidebarTitle: "createPool.ts — 16 Nov 2026"
-description: "The 16 November 2026 SDK demo changes to CPMM and customizable CLMM pool creation, and every documentation correction they caused, with the old and new wording."
+description: "The 16 November 2026 SDK demo changes that prompted a review of CPMM and customizable CLMM pool creation, and every documentation correction the published SDK and program source confirmed, with the old and new wording."
 ---
 
-**In short.** The demo repo now creates CPMM pools with an optional creator fee and creates customizable CLMM pools through a new V2 method. The docs still showed the old SDK calls, and several overview pages described the CPMM creator fee as a slice of the trade fee. This pass updates the examples, corrects the fee model on every page that summarized it, and moves the documentation's SDK pin from `0.2.64-alpha` to `0.2.85-alpha`.
+**In short.** The 16 November demo update prompted this review. The demo repo now creates CPMM pools with an optional creator fee and creates customizable CLMM pools through a new V2 method. The docs still showed the old SDK calls, and several overview pages described the CPMM creator fee as a slice of the trade fee. The published `0.2.85-alpha` SDK and the program source, not the demo, confirmed each documentation change. For example, the demo now calls `createCustomizablePoolV2`, but the SDK source shows that this builder creates an additional seed-indexed pool. The CLMM example therefore keeps `createCustomizablePool` as the default. This pass updates the examples, corrects the fee model on every page that summarized it, warns about SDK quote and fee-payer gaps, and moves the documentation's SDK pin from `0.2.64-alpha` to `0.2.85-alpha`.
 
 ## Pages changed
 
 ### Pool creation and SDK behavior
 
-- [CPMM code demos](/docs/en/products/cpmm/code-demos): adds the `creatorFeeOn` creation path, explains its rate and recipient, and updates creator-fee collection for the current account list.
-- [Deploy a CPMM pool](/docs/en/quick-start/deploy-cpmm-pool): explains that the quick-start script disables creator fees by default and shows how to opt in.
-- [CLMM code demos](/docs/en/products/clmm/code-demos): replaces the invalid customizable-pool example with `createCustomizablePoolV2` and the current `collectFeeOnMint` parameter.
+- [CPMM code demos](/docs/en/products/cpmm/code-demos): adds the `creatorFeeOn` creation path, explains its rate and recipient, warns that a separate transaction `feePayer` has not been verified, and updates creator-fee collection for the current account list.
+- [Deploy a CPMM pool](/docs/en/quick-start/deploy-cpmm-pool): explains that the quick-start script disables creator fees by default, shows how to opt in, and adds the fee-payer and quote warnings beside the `creatorFeeOn` instructions.
+- [CLMM code demos](/docs/en/products/clmm/code-demos): keeps `createCustomizablePool` as the default customizable-pool example with the current `collectFeeOnMint` parameter, and adds a separate `createCustomizablePoolV2` example for an additional seed-indexed pool.
 - [TypeScript SDK](/docs/en/sdk-api/typescript-sdk): documents the CPMM creator-fee option and distinguishes the canonical and seed-indexed CLMM customizable-pool builders.
 - [API v3 overview](/docs/en/api-reference/api-v3/overview): removes the nonexistent `enableDynamicFee` parameter and documents how both CLMM customizable-pool builders accept a dynamic-fee configuration.
+
+### CPMM quote warnings
+
+- [Slippage and price impact](/docs/en/algorithms/slippage-and-price-impact): warns that `computeSwapAmount` can misquote `OnlyTokenA` and `OnlyTokenB` creator-fee pools and can differ by one base unit.
+- [Aggregator integration](/docs/en/integration-guides/aggregator): adds the same warning to the quoting section.
+- [Token-2022 support](/docs/en/reference/token-2022-support): adds the same warning to the transfer-fee accounting section.
 
 ### Fee accounting and recipients
 
@@ -50,8 +56,8 @@ description: "The 16 November 2026 SDK demo changes to CPMM and customizable CLM
 **How it was checked.**
 
 - **SDK:** the published `0.2.64-alpha` and `0.2.85-alpha` npm packages, compared file by file.
-- **Demo repo:** commit `679e0c6`, read locally.
-- **Program source:** `raydium-cp-swap` at [`3d69122`](https://github.com/raydium-io/raydium-cp-swap/tree/3d69122790e97cd6aff24e8ba95940793773f58c) for fee rounding (`curve/calculator.rs`, `curve/fees.rs`) and the creator account (`instructions/initialize_v2.rs`), and `raydium-clmm` at [`6d7a0f8`](https://github.com/raydium-io/raydium-clmm/tree/6d7a0f82d2f293c553c69aaf943377367c6c4cc6) for `create_customizable_pool_v2`.
+- **Demo repo:** commit `679e0c6`, read locally. It prompted the review. Each documentation change rests on the SDK package and program source below, not on the demo.
+- **Program source:** `raydium-cp-swap` at [`3d69122`](https://github.com/raydium-io/raydium-cp-swap/tree/3d69122790e97cd6aff24e8ba95940793773f58c) for fee rounding (`curve/calculator.rs`, `curve/fees.rs`), the creator account (`instructions/initialize.rs`, `instructions/initialize_v2.rs`) and the creator-fee side (`states/pool.rs`), and `raydium-clmm` at [`6d7a0f8`](https://github.com/raydium-io/raydium-clmm/tree/6d7a0f82d2f293c553c69aaf943377367c6c4cc6) for `create_customizable_pool_v2`.
 - **On-chain:** the deployed CPMM program (last deployed at slot 463522946, 31 October 2026) contains `InitializeV2`, `CollectCreatorFee` and `CollectCreatorFeePermissionless`. The deployed CLMM program (slot 459932378, 22 October 2026) contains `CreateCustomizablePoolV2`. This confirms the instructions exist on mainnet, not that the binaries were built from the commits above.
 - **Not verified:** no example was executed on a cluster, and the Raydium UI was not inspected.
 
@@ -148,29 +154,44 @@ The file still imports `CollectFeeOn`, now unused. Both demos call themselves at
 - **[CPMM code demos, after the note](/docs/en/products/cpmm/code-demos#create-a-cpmm-pool):** who receives the fee and what it depends on.
   - **Was:** not covered.
   - **Now:** "The wallet configured as the SDK owner signs as creator and is stored in `PoolState.pool_creator`. It also pays the pool's rent, the create-pool fee, and the initial liquidity. A separate transaction `feePayer` does not change the recorded creator or redirect creator fees." and "The rate comes from `AmmConfig.creator_fee_rate`. If it is zero, enabling the creator-fee path accrues nothing."
+- **[CPMM code demos, fee-payer warning](/docs/en/products/cpmm/code-demos#create-a-cpmm-pool):** both create builders mark the creator account read-only, while `Initialize` and `InitializeV2` declare it writable. Source: `src/raydium/cpmm/instruction.ts` in `0.2.85-alpha`, and `instructions/initialize.rs` and `instructions/initialize_v2.rs` in `raydium-cp-swap`
+  - **Was:** not covered.
+  - **Now:** "**Keep the SDK owner as the transaction fee payer for this example.** In `0.2.85-alpha`, the CPMM create builders mark the creator account as read-only, while the program expects that account to be writable. The example works when the owner is also the fee payer because Solana makes the fee payer writable. A separate `feePayer` has not been verified and may fail."
 - **[CPMM code demos, Collect protocol/fund/creator fees](/docs/en/products/cpmm/code-demos#collect-protocol/fund/creator-fees):** the 2026-09-19 upgrade added accounts to both creator-fee instructions. `0.2.85-alpha` builders include them; `0.2.64-alpha` builders do not. Source: `src/raydium/cpmm/instruction.ts` in the two packages
   - **Was:** "A builder pinned to an SDK release that predates the upgrade emits the shorter list and the transaction is rejected for missing accounts. Check that the version you install carries the new accounts before using these helpers against the upgraded program"
   - **Now:** "The `0.2.85-alpha` builders append both accounts. `0.2.64-alpha` emits the shorter list, and the program rejects that transaction for missing accounts."
-- **[Quick start, Deploy a CPMM pool](/docs/en/quick-start/deploy-cpmm-pool):** the script is unchanged and still creates a pool without creator fees. The page now says so and shows how to opt in.
+- **[Quick start, Deploy a CPMM pool](/docs/en/quick-start/deploy-cpmm-pool):** the script is unchanged and still creates a pool without creator fees. The page now says so, shows how to opt in, and warns about the SDK's fee-payer and quote gaps beside the opt-in instructions.
   - **Was:** not covered.
-  - **Now:** "This example omits `creatorFeeOn`, so the SDK builds `Initialize` and the pool's creator-fee path is disabled." and "`creatorFeeOn` selects the token, not the rate. The pool uses `AmmConfig.creator_fee_rate`, and a zero rate accrues nothing even when the path is enabled."
-- **[CLMM code demos, Create a customizable CLMM pool](/docs/en/products/clmm/code-demos#create-a-customizable-clmm-pool):** the old example passed `collectFeeOn`, which `0.2.85-alpha` rejects. The new one mirrors the updated demo. Source: [`createCustomizablePool.ts`](https://github.com/raydium-io/raydium-sdk-V2-demo/blob/679e0c6cfae44ce5cc9e5eefc36c39025b7c7783/src/clmm/createCustomizablePool.ts)
+  - **Now:** "This example omits `creatorFeeOn`, so the SDK builds `Initialize` and the pool's creator-fee path is disabled." and "`creatorFeeOn` selects the token, not the rate. The pool uses `AmmConfig.creator_fee_rate`, and a zero rate accrues nothing even when the path is enabled." and "**SDK `0.2.85-alpha` caveats.** Keep the SDK owner as the transaction fee payer, with or without `creatorFeeOn`. … If you choose `OnlyTokenA` or `OnlyTokenB`, `raydium.cpmm.computeSwapAmount` can misquote swaps against the new pool. Its quotes can also differ from the program by one base unit because of rounding."
+- **[CLMM code demos, Create a customizable CLMM pool](/docs/en/products/clmm/code-demos#create-a-customizable-clmm-pool):** the old example passed `collectFeeOn`, which `0.2.85-alpha` rejects. The default example still calls `createCustomizablePool` and now passes `collectFeeOnMint`. The updated demo calls `createCustomizablePoolV2`, which creates an additional seed-indexed pool, so the page shows that builder in a separate example. Source: `src/raydium/clmm/clmm.ts` in `0.2.85-alpha`; the demo change is in [`createCustomizablePool.ts`](https://github.com/raydium-io/raydium-sdk-V2-demo/blob/679e0c6cfae44ce5cc9e5eefc36c39025b7c7783/src/clmm/createCustomizablePool.ts)
 
   ```diff
   -import { CLMM_PROGRAM_ID, CollectFeeOn } from "@raydium-io/raydium-sdk-v2";
   +import { CLMM_PROGRAM_ID } from "@raydium-io/raydium-sdk-v2";
   ...
   -const { execute, extInfo } = await raydium.clmm.createCustomizablePool({
-  +const { execute, extInfo } = await raydium.clmm.createCustomizablePoolV2({
+  +const customizablePoolParams = {
   ...
   -  // The two additions:
   -  collectFeeOn:      CollectFeeOn.TokenOnlyB,   // FromInput | TokenOnlyA | TokenOnlyB
   +  collectFeeOnMint:  new PublicKey(mintB.address),
      dynamicFeeConfig:  new PublicKey(dynamicFeeConfig!.id),
+     txVersion: TxVersion.V0,
+  -});
+  +};
+  +
+  +const { execute, extInfo } = await raydium.clmm.createCustomizablePool(
+  +  customizablePoolParams,
+  +);
+  ...
+  +### Create an additional seed-indexed pool
+  ...
+  +const { execute: executeV2, extInfo: extInfoV2 } =
+  +  await raydium.clmm.createCustomizablePoolV2(customizablePoolParams);
   ```
 
   - **Was:** "`createCustomizablePool` is the entry point that exposes the dynamic-fee and single-sided-fee toggles at pool-creation time. It takes `createPool`'s shape plus **two** additions:"
-  - **Now:** "Use `createCustomizablePool` for the canonical pool for a `(config, mint0, mint1)` triple. Use `createCustomizablePoolV2` for an additional pool whose PDA includes a nonzero `seed_index`." and "**V2 changes pool-address derivation, not just the fee parameter.** The SDK checks the first 100 nonzero seed indexes and selects the first available one."
+  - **Now:** "Use `createCustomizablePool` by default. It creates the canonical pool for a `(config, mint0, mint1)` triple" and "Use `createCustomizablePoolV2` only when you want another pool for the same configuration and mint pair." and "**V2 changes pool-address derivation, not just the fee parameter.** In SDK `0.2.85-alpha`, the V2 builder checks the first 100 nonzero seed indexes and selects the first available one."
 - **[TypeScript SDK, module facades](/docs/en/sdk-api/typescript-sdk):** the one-line summaries name the new options.
 
   ```diff
@@ -188,6 +209,20 @@ The file still imports `CollectFeeOn`, now unused. Both demos call themselves at
 - **[API v3 overview, CLMM dynamic-fee and limit-order configs](/docs/en/api-reference/api-v3/overview#clmm-dynamic-fee-and-limit-order-configs):** the guidance named a parameter that does not exist.
   - **Was:** "Pass the `id` of one of these into `createCustomizablePool` when `enableDynamicFee=true`."
   - **Now:** "Pass a tier's `id` as `dynamicFeeConfig` to `createCustomizablePool` for the canonical pool or `createCustomizablePoolV2` for an additional seed-indexed pool. Supplying this parameter enables dynamic fees; there is no `enableDynamicFee` parameter."
+
+### CPMM quote warnings
+
+In `0.2.85-alpha`, `computeSwapAmount` decides whether the creator fee is charged on input from the pool's mode alone. The program's `is_creator_fee_on_input` also uses the swap direction. The SDK also rounds the input-side trade and creator fees separately, while the program rounds their sum once. Source: `src/raydium/cpmm/cpmm.ts` and `src/raydium/cpmm/curve/calculator.ts` in `0.2.85-alpha`, and `states/pool.rs` and `curve/calculator.rs` in `raydium-cp-swap`
+
+- **[Slippage and price impact, Sizing `minAmountOut` and `maxAmountIn`](/docs/en/algorithms/slippage-and-price-impact#sizing-minamountout-and-maxamountin):**
+  - **Was:** not covered.
+  - **Now:** "**CPMM creator-fee quotes in SDK `0.2.85-alpha`.** `raydium.cpmm.computeSwapAmount` can misquote pools that use the `OnlyTokenA` or `OnlyTokenB` creator-fee mode (`OnlyToken0` or `OnlyToken1` on-chain). It charges the creator fee on the same side in both swap directions, while the program switches sides by direction. Its quotes can also differ from the program by one base unit, because the SDK rounds the trade fee and the creator fee separately. For those pools, apply the rules in `products/cpmm/fees` before you set `minAmountOut`."
+- **[Aggregator integration, Quoting](/docs/en/integration-guides/aggregator#quoting):** the same warning, with a different last sentence.
+  - **Was:** not covered.
+  - **Now:** "… Read each pool's `creator_fee_on` mode and apply the rules in `products/cpmm/fees` before you rank routes through those pools."
+- **[Token-2022 support, Transfer-fee accounting](/docs/en/reference/token-2022-support#transfer-fee-accounting):** the same warning, with a different last sentence.
+  - **Was:** not covered.
+  - **Now:** "… For those pools, apply the rules in `products/cpmm/fees` before you show the pool fee or the received amount."
 
 ### Trade fee versus creator fee
 
@@ -322,7 +357,7 @@ The new examples need `0.2.85-alpha`, and `AGENTS.md` keeps every code-demo page
 ## Follow-ups not fixed here
 
 - **Translations.** This pass changed English pages only. The locale copies of these pages were not updated as a set, so some may still show the `0.2.64-alpha` pin, the old `collectFeeOn` example and the old fee-split wording until they are refreshed.
-- **SDK quote rounding.** The SDK's `swapBaseInput` rounds the trade fee and the input-side creator fee separately. The program rounds their sum once. Quotes can be off by one base unit.
-- **SDK creator-fee side in quotes.** In `0.2.85-alpha`, `raydium.cpmm.computeSwapAmount` treats `OnlyTokenB` as always charged on input and `OnlyTokenA` as never, whatever the swap direction. The program charges the selected token on input or output depending on direction. On `OnlyToken0` and `OnlyToken1` pools, every token0 → token1 quote applies the creator fee to the wrong side. The pages that recommend this call ([slippage and price impact](/docs/en/algorithms/slippage-and-price-impact), the [aggregator guide](/docs/en/integration-guides/aggregator) and [Token-2022 support](/docs/en/reference/token-2022-support#transfer-fee-accounting)) do not warn about it yet.
-- **SDK creator account flags.** Both CPMM create builders mark the creator as read-only. The program requires it to be writable because it pays rent. This works when the owner also pays the transaction fee, as in the demos. A separate `feePayer` was not tested.
+- **SDK quote rounding.** The SDK's `swapBaseInput` rounds the trade fee and the input-side creator fee separately. The program rounds their sum once. Quotes can be off by one base unit. The quoting pages now warn about this; the SDK is unchanged.
+- **SDK creator-fee side in quotes.** In `0.2.85-alpha`, `raydium.cpmm.computeSwapAmount` treats `OnlyTokenB` as always charged on input and `OnlyTokenA` as never, whatever the swap direction. The program charges the selected token on input or output depending on direction. On `OnlyToken0` and `OnlyToken1` pools, every token0 → token1 quote applies the creator fee to the wrong side. The pages that recommend this call ([slippage and price impact](/docs/en/algorithms/slippage-and-price-impact), the [aggregator guide](/docs/en/integration-guides/aggregator) and [Token-2022 support](/docs/en/reference/token-2022-support#transfer-fee-accounting)) now warn about it; the SDK is unchanged.
+- **SDK creator account flags.** Both CPMM create builders mark the creator as read-only. The program requires it to be writable because it pays rent. This works when the owner also pays the transaction fee, as in the demos. A separate `feePayer` was not tested. The [CPMM code demos](/docs/en/products/cpmm/code-demos#create-a-cpmm-pool) and [Deploy a CPMM pool](/docs/en/quick-start/deploy-cpmm-pool) now tell readers to keep the owner as the fee payer; the SDK is unchanged.
 - **Upstream demo.** The CPMM comment names `FeeOn.Both`, which does not exist, and the CLMM file still imports the unused `CollectFeeOn`.

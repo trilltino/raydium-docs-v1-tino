@@ -184,6 +184,10 @@ A correct UI shows:
 
 A naive UI that shows only `amountIn → amountOut` understates costs. Pass `epochInfo` from the cluster into these helpers rather than caching it; the epoch is what selects between a mint's `older` and `newer` fee config.
 
+<Warning>
+  **CPMM creator-fee quotes in SDK `0.2.85-alpha`.** `raydium.cpmm.computeSwapAmount` can misquote pools that use the `OnlyTokenA` or `OnlyTokenB` creator-fee mode (`OnlyToken0` or `OnlyToken1` on-chain). It charges the creator fee on the same side in both swap directions, while the program switches sides by direction. Its quotes can also differ from the program by one base unit, because the SDK rounds the trade fee and the creator fee separately. For those pools, apply the rules in [`products/cpmm/fees`](/docs/en/products/cpmm/fees#which-side-of-the-trade-the-fees-are-taken-from) before you show the pool fee or the received amount.
+</Warning>
+
 ### `maximumFee` cap
 
 Token-2022 transfer fees are capped per transfer. For a 1 % mint with a 10,000-token cap, a 100,000,000-token transfer pays only 10,000 in fee. The SDK's `computeSwapAmount` applies the cap; direct program callers must replicate it.

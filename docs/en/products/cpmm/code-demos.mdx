@@ -96,6 +96,10 @@ A few things the SDK quietly takes care of:
 
 The wallet configured as the SDK owner signs as creator and is stored in `PoolState.pool_creator`. It also pays the pool's rent, the create-pool fee, and the initial liquidity. A separate transaction `feePayer` does not change the recorded creator or redirect creator fees. Normal collection requires the recorded creator; permissionless collection can be triggered by another payer but sends the creator's share only to that creator's canonical ATAs.
 
+<Warning>
+  **Keep the SDK owner as the transaction fee payer for this example.** In `0.2.85-alpha`, the CPMM create builders mark the creator account as read-only, while the program expects that account to be writable. The example works when the owner is also the fee payer because Solana makes the fee payer writable. A separate `feePayer` has not been verified and may fail.
+</Warning>
+
 The rate comes from `AmmConfig.creator_fee_rate`. If it is zero, enabling the creator-fee path accrues nothing. At collection, the program moves the configured protocol share into the protocol bucket and pays the remainder to the creator. See [`products/cpmm/fees`](/docs/en/products/cpmm/fees) and [`products/cpmm/instructions`](/docs/en/products/cpmm/instructions#initializev2).
 
 After confirmation you can fetch the live pool state with:
