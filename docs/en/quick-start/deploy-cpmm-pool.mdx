@@ -134,7 +134,7 @@ This example omits `creatorFeeOn`, so the SDK builds `Initialize` and the pool's
 <Warning>
   **SDK `0.2.85-alpha` caveats.** Keep the SDK owner as the transaction fee payer, with or without `creatorFeeOn`. Both create builders mark the creator account as read-only, while the program expects it to be writable. A separate `feePayer` has not been verified and may fail.
 
-  If you choose `OnlyTokenA` or `OnlyTokenB`, `raydium.cpmm.computeSwapAmount` can misquote swaps against the new pool. Its quotes can also differ from the program by one base unit because of rounding. See [`products/cpmm/fees`](/docs/en/products/cpmm/fees#which-side-of-the-trade-the-fees-are-taken-from) for the side each mode charges.
+  `raydium.cpmm.computeSwapAmount` misquotes swaps against the new pool whichever choice you make. Without `creatorFeeOn`, as in this example, it still charges the tier's creator fee, which the program does not. With `OnlyTokenA` or `OnlyTokenB`, it charges the fee on the wrong side in one swap direction. When the fee is on the input, it can also take one input unit more fee than the program. See [`products/cpmm/fees`](/docs/en/products/cpmm/fees#which-side-of-the-trade-the-fees-are-taken-from) for the side each mode charges.
 </Warning>
 
 `creatorFeeOn` selects the token, not the rate. The pool uses `AmmConfig.creator_fee_rate`, and a zero rate accrues nothing even when the path is enabled. Read the current config before creation. See [`products/cpmm/fees`](/docs/en/products/cpmm/fees) for input/output behavior and collection.

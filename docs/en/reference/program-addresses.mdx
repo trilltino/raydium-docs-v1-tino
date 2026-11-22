@@ -186,14 +186,16 @@ AMM v4 also compiles `3TRTX4dXUpp2eqxi3tvQDFYUV7SdDJjcPE3Y4mbtftaX` under its `t
 | mainnet-beta | `Ray8HHtixhL9zvnokMyELCVGp622PDPJj96zcVC9RWp` |
 | devnet | `DRaypkxM96mjYYnqMmuYjsSL3stHxLf1CvYuTcqxUaav` |
 
-Default CPMM `AmmConfig` index `0` (standard 0.25% pool) fee parameters, for reference:
+CPMM `AmmConfig` index `0` (the 0.25% tier), as read on mainnet on 2026-11-21. An admin can change these values, so read the account before you rely on them:
 
 | Field | Value | Meaning |
 |-------|-------|---------|
 | `trade_fee_rate` | `2500` | 0.25% of trade volume |
 | `protocol_fee_rate` | `120000` | 12% **of the trade fee** (not volume) routed to protocol |
 | `fund_fee_rate` | `40000` | 4% **of the trade fee** routed to the fund multisig |
-| `creator_fee_rate` | `500` | 0.05% of trade volume to the pool creator (optional) |
+| `creator_fee_rate` | `500` | 0.05% of trade volume to the pool creator, charged only on pools with the creator fee enabled |
+| `creator_fee_share_rate` | `50000` | 5% **of the creator fee** moved to the protocol when it is collected, unless a `CreatorFeeShare` account overrides it for that creator |
+| `create_pool_fee` | `150000000` | 0.15 SOL, in lamports, paid to the pool-creation fee receiver above when a pool is created |
 
 See [`products/cpmm/fees`](/docs/en/products/cpmm/fees) for how the splits compose, and [`reference/fee-comparison`](/docs/en/reference/fee-comparison) for the cross-product matrix.
 

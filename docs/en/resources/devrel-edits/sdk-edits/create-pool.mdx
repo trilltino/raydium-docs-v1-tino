@@ -212,6 +212,8 @@ The file still imports `CollectFeeOn`, now unused. Both demos call themselves at
 
 ### CPMM quote warnings
 
+**Later correction, 2026-11-22.** The "one base unit" wording quoted below was wrong, and the warnings missed `computeSwapAmount` charging a creator fee on pools that have it off. The four pages now carry a corrected warning; see [CPMM docs updates](/docs/en/resources/devrel-edits/cpmm-docs-updates#sdk-quote-warnings-on-other-pages).
+
 In `0.2.85-alpha`, `computeSwapAmount` decides whether the creator fee is charged on input from the pool's mode alone. The program's `is_creator_fee_on_input` also uses the swap direction. The SDK also rounds the input-side trade and creator fees separately, while the program rounds their sum once. Source: `src/raydium/cpmm/cpmm.ts` and `src/raydium/cpmm/curve/calculator.ts` in `0.2.85-alpha`, and `states/pool.rs` and `curve/calculator.rs` in `raydium-cp-swap`
 
 - **[Slippage and price impact, Sizing `minAmountOut` and `maxAmountIn`](/docs/en/algorithms/slippage-and-price-impact#sizing-minamountout-and-maxamountin):**

@@ -7,6 +7,10 @@ description: "CPMM adds InitializeV2, a permissionless pool-creation instruction
   This entry covers a CPMM program upgrade scheduled for **2026-10-30**. It was verified against the `feat/initialize-v2` branch of `raydium-cp-swap` (head `40cbd81`) before deployment. Confirm the deployed program before relying on the new instruction.
 </Info>
 
+<Note>
+  **Correction, 2026-11-22.** The TL;DR below says the creator-fee rate "defaults to `0`". It has no default: `CreateAmmConfig` takes `creator_fee_rate` as an argument, and the admin can change it with `UpdateAmmConfig`. On 2026-11-21 all 25 mainnet fee tiers had a non-zero rate, 500 (0.05%) on tier 0, so a pool created with the creator fee on accrues a creator fee on every tier. See [CPMM fees](/docs/en/products/cpmm/fees#creator-fee) for current values. The rest of this entry is unchanged.
+</Note>
+
 Every CPMM pool has an `enable_creator_fee` flag and a `creator_fee_on` side, both fixed at creation. Until now, a creator could only set them through `InitializeWithPermission`, which needs an admin-issued `Permission` PDA. The public `Initialize` always stored the fee as disabled. In practice, only LaunchLab graduations and other gated flows could create a pool that charges a creator fee.
 
 This release adds **`InitializeV2`**. It is `Initialize` with one extra argument, `creator_fee_on: Option<CreatorFeeOn>`, and anyone can call it. Pool math, swap, liquidity, fee collection and the protocol share of the creator fee are untouched.

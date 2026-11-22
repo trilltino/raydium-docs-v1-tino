@@ -9,8 +9,8 @@ CPMM levies **two separately-rated fees** on every swap:
 
 1. **Trade fee** — charged at `AmmConfig.trade_fee_rate` and split between three destinations:
    - **LP share** — stays in the vault and grows `k`. Claimed implicitly by burning LP tokens.
-   - **Protocol share** — accrued to `PoolState.protocol_fees_token*`; swept by the `protocol_owner` via `CollectProtocolFee`.
-   - **Fund share** — accrued to `PoolState.fund_fees_token*`; swept by the `fund_owner` via `CollectFundFee`.
+   - **Protocol share** — accrued to `PoolState.protocol_fees_token*`; collected by the `protocol_owner` or the program admin via `CollectProtocolFee`.
+   - **Fund share** — accrued to `PoolState.fund_fees_token*`; collected by the `fund_owner` or the program admin via `CollectFundFee`.
 2. **Creator fee** (optional, per-pool) — charged at `AmmConfig.creator_fee_rate` **independently** of the trade fee and accrued to `PoolState.creator_fees_token*`. The creator can sweep it through `CollectCreatorFee`, or any payer can trigger the destination-constrained `CollectCreatorFeePermissionless` path. Active only when the pool was created with `enable_creator_fee = true`. **Since the 2026-09-19 upgrade the accrued creator fee is split once more at collection time**: a configurable share is moved into the pool's protocol bucket and only the remainder reaches the creator — see [Protocol share of the creator fee](#protocol-share-of-the-creator-fee).
 
 The creator fee is **not** a slice of the trade fee. The two rates are added together when the fee is taken on the swap input, but each remains its own bucket — the protocol and fund shares taken on a swap are always derived from `trade_fee` only, never from `creator_fee`. A pool with `creator_fee_rate = 1000` (0.10%) and `trade_fee_rate = 2500` (0.25%) charges a combined 0.35% of the input on a creator-fee-on-input swap, of which the creator bucket gets the 0.10% and the trade-fee bucket gets the 0.25%.
@@ -23,27 +23,28 @@ The trade-fee rates (`trade_fee_rate`, `protocol_fee_rate`, `fund_fee_rate`), th
 
 All rates are `u64`s denominated in units of `1 / FEE_RATE_DENOMINATOR` where `FEE_RATE_DENOMINATOR = 1_000_000`.
 
-- **`trade_fee_rate`** is a fraction of **swap volume**. `2500` ⇒ 0.25% of the relevant side (input or output, depending on `creator_fee_on` — see "Which side of the trade the fees are taken from" below).
-- **`creator_fee_rate`** is a fraction of **swap volume**, taken **separately** from the trade fee. `1000` ⇒ 0.10% of the relevant side.
+- **`trade_fee_rate`** is a fraction of **swap volume**, always taken from the swap **input**. `2500` ⇒ 0.25% of the input. Only the creator fee can land on the output side; see "Which side of the trade the fees are taken from" below.
+- **`creator_fee_rate`** is a fraction of **swap volume**, taken **separately** from the trade fee. `1000` ⇒ 0.10% of the input or of the output, depending on the side.
 - **`protocol_fee_rate`** and **`fund_fee_rate`** are fractions of the **trade fee**, not of volume. `120_000` ⇒ 12% of the trade fee.
-- **`creator_fee_share_rate`** is a fraction of the **accrued creator fee**, not of volume and not of the trade fee. `200_000` ⇒ 20% of whatever sits in `creator_fees_token*` at the moment it is collected. `0` (the default) leaves the whole creator fee with the creator.
+- **`creator_fee_share_rate`** is a fraction of the **accrued creator fee**, not of volume and not of the trade fee. `50_000` ⇒ 5% of whatever sits in `creator_fees_token*` at the moment it is collected. A newly created config starts at `0`, which leaves the whole creator fee with the creator.
 
-Default parameters for `AmmConfig[index=0]` (the "standard" 0.25% pool) on mainnet, for reference:
+Parameters of `AmmConfig[index=0]` (the "standard" 0.25% pool), read from the mainnet account on 2026-11-21:
 
 | Field | Value | Effective percent |
 |-------|-------|-------------------|
 | `trade_fee_rate` | `2500` | 0.25% of volume (trade-fee bucket) |
 | `protocol_fee_rate` | `120000` | 12% of trade fee ≈ **0.030% of volume** |
 | `fund_fee_rate` | `40000` | 4% of trade fee ≈ **0.010% of volume** |
-| `creator_fee_rate` | `0` (default) | 0% (separate bucket) |
-| `creator_fee_share_rate` | `0` (default) | 0% of the creator bucket (creator keeps all) |
+| `creator_fee_rate` | `500` | 0.05% of volume, charged only by pools created with the creator fee enabled (separate bucket) |
+| `creator_fee_share_rate` | `50000` | 5% of the creator bucket goes to the protocol at collection |
+| `create_pool_fee` | `150000000` | 0.15 SOL, paid once per new pool |
 | → LP share effective | | **0.210% of volume** |
 
 So on a \$1,000 swap against `AmmConfig[0]` with `enable_creator_fee = false`: \$2.50 total trade fee, of which \$2.10 stays with LPs, \$0.30 goes to protocol, \$0.10 to the fund. The creator bucket is 0 because creator fee is disabled.
 
-If the same pool had `enable_creator_fee = true` and `creator_fee_rate = 1000` (0.10%), the user pays an additional \$1.00 to the creator bucket — taken on the same side of the trade configured by `creator_fee_on` — for \$3.50 of total fees. The trade-fee bucket and its protocol/fund splits are unchanged.
+If the pool was created with `enable_creator_fee = true`, the trader pays an additional \$0.50 to the creator bucket, for \$3.00 of total fees. The creator fee is taken on the side set by `creator_fee_on`. The trade-fee bucket and its protocol/fund splits are unchanged. When the fee is collected, 5% of that \$0.50, \$0.025, moves to the protocol bucket and the creator receives \$0.475.
 
-Confirm the current mainnet values against `GET https://api-v3.raydium.io/main/cpmm-config` — rates are admin-mutable and should be read fresh rather than hardcoded.
+Rates are admin-mutable, so read them fresh rather than hardcoding them. `GET https://api-v3.raydium.io/main/cpmm-config` returns the trade, protocol, fund and creator rates, but on 2026-11-21 it listed only tiers 0–20 of the 25 on-chain tiers and does not return `creator_fee_share_rate`. Read the `AmmConfig` account for the complete set; see [Reading fees from a running pool](#reading-fees-from-a-running-pool).
 
 ## The split, in code
 
@@ -144,12 +145,12 @@ curve_x = raw_vault_0_balance − (protocol_fees_token0
                                   + creator_fees_token0)
 ```
 
-The program uses `curve_x` (and the analogous `curve_y`) when enforcing `k' ≥ k`. This is how the non-LP fees reach their destinations **without** inflating the LP share of the pool.
+The program prices every swap, deposit and withdrawal from `curve_x` and the analogous `curve_y`. This is how the non-LP fees reach their destinations **without** inflating the LP share of the pool.
 
 Consequences you should design around:
 
-- **Quoting off raw balances is wrong.** If you build a quoter off `getTokenAccountBalance`, you will consistently overstate the price the pool will honor. Always subtract accrued fees, or simulate via `SwapBaseInput` / the API.
-- **`CollectProtocolFee` does not move the price.** It moves tokens out of the vault *and* zeros the `protocol_fees_token*` counters, so `curve_x` and `curve_y` are unchanged.
+- **Quoting off raw balances is wrong.** If you build a quoter off `getTokenAccountBalance`, you will consistently overstate the price the pool will honor. Always subtract accrued fees, or simulate `SwapBaseInput` and read the `SwapEvent` it emits.
+- **`CollectProtocolFee` does not move the price.** It moves tokens out of the vault *and* lowers the `protocol_fees_token*` counters by the same amount, so `curve_x` and `curve_y` are unchanged.
 - **LP fees do not accrue to a counter.** They are implicit in the vault balance. LP's entitlement to accumulated LP fees is exercised by burning LP tokens (i.e., via `Withdraw`) — there is no `CollectLpFee`.
 
 ## Interaction with Token-2022 transfer fees
@@ -162,7 +163,7 @@ So in the worst case a user pays three distinct taxes on an input-exact swap:
 2. The pool's `trade_fee` on the remainder (split per above).
 3. The output mint's transfer fee on `amount_out` (to the mint's fee authority).
 
-The SDK's quoter accounts for all three so `minimum_amount_out` is denominated in what the user actually receives. If you are writing your own quoter, mirror that behavior, or your slippage checks will be systematically too generous.
+The program checks `minimum_amount_out` against what the user actually receives, after the output mint's transfer fee. The SDK's `CurveCalculator.swapBaseInput` and `raydium.cpmm.computeSwapAmount` in `0.2.85-alpha` apply neither transfer fee. If you set the minimum from their output on a transfer-fee mint, the program rejects the swap with `ExceededSlippage` whenever the output mint's fee exceeds your slippage tolerance. Apply both transfer fees in your own quote before you set the bound.
 
 See [`algorithms/token-2022-transfer-fees`](/docs/en/algorithms/token-2022-transfer-fees) for the detailed derivation.
 
@@ -173,12 +174,12 @@ The creator fee is optional and per-pool. The **rate** lives on `AmmConfig.creat
 - **Enabled at pool creation.** Three creation paths set it differently:
   - `Initialize` always stores `enable_creator_fee = false`.
   - `InitializeV2` (added 2026-10-30) lets any creator choose. Pass `creator_fee_on = Some(BothToken | OnlyToken0 | OnlyToken1)` to enable the fee on that side, or `None` to leave it off.
-  - `InitializeWithPermission` (used by LaunchLab graduations and other gated paths) always stores `enable_creator_fee = true` with the caller's `creator_fee_on`. It needs a `Permission` PDA.
+  - `InitializeWithPermission` (used by LaunchLab migrations and other gated paths) always stores `enable_creator_fee = true` with the caller's `creator_fee_on`. It needs a `Permission` PDA.
 - **Rate is shared with the fee tier.** The rate itself is `AmmConfig.creator_fee_rate`, the same value across every pool bound to that config. Each pool then decides whether to charge it (`enable_creator_fee`) and which side of the swap to charge it on (`creator_fee_on`). When `enable_creator_fee = false`, the pool's effective creator-fee rate is zero regardless of the config value (see `PoolState::adjust_creator_fee_rate` in the source).
 - **Independent of trade fee.** The creator fee never reduces the LP / protocol / fund shares — it is its own rate, applied separately, accrued in its own counters.
 - **Swept via `CollectCreatorFee` or `CollectCreatorFeePermissionless`.** The original path requires `PoolState.pool_creator` to sign. The permissionless path lets any payer trigger collection but fixes both destinations to the creator's canonical ATAs. Both paths settle the protocol's share first — see the next section.
 - **Cannot be re-enabled or re-routed after creation.** A pool initialized with `enable_creator_fee = false` will never charge a creator fee; one initialized with a particular `creator_fee_on` cannot switch sides.
-- **Enabling it does not set the rate.** A pool created with the fee enabled charges its tier's `creator_fee_rate`. The default is `0`, so on such a tier an enabled pool accrues nothing. Check the config before you create the pool.
+- **Enabling it does not set the rate.** A pool created with the fee enabled charges its tier's `creator_fee_rate`. On 2026-11-21 every mainnet tier had a non-zero rate, from `500` (0.05%) on tiers 0–7 to `21_053` on tier 23. A tier with rate `0` would accrue nothing for an enabled pool. Check the config before you create the pool.
 
 CPMM creator fees are separate from Raydium's "Burn & Earn" Fee Key. Burn & Earn locks an LP position under the [LP Lock](/docs/en/reference/program-addresses) program and routes that position's LP fees to the Fee Key holder. The CPMM creator-fee stream still belongs to `PoolState.pool_creator`, less the protocol share at collection; neither locking the LP nor transferring the Fee Key transfers that designation.
 
@@ -192,7 +193,7 @@ Since the 2026-09-19 upgrade the protocol can retain a configurable share of the
 Two sources, in priority order:
 
 1. **`CreatorFeeShare` PDA** — seeds `["creator_fee_share", creator, amm_config]`. When this account exists and is owned by CPMM, its `share_rate` wins. It lets the protocol negotiate a per-creator rate on a given fee tier without touching the tier itself.
-2. **`AmmConfig.creator_fee_share_rate`** — the default for every creator on that fee tier. Used whenever the PDA does not exist.
+2. **`AmmConfig.creator_fee_share_rate`** — the default for every creator on that fee tier. Used whenever the PDA does not exist. On 2026-11-21 it was `50_000` (5%) on tiers 0–20 and `0` on tiers 21–24. The only `CreatorFeeShare` accounts on mainnet then were 25 overrides at `0` for a single creator address.
 
 Both are `u64`s over the same `FEE_RATE_DENOMINATOR = 1_000_000`, and both are capped at the denominator. The collection instructions **always take the `creator_fee_share` account**, even when it has never been created — the program checks whether it is empty and falls back to the config. Passing the wrong address fails the PDA constraint, not the fallback.
 
@@ -213,7 +214,7 @@ Three properties worth relying on:
 
 - **Rounding favours the creator.** The protocol share floors, so dust stays with the creator — the same direction as `protocol_fee` and `fund_fee`, which also carve a share out of an already-accrued fee.
 - **Value is conserved.** `creator_amount + shared_amount == creator_fee` for every rate and every fee, including `u64::MAX`.
-- **`share_rate = 0` is a no-op.** Both the default config value and the absence of a `CreatorFeeShare` PDA leave the whole creator fee with the creator, which is the pre-upgrade behaviour.
+- **`share_rate = 0` is a no-op.** A resolved rate of `0` leaves the whole creator fee with the creator, which is the pre-upgrade behaviour. A missing `CreatorFeeShare` PDA does **not** mean `0`: it means the tier's `creator_fee_share_rate` applies, which is 5% on most mainnet tiers.
 
 ### What it means for integrators
 
@@ -226,68 +227,69 @@ The `CreatorFeeShare` account is created and closed by the admin or a dedicated 
 
 ## Collection operational flow
 
-| Signer | Instruction | Source counters zeroed | Typical cadence |
-|--------|-------------|------------------------|-----------------|
-| `amm_config.protocol_owner` | `CollectProtocolFee` | `protocol_fees_token{0,1}` | Weekly or programmatic |
-| `amm_config.fund_owner` | `CollectFundFee` | `fund_fees_token{0,1}` | Weekly or programmatic |
-| `pool_state.pool_creator` | `CollectCreatorFee` | `creator_fees_token{0,1}` — minus the protocol share, which is moved into `protocol_fees_token{0,1}` | Anytime |
-| Any payer; creator does not sign | `CollectCreatorFeePermissionless` | `creator_fees_token{0,1}` — same split as above | Anytime; creator ATAs are fixed destinations |
-| `admin` or the creator-fee-share authority | `CreateCreatorFeeShare` / `CloseCreatorFeeShare` | — (sets or clears the share rate for one `(creator, amm_config)` pair) | On demand |
+| Signer | Instruction | Effect on the counters | Destination |
+|--------|-------------|------------------------|-------------|
+| `amm_config.protocol_owner` or the program admin | `CollectProtocolFee` | `protocol_fees_token{0,1}` reduced by up to the requested amounts | Any token accounts the signer passes |
+| `amm_config.fund_owner` or the program admin | `CollectFundFee` | `fund_fees_token{0,1}` reduced by up to the requested amounts | Any token accounts the signer passes |
+| `pool_state.pool_creator` | `CollectCreatorFee` | `creator_fees_token{0,1}` zeroed; the protocol share is added to `protocol_fees_token{0,1}` | The creator's canonical ATAs |
+| Any payer; creator does not sign | `CollectCreatorFeePermissionless` | Same as above | The creator's canonical ATAs |
+| `admin` or the creator-fee-share authority | `CreateCreatorFeeShare` / `CloseCreatorFeeShare` | — (sets or clears the share rate for one `(creator, amm_config)` pair) | — |
 
-Protocol and fund owners are the Raydium multisig on mainnet; see [`security/admin-and-multisig`](/docs/en/security/admin-and-multisig). On the original creator-only path, the creator signer is the account recorded in `PoolState`. On the permissionless path, the caller pays to create either missing creator ATA. The program constrains `creator` to `pool_state.pool_creator` and derives each destination from that creator plus the corresponding vault mint and token program, so the caller cannot redirect funds.
+The live tiers store the fixed fee-owner keys listed under [CPMM fee-owner wallets](/docs/en/reference/program-addresses#cpmm-fee-owner-wallets); see [`security/admin-and-multisig`](/docs/en/security/admin-and-multisig) for who holds the admin key. On the original creator-only path, the creator signer is the account recorded in `PoolState`. On the permissionless path, the caller pays to create either missing creator ATA. The program constrains `creator` to `pool_state.pool_creator` and derives each destination from that creator plus the corresponding vault mint and token program, so the caller cannot redirect funds.
 
 ## Changing a fee tier
 
-Fee rates can be changed by the admin via `UpdateAmmConfig` (see [`products/cpmm/instructions`](/docs/en/products/cpmm/instructions)). Changes take effect on the **next swap** for every pool bound to that `AmmConfig` — there is no migration, because pools load the config each swap.
+Fee rates can be changed by the admin via `UpdateAmmConfig` (see [`products/cpmm/instructions`](/docs/en/products/cpmm/instructions#updateammconfig)). Changes take effect on the **next swap** for every pool bound to that `AmmConfig` — there is no migration, because pools load the config each swap.
 
 What the admin cannot do:
 
 - Move a pool from one `AmmConfig` to another.
-- Retroactively reprice already-accrued fees.
-- Collect fees without the `protocol_owner` / `fund_owner` signer.
+- Change a pool's `enable_creator_fee` or `creator_fee_on`.
+- Reprice trade fees already booked to the protocol and fund counters. The protocol's share of accrued creator fees is the exception: it is read at collection time, so a new share rate applies to fees that accrued earlier.
+
+The admin key can also sign `CollectProtocolFee` and `CollectFundFee` in place of the stored owners, pause any pool with `UpdatePoolStatus`, and stop new pools on a tier with `UpdateAmmConfig` param `6`.
 
 ## Reading fees from a running pool
 
 ```ts
-// Off-chain: current accrued fees in each bucket.
-// The SDK exports the layout, not a `PoolState` class, and the fee fields are
-// named ...MintA / ...MintB — there are no ...Token0 / ...Token1 fields.
-import { CpmmPoolInfoLayout } from "@raydium-io/raydium-sdk-v2";
+// Off-chain: accrued fees, and the rates that apply to them, read from the accounts.
+// The SDK exports layouts, not classes. The pool's fee fields are named
+// ...MintA / ...MintB (token0 / token1); there are no ...Token0 / ...Token1 fields.
+import {
+  CREATE_CPMM_POOL_PROGRAM,
+  CpmmConfigInfoLayout,
+  CpmmCreatorFeeShareLayout,
+  CpmmPoolInfoLayout,
+  getCreatorFeeSharePda,
+} from "@raydium-io/raydium-sdk-v2";
 
-const pool = await connection.getAccountInfo(poolStatePda);
-const decoded = CpmmPoolInfoLayout.decode(pool!.data);   // no .slice(8) — the
-                                                          // layout includes the discriminator
-console.log(
-  "Protocol accrued:",
-  decoded.protocolFeesMintA.toString(),
-  decoded.protocolFeesMintB.toString(),
-);
-console.log(
-  "Fund accrued:",
-  decoded.fundFeesMintA.toString(),
-  decoded.fundFeesMintB.toString(),
-);
-console.log(
-  "Creator accrued:",
-  decoded.creatorFeesMintA.toString(),
-  decoded.creatorFeesMintB.toString(),
-);
-// What the creator actually receives is this minus the protocol share, resolved at
-// collection time from the (creator, ammConfig) CreatorFeeShare PDA if it exists and
-// from AmmConfig.creator_fee_share_rate otherwise. See "Protocol share of the creator
-// fee" above.
+const poolAccount = await connection.getAccountInfo(poolStatePda);
+const pool = CpmmPoolInfoLayout.decode(poolAccount!.data); // no .slice(8) — the
+                                                           // layout includes the discriminator
+console.log("Protocol accrued:", pool.protocolFeesMintA.toString(), pool.protocolFeesMintB.toString());
+console.log("Fund accrued:",     pool.fundFeesMintA.toString(),     pool.fundFeesMintB.toString());
+console.log("Creator accrued:",  pool.creatorFeesMintA.toString(),  pool.creatorFeesMintB.toString());
 
-// Off-chain: effective rates today.
-// trade_fee_rate, creator_fee_rate are fractions of volume (denominator 1e6).
-// protocol_fee_rate, fund_fee_rate are fractions of the *trade fee* (same denominator).
-const config = await fetch("https://api-v3.raydium.io/main/cpmm-config")
-  .then((r) => r.json());
-// `configId` on the decoded pool is the config account's PublicKey, not an index.
-const tier = config.data.find((t) => t.id === decoded.configId.toBase58());
+// Rates from the AmmConfig account. The REST config list omits
+// creator_fee_share_rate and some tiers, so read the account itself.
+// trade_fee_rate, creator_fee_rate: fractions of volume (denominator 1e6).
+// protocol_fee_rate, fund_fee_rate: fractions of the *trade fee* (same denominator).
+const configAccount = await connection.getAccountInfo(pool.configId);
+const config = CpmmConfigInfoLayout.decode(configAccount!.data);
 
-const tradeFeeOfVolume   = tier.tradeFeeRate / 1_000_000;
-const protocolOfTradeFee = tier.protocolFeeRate / 1_000_000;
-const fundOfTradeFee     = tier.fundFeeRate / 1_000_000;
+// The protocol's share of the creator fee: a CreatorFeeShare PDA for this
+// (creator, config) pair overrides the tier default, the same way the program resolves it.
+const sharePda = getCreatorFeeSharePda(CREATE_CPMM_POOL_PROGRAM, pool.poolCreator, pool.configId).publicKey;
+const shareAccount = await connection.getAccountInfo(sharePda);
+const shareRate =
+  shareAccount && shareAccount.data.length > 0 && shareAccount.owner.equals(CREATE_CPMM_POOL_PROGRAM)
+    ? CpmmCreatorFeeShareLayout.decode(shareAccount.data).shareRate
+    : config.creatorFeeShareRate;
+
+const D = 1_000_000;
+const tradeFeeOfVolume   = config.tradeFeeRate.toNumber() / D;
+const protocolOfTradeFee = config.protocolFeeRate.toNumber() / D;
+const fundOfTradeFee     = config.fundFeeRate.toNumber() / D;
 const lpOfTradeFee       = 1 - protocolOfTradeFee - fundOfTradeFee;
 
 console.log("LP fee effective:",       (tradeFeeOfVolume * lpOfTradeFee * 100).toFixed(4), "%");
@@ -295,14 +297,17 @@ console.log("Protocol fee effective:", (tradeFeeOfVolume * protocolOfTradeFee * 
 console.log("Fund fee effective:",     (tradeFeeOfVolume * fundOfTradeFee * 100).toFixed(4), "%");
 console.log(
   "Creator fee effective:",
-  decoded.enableCreatorFee
-    ? ((tier.creatorFeeRate / 1_000_000) * 100).toFixed(4) + " %"
+  pool.enableCreatorFee
+    ? ((config.creatorFeeRate.toNumber() / D) * 100).toFixed(4) + " %"
     : "0 % (disabled on this pool)",
 );
+console.log("Protocol share of the creator fee:", ((shareRate.toNumber() / D) * 100).toFixed(2), "%");
+// The creator receives creatorFeesMint{A,B} minus floor(creatorFees * shareRate / 1e6),
+// at the rate in force when the fee is collected.
 ```
 
 <Note>
-  **Resolve the share rate on-chain, not from a cached config.** `creator_fee_share_rate` is a newly added `AmmConfig` field, so read it off the account rather than assuming the REST config payload carries it, and check whether a `CreatorFeeShare` PDA exists at `["creator_fee_share", creator, ammConfig]` before quoting a creator their payout. An absent PDA is the common case and means the config default applies.
+  **Resolve the share rate on-chain, not from a cached config.** The REST config payload does not carry `creator_fee_share_rate`, so read it off the `AmmConfig` account. Then check whether a `CreatorFeeShare` PDA exists at `["creator_fee_share", creator, ammConfig]` before quoting a creator their payout. An absent PDA is the common case and means the config default applies.
 </Note>
 
 ## Comparison with CLMM and AMM v4
@@ -320,5 +325,5 @@ See [`reference/fee-comparison`](/docs/en/reference/fee-comparison) for a side-b
 
 Sources:
 
-- [`raydium-io/raydium-cp-swap` — `states/config.rs`, `states/pool.rs`, `states/curve.rs`](https://github.com/raydium-io/raydium-cp-swap)
+- [`raydium-io/raydium-cp-swap` — `states/config.rs`, `states/pool.rs`, `states/creator_fee_share.rs`, `curve/calculator.rs`, `curve/fees.rs`](https://github.com/raydium-io/raydium-cp-swap/tree/3d69122790e97cd6aff24e8ba95940793773f58c/programs/cp-swap/src), checked at commit `3d69122`
 - [Raydium API — `GET /main/cpmm-config`](https://api-v3.raydium.io/main/cpmm-config)

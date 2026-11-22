@@ -240,12 +240,13 @@ Your calling program must pass the remaining accounts it receives from the clien
 
 A CPI costs ~1,500 CU for the call frame itself; the callee's own CU use stacks on top.
 
-The callee figures below are measured from live mainnet transactions on high-volume pools on **2026-09-09**, read from the `Program <id> consumed N of M compute units` log line for the Raydium program's own invocation (so they include its inner token-program CPIs):
+The callee figures below are measured from live mainnet transactions, read from the `Program <id> consumed N of M compute units` log line for the Raydium program's own invocation (so they include its inner token-program CPIs). The CPMM and AMM v4 figures are medians from a sample taken on **2026-11-20**; the CLMM figures come from high-volume pools on **2026-09-09**:
 
 | Callee instruction | Measured CU | Sample |
 |------|----|----|
-| CPMM `swap_base_input` | ~23,000 | 22,721–23,052 (n=8) |
-| AMM v4 swap | ~26,000 | 25,215–26,002 |
+| CPMM `swap_base_input` | ~25,200 | median 25,152; 10th–90th percentile 24,449–29,990 (n=384) |
+| AMM v4 `SwapBaseInV2` | ~15,400 | median 15,397; 10th–90th percentile 15,233–15,503 (n=98) |
+| AMM v4 `SwapBaseIn` (v1) | ~16,100 | median 16,091; 10th–90th percentile 16,091–16,350 (n=34) |
 | CLMM `swap` (V1) | ~41,000 | 37,148–44,721 |
 | CLMM `swap_v2` | ~48,000 | 43,838–52,887 (n=6) |
 | CLMM `increase_liquidity_v2` | ~36,000 | 36,058 |

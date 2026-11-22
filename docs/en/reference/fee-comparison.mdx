@@ -94,8 +94,8 @@ These are Solana base + priority fees, separate from Raydium protocol fees.
 
 | Operation | CU (measured) | Base fee | Priority fee (10k µL/CU) | Total network |
 |-----------|-----|----------|---------------------------|---------------|
-| CPMM `SwapBaseInput` | ~23,000 | 0.000005 SOL | 0.00000023 SOL | ~0.0000052 SOL |
-| AMM v4 swap | ~26,000 | 0.000005 SOL | 0.00000026 SOL | ~0.0000053 SOL |
+| CPMM `SwapBaseInput` | ~25,200 | 0.000005 SOL | 0.00000025 SOL | ~0.0000053 SOL |
+| AMM v4 `SwapBaseInV2` | ~15,400 | 0.000005 SOL | 0.00000015 SOL | ~0.0000052 SOL |
 | CLMM `Swap` (V1) | ~41,000 | 0.000005 SOL | 0.00000041 SOL | ~0.0000054 SOL |
 | CLMM `SwapV2` | ~48,000 | 0.000005 SOL | 0.00000048 SOL | ~0.0000055 SOL |
 | CLMM `IncreaseLiquidityV2` | ~36,000 | 0.000005 SOL | 0.00000036 SOL | ~0.0000054 SOL |
@@ -104,9 +104,10 @@ These are Solana base + priority fees, separate from Raydium protocol fees.
 <Note>
   **How these were measured.** Each figure is the `Program <id> consumed N of M compute units` log
   line for the Raydium program's own invocation — so it includes its inner token-program CPIs but
-  excludes any aggregator or router wrapping the call. Sampled from live mainnet transactions on
-  high-volume pools on **2026-09-09**: CPMM `SwapBaseInput` 22,721–23,052 (n=8); AMM v4 swap
-  25,215–26,002; CLMM `Swap` 37,148–44,721; CLMM `SwapV2` 43,838–52,887 (n=6).
+  excludes any aggregator or router wrapping the call. The CPMM and AMM v4 figures are medians
+  from a mainnet sample taken on **2026-11-20**: CPMM `SwapBaseInput` 25,152 (n=384) and AMM v4
+  `SwapBaseInV2` 15,397 (n=98). The CLMM figures come from high-volume pools on **2026-09-09**:
+  CLMM `Swap` 37,148–44,721; CLMM `SwapV2` 43,838–52,887 (n=6).
 
   CLMM swap cost scales with tick crossings, so treat `SwapV2` as a floor and budget headroom for
   a volatile pool. Measure your own path rather than budgeting off this table — and note the whole
@@ -114,7 +115,7 @@ These are Solana base + priority fees, separate from Raydium protocol fees.
   wrapping and compute-budget instructions are counted.
 </Note>
 
-The priority fee is `ceil(compute_unit_price × compute_unit_limit / 1_000_000)` **lamports**, so at 10,000 µLamports/CU a 23,000-CU transaction pays 230 lamports. At that CU price the 5,000-lamport-per-signature base fee dominates the bill by more than an order of magnitude; priority fees only overtake it above roughly 217,000 µLamports/CU on a single-signature 23,000-CU transaction. Priority fees scale linearly with CU price; see [`integration-guides/priority-fee-tuning`](/docs/en/integration-guides/priority-fee-tuning).
+The priority fee is `ceil(compute_unit_price × compute_unit_limit / 1_000_000)` **lamports**, so at 10,000 µLamports/CU a 25,000-CU transaction pays 250 lamports. At that CU price the 5,000-lamport-per-signature base fee dominates the bill by more than an order of magnitude; priority fees only overtake it above roughly 200,000 µLamports/CU on a single-signature 25,000-CU transaction. Priority fees scale linearly with CU price; see [`integration-guides/priority-fee-tuning`](/docs/en/integration-guides/priority-fee-tuning).
 
 ## Token-2022 fee interaction
 

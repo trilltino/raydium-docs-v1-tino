@@ -73,7 +73,13 @@ const ammV4Quote = raydium.liquidity.computeAmountOut({
 For aggregator comparison use `amountOut` (pre-slippage) from each.
 
 <Warning>
-  **CPMM creator-fee quotes in SDK `0.2.85-alpha`.** `raydium.cpmm.computeSwapAmount` can misquote pools that use the `OnlyTokenA` or `OnlyTokenB` creator-fee mode (`OnlyToken0` or `OnlyToken1` on-chain). It charges the creator fee on the same side in both swap directions, while the program switches sides by direction. Its quotes can also differ from the program by one base unit, because the SDK rounds the trade fee and the creator fee separately. Read each pool's `creator_fee_on` mode and apply the rules in [`products/cpmm/fees`](/docs/en/products/cpmm/fees#which-side-of-the-trade-the-fees-are-taken-from) before you rank routes through those pools.
+  **CPMM creator-fee quotes in SDK `0.2.85-alpha`.** `raydium.cpmm.computeSwapAmount` misquotes CPMM creator fees in three ways:
+
+  - It charges the tier's creator fee on pools that have the creator fee turned off. The program charges nothing there, and every live tier has a non-zero rate, so the SDK underquotes those pools.
+  - On pools that use `OnlyTokenA` or `OnlyTokenB` (`OnlyToken0` or `OnlyToken1` on-chain), it charges the creator fee on the same side in both swap directions, while the program switches sides by direction.
+  - When the creator fee is on the input, it rounds the trade fee and the creator fee up separately, while the program rounds their sum once. Its fee can be one input unit higher, which lowers the quote by that unit's worth of output.
+
+  Read each pool's `enable_creator_fee` flag and `creator_fee_on` mode and apply the rules in [`products/cpmm/fees`](/docs/en/products/cpmm/fees#which-side-of-the-trade-the-fees-are-taken-from) before you rank routes through CPMM pools.
 </Warning>
 
 ### Cache freshness

@@ -5,11 +5,11 @@ description: "Pure constant-product AMM. No OpenBook dependency. Token-2022 comp
 
 ## What it is
 
-CPMM is Raydium's standard constant-product AMM. It is the successor to AMM v4 and has no OpenBook dependency, lower gas, first-class Token-2022 support (including transfer-fee tokens), and a cleaner account layout.
+CPMM is Raydium's standard constant-product AMM. It is the successor to AMM v4. It supports Token-2022 mints, including transfer-fee tokens, and has an optional creator fee and an on-chain price oracle. A CPMM swap uses more compute and more accounts than an AMM v4 V2 swap; see [Overview](/docs/en/products/cpmm/overview#how-cpmm-differs-from-amm-v4).
 
 **Program ID:** see [reference/program-addresses](/docs/en/reference/program-addresses).
 
-**Token-2022:** supported, including transfer-fee, permanent delegate, and default-account-state extensions. See [algorithms/token-2022-transfer-fees](/docs/en/algorithms/token-2022-transfer-fees) for how transfer fees affect swap math.
+**Token-2022:** supported for mints whose extensions are all on the CPMM allow-list: `TransferFeeConfig`, `MetadataPointer`, `TokenMetadata`, `InterestBearingConfig` and `ScaledUiAmount`. A mint with any other extension, such as `PermanentDelegate` or `DefaultAccountState`, needs an admin-created `SupportMintAssociated` record. See [Accounts](/docs/en/products/cpmm/accounts#vaults-and-token-2022) for the rule, and [algorithms/token-2022-transfer-fees](/docs/en/algorithms/token-2022-transfer-fees) for how transfer fees affect swap math.
 
 ## Chapter contents
 
@@ -21,16 +21,16 @@ CPMM is Raydium's standard constant-product AMM. It is the successor to AMM v4 a
     PoolState, AmmConfig, LP mint, token vaults, observation (oracle) account. Seeds, field layouts.
   </Card>
   <Card title="Math" icon="function" href="/docs/en/products/cpmm/math">
-    xy=k invariant, SwapBaseIn vs. SwapBaseOut math, oracle observation update rule, transfer-fee adjustment.
+    `x · y = k` invariant, SwapBaseInput vs. SwapBaseOutput math, oracle observation update rule, transfer-fee adjustment.
   </Card>
   <Card title="Instructions" icon="terminal" href="/docs/en/products/cpmm/instructions">
-    Initialize and InitializeV2, deposits, withdrawals, swaps, creator-fee collection, protocol and fund collection, and pool status.
+    Initialize, InitializeV2 and InitializeWithPermission, deposits, withdrawals, swaps, creator-fee collection, protocol and fund collection, pool status, and the admin instructions.
   </Card>
   <Card title="Fees" icon="percent" href="/docs/en/products/cpmm/fees">
     LP fee, protocol fee, fund fee, creator fee; how fees are collected and withdrawn.
   </Card>
   <Card title="Code demos" icon="code" href="/docs/en/products/cpmm/code-demos">
-    Create pool, deposit, withdraw, swap — in TypeScript (raydium-sdk-v2) and Rust CPI.
+    TypeScript (raydium-sdk-v2) examples for create pool, swap, deposit, withdraw and creator-fee collection, plus a Rust CPI skeleton for SwapBaseInput.
   </Card>
 </CardGroup>
 

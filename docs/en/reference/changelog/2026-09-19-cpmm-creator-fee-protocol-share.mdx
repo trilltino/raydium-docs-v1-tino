@@ -7,6 +7,10 @@ description: "CPMM can now retain a configurable share of the creator fee, appli
   This entry covers an upcoming CPMM program update. It was verified against the local release branch (`bdeee23`, 15 September 2026) before deployment. Confirm the deployed program before relying on the new instructions or the changed account lists.
 </Info>
 
+<Note>
+  **Later state, 2026-11-22.** This entry describes the release: new configs start with `creator_fee_share_rate = 0`, and nothing changed for existing pools until an admin set a rate. Admins have since set rates on mainnet. On 2026-11-21, `creator_fee_share_rate` was `50000` (5%) on fee tiers 0–20 and `0` on tiers 21–24, and 25 `CreatorFeeShare` accounts set a `0` override for one creator. A missing `CreatorFeeShare` account now usually means a 5% share, not none. See [CPMM fees](/docs/en/products/cpmm/fees#protocol-share-of-the-creator-fee) for current values.
+</Note>
+
 CPMM's creator fee has always gone entirely to the pool creator. This release lets the protocol keep a share of it — negotiable per fee tier, or per creator on a fee tier — without touching how the fee is charged.
 
 The design choice that keeps the blast radius small: **the split happens at collection time, not at swap time.** A swap still charges `creator_fee_rate` and still accrues the whole amount to `creator_fees_token_{0,1}`. When `CollectCreatorFee` or `CollectCreatorFeePermissionless` runs, the accrued balance is divided, the protocol's part is re-labelled as a protocol fee on the same pool, and only the creator's part leaves the vault. Quotes, the curve, `k`, and every LP-facing path are unaffected.

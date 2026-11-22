@@ -371,12 +371,12 @@ Swap in the relevant error type for the program you're calling (`raydium_clmm::e
 Each CPI frame has overhead, and the callee's own CU consumption stacks on top of yours, so a transaction that calls into Raydium from inside your program needs an explicit compute budget rather than relying on the 200k CU default.
 
 <Note>
-  **Measured, not estimated.** A CPMM `swap_base_input` on mainnet consumes **~23,000 CU** in the CPMM program itself — sampled 2026-09-09 across eight live swaps on a high-volume pool (22,721–23,052), read from the `Program CPMMoo8… consumed N of M compute units` log line. For comparison: AMM v4 swap ~26,000; CLMM `swap` ~41,000; CLMM `swap_v2` ~48,000 (43,838–52,887), rising with each tick crossing.
+  **Measured, not estimated.** In a mainnet sample taken on 2026-11-20, a CPMM `swap_base_input` consumed a median of **25,152 CU** in the CPMM program itself (384 calls; 10th–90th percentile 24,449–29,990), read from the `Program CPMMoo8… consumed N of M compute units` log line. In the same sample, AMM v4 `SwapBaseInV2` used a median of 15,397 CU (98 calls). An earlier sample on 2026-09-09 gave CLMM `swap` ~41,000 and CLMM `swap_v2` ~48,000 (43,838–52,887), rising with each tick crossing.
 
   An earlier revision of this page reported ~47,700 CU for a proxy-swap CPI. That figure was the *whole transaction* (`computeUnitsConsumed`), which includes the caller's own program, the CPI frame and any ATA setup — not the callee's cost. Both are useful, but they are not the same number, so compare like with like. Measure your own transaction rather than budgeting off either.
 </Note>
 
-CLMM and LaunchLab CPIs cost more (CLMM in particular walks additional tick arrays via `remaining_accounts`, adding CU per array), but only the CPMM figure above is a measured value. Always set an explicit `ComputeBudgetProgram::set_compute_unit_limit(...)` instruction sized from your own measurement, not a number copied from documentation, since the default 200k CU limit will silently exhaust and per-instruction costs shift as programs are upgraded.
+CLMM and LaunchLab CPIs cost more (CLMM in particular walks additional tick arrays via `remaining_accounts`, adding CU per array), and the CLMM figures above come from a smaller, older sample than the CPMM and AMM v4 ones. Always set an explicit `ComputeBudgetProgram::set_compute_unit_limit(...)` instruction sized from your own measurement, not a number copied from documentation, since the default 200k CU limit will silently exhaust and per-instruction costs shift as programs are upgraded.
 
 ## AMM v4: manual Instruction construction
 

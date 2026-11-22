@@ -42,13 +42,15 @@ The `multiplier` field on the table accounts for the possibility that x and y ar
 |-----------|-----------|--------|------|
 | Curve | Lookup table + interpolation | Constant product (xy=k) | Constant product |
 | Primary use case | Stablecoins, pegged pairs | General pairs, legacy deep liquidity | General pairs, new deployments |
-| OpenBook dependency | **No** (market path long dormant; dead code removed 2026-06) | **Yes** | No |
-| Token-2022 | No | No | Yes |
-| Slippage profile | Minimal at 1:1 | High at tight ratios | Moderate across range |
+| OpenBook dependency | **No** (market path long dormant; dead code removed 2026-06) | Removed (2026-07) | No |
+| Token-2022 | No | No | Yes, for mints whose extensions CPMM allows |
+| Slippage profile | Minimal at 1:1 | Constant product: grows with trade size relative to reserves | Same as AMM v4 |
 | Admin-tunable curve | No longer (`UpdateModelData` removed; tables now fixed) | No (`SetParams` only) | No |
 | Table size | ~50k elements × 24 bytes | N/A | N/A |
-| Compute per swap | ~5k–15k CU (binary search + interpolation) | ~150k–200k CU | ~60k–100k CU |
-| Account count per swap | 9 (new layout; 18 old-compat) | ~18 (AMM + OpenBook) | ~11 |
+| Compute per swap | ~5k–15k CU (binary search + interpolation); not measured | ≈15,400 CU (`SwapBaseInV2`) | ≈25,200 CU (`SwapBaseInput`) |
+| Account count per swap | 9 (new layout; 18 old-compat) | 8 (`SwapBaseInV2`); 17 (v1, market accounts ignored) | 13 |
+
+The AMM v4 and CPMM compute figures are medians of each program's own consumption in a mainnet sample taken on 2026-11-20. The Stable AMM figure is an estimate that has not been measured.
 
 ## Mental model
 

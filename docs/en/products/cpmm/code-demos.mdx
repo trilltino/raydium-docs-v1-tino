@@ -1,10 +1,10 @@
 ---
 title: "CPMM code demos"
-description: "End-to-end TypeScript examples for every CPMM operation — create pool, swap, deposit, withdraw, collect fees — plus a minimal Rust CPI skeleton."
+description: "End-to-end TypeScript examples for the user-facing CPMM operations — create pool, swap, deposit, withdraw, collect creator fees — plus a minimal Rust CPI skeleton."
 ---
 
 <Info>
-  **Version banner.** All TypeScript demos target `@raydium-io/raydium-sdk-v2@0.2.85-alpha` on Solana mainnet-beta. They were last executed against `0.2.42-alpha` (2026-04); their call signatures were re-checked against the published `0.2.85-alpha` package on 2026-11-20. The Rust CPI skeleton targets `raydium-cp-swap` on `master`, Anchor `1.0.2`. Program IDs are pulled via constants from [`reference/program-addresses`](/docs/en/reference/program-addresses).
+  **Version banner.** All TypeScript demos target `@raydium-io/raydium-sdk-v2@0.2.85-alpha` on Solana mainnet-beta. They were last executed against `0.2.42-alpha` (2026-04). Their call signatures and the SDK behaviour described below were re-checked against the published `0.2.85-alpha` package source on 2026-11-21; they were not re-executed. The Rust CPI skeleton targets `raydium-cp-swap` at commit `3d69122` (Anchor `1.0.2`). Program IDs are pulled via constants from [`reference/program-addresses`](/docs/en/reference/program-addresses).
 </Info>
 
 ## Prerequisites
@@ -13,7 +13,7 @@ description: "End-to-end TypeScript examples for every CPMM operation — create
 npm install @raydium-io/raydium-sdk-v2 @solana/web3.js @solana/spl-token bn.js decimal.js
 ```
 
-Every demo on this page mirrors a file in [`raydium-sdk-V2-demo/src/cpmm`](https://github.com/raydium-io/raydium-sdk-V2-demo/tree/master/src/cpmm); the GitHub link sits next to each section. Bootstrap follows the demo repo's `config.ts.template` ([source](https://github.com/raydium-io/raydium-sdk-V2-demo/blob/master/src/config.ts.template)):
+Every demo on this page follows a file in [`raydium-sdk-V2-demo/src/cpmm`](https://github.com/raydium-io/raydium-sdk-V2-demo/tree/master/src/cpmm); the GitHub link sits next to each section. The swap examples differ from the demo files in one place: they decide which side the creator fee is on per swap direction, as the program does (see [Swap (base-input)](#swap-base-input)). Bootstrap follows the demo repo's `config.ts.template` ([source](https://github.com/raydium-io/raydium-sdk-V2-demo/blob/master/src/config.ts.template)):
 
 ```ts
 import { Connection, Keypair, clusterApiUrl } from "@solana/web3.js";
@@ -34,7 +34,7 @@ const raydium = await Raydium.load({
 });
 ```
 
-The `Raydium` instance is the SDK's facade — every demo below uses it. `Raydium.load` is async because it loads the token list by default; pass `disableLoadToken: true` to skip that fetch. The availability feature-check is already skipped unless you pass `disableFeatureCheck: false`. Fee configs are fetched lazily on first use via `raydium.api.getCpmmConfigs()`.
+The `Raydium` instance is the SDK's facade — every demo below uses it. `Raydium.load` is async because it loads the token list by default; pass `disableLoadToken: true` to skip that fetch. The availability feature-check is already skipped unless you pass `disableFeatureCheck: false`. The SDK doesn't prefetch fee configs; `raydium.api.getCpmmConfigs()` calls the API each time you use it. Builders fetch the owner's token accounts on demand and reuse the result for up to three minutes. After you create or fund a token account, call `raydium.account.fetchWalletTokenAccounts({ forceUpdate: true })` so the next builder sees it.
 
 ## Create a CPMM pool
 
@@ -83,12 +83,15 @@ console.log("Pool created at", extInfo.address.poolId.toBase58());
 console.log("Tx:", txId);
 ```
 
-A few things the SDK quietly takes care of:
+What the SDK and the program take care of:
 
-- Sorting the mints into token0/token1 order before deriving the PDA.
-- Paying the one-time `create_pool_fee` to `poolFeeAccount`.
-- Creating the caller's associated token accounts if missing.
-- Choosing the right token program (SPL Token vs Token-2022) per side.
+- The SDK sorts the mints into token0/token1 order before deriving the PDA, and swaps `mintAAmount` / `mintBAmount` to match.
+- The SDK passes `poolFeeAccount` as the create-pool fee receiver. The program then charges the tier's `create_pool_fee` to the creator: 0.15 SOL on every mainnet tier on 2026-11-21.
+- With `ownerInfo.useSOLBalance: true` and a wSOL side, the SDK wraps the SOL into a temporary token account. For any other mint, you must already hold a token account with the amount, or `createPool` throws before it builds anything.
+- The program creates the creator's LP token ATA.
+- The SDK uses each mint's `programId` from the token info you pass to choose SPL Token or Token-2022 per side.
+
+For a Token-2022 mint with an extension outside the CPMM allow-list, pass `addSupportMintExt: true`. The SDK then appends the mint's `SupportMintAssociated` PDA when one exists; without it, pool creation fails with `NotSupportMint`. See [Accounts](/docs/en/products/cpmm/accounts#vaults-and-token-2022).
 
 <Note>
   **Defining `creatorFeeOn` makes `createPool` build `InitializeV2`.** Omit it to build the original `Initialize` instruction with creator fees disabled. `FeeOn.OnlyTokenA`, `OnlyTokenB`, and `BothToken` select the fee token or tokens; they do not set the rate or recipient. The SDK preserves your A/B selection when it sorts the mints.
@@ -100,7 +103,7 @@ The wallet configured as the SDK owner signs as creator and is stored in `PoolSt
   **Keep the SDK owner as the transaction fee payer for this example.** In `0.2.85-alpha`, the CPMM create builders mark the creator account as read-only, while the program expects that account to be writable. The example works when the owner is also the fee payer because Solana makes the fee payer writable. A separate `feePayer` has not been verified and may fail.
 </Warning>
 
-The rate comes from `AmmConfig.creator_fee_rate`. If it is zero, enabling the creator-fee path accrues nothing. At collection, the program moves the configured protocol share into the protocol bucket and pays the remainder to the creator. See [`products/cpmm/fees`](/docs/en/products/cpmm/fees) and [`products/cpmm/instructions`](/docs/en/products/cpmm/instructions#initializev2).
+The rate comes from `AmmConfig.creator_fee_rate`: `500` (0.05%) on tier 0 on 2026-11-21. If it is zero, enabling the creator-fee path accrues nothing. At collection, the program moves the configured protocol share into the protocol bucket and pays the remainder to the creator. That share was 5% on tiers 0–20 on the same date. See [`products/cpmm/fees`](/docs/en/products/cpmm/fees) and [`products/cpmm/instructions`](/docs/en/products/cpmm/instructions#initializev2).
 
 After confirmation you can fetch the live pool state with:
 
@@ -123,29 +126,47 @@ const POOL_ID = "<POOL_ID>";   // base58 string
 // 1. Load current pool state directly from an RPC (not from the API).
 const { poolInfo, poolKeys, rpcData } = await raydium.cpmm.getPoolInfoFromRpc(POOL_ID);
 
-const inputMint  = poolInfo.mintA.address;                // swap A → B
+const inputMint  = poolInfo.mintA.address;                // swap A → B (SOL → USDC)
 const amountIn   = new BN(100_000_000);                   // 0.1 SOL
 const slippage   = 0.005;                                 // 0.5%
 
-// 2. Quote locally. CurveCalculator mirrors on-chain math, including
-//    Token-2022 transfer fees on either side. All eight arguments are required.
+// 2. Decide which side the creator fee is on for THIS direction, as the program does.
+//    mintA is token0 and mintB is token1. OnlyTokenA charges the fee on the input only
+//    when A is the input. The demo repo and computeSwapAmount use
+//    `BothToken || OnlyTokenB` for every direction, which misquotes creator-fee pools.
 const baseIn = inputMint === poolInfo.mintA.address;
+const isCreatorFeeOnInput =
+  rpcData.feeOn === FeeOn.BothToken ||
+  (rpcData.feeOn === FeeOn.OnlyTokenA && baseIn) ||
+  (rpcData.feeOn === FeeOn.OnlyTokenB && !baseIn);
+// The program charges no creator fee when the pool has it disabled, but every
+// live tier has a non-zero creator_fee_rate. Zero it here; the demo repo and
+// computeSwapAmount pass the tier's rate for every pool.
+const creatorFeeRate = rpcData.enableCreatorFee ? rpcData.configInfo!.creatorFeeRate : new BN(0);
+
+// 3. Quote locally. All eight arguments are required. CurveCalculator applies no
+//    Token-2022 transfer fees. When the creator fee is on the input, it rounds the
+//    trade and creator fees up separately, while the program rounds their sum once.
+//    The SDK's fee can therefore be one input unit higher, and its quote lower than
+//    the program pays by that unit's worth of output, which can be many output units.
 const swapResult = CurveCalculator.swapBaseInput(
   amountIn,
   baseIn ? rpcData.baseReserve : rpcData.quoteReserve,
   baseIn ? rpcData.quoteReserve : rpcData.baseReserve,
   rpcData.configInfo!.tradeFeeRate,
-  rpcData.configInfo!.creatorFeeRate,
+  creatorFeeRate,
   rpcData.configInfo!.protocolFeeRate,
   rpcData.configInfo!.fundFeeRate,
-  rpcData.feeOn === FeeOn.BothToken || rpcData.feeOn === FeeOn.OnlyTokenB,
+  isCreatorFeeOnInput,
 );
 // swapResult fields are inputAmount / outputAmount / tradeFee / protocolFee /
 // fundFee / creatorFee / newInputVaultAmount / newOutputVaultAmount.
 // There is no destinationAmountSwapped or sourceAmountSwapped.
 
-// 3. Build and send. Passing `slippage` here is what applies the bound —
-//    no manual minimum-out arithmetic is needed.
+// 4. Build and send. Passing `slippage` here is what applies the bound:
+//    minimum_amount_out = swapResult.outputAmount * (1 − slippage).
+//    For a transfer-fee output mint, lower swapResult.outputAmount by that fee first,
+//    because the program checks the minimum against what the user receives.
 const { execute } = await raydium.cpmm.swap({
   poolInfo,
   poolKeys,
@@ -167,21 +188,30 @@ Note: the SDK **always** re-fetches the pool state from an RPC inside `getPoolIn
 Source: [`src/cpmm/swapBaseOut.ts`](https://github.com/raydium-io/raydium-sdk-V2-demo/blob/master/src/cpmm/swapBaseOut.ts)
 
 ```ts
-const amountOutWanted = new BN(15_000_000);        // 15 USDC
+const amountOutWanted = new BN(15_000_000);        // 15 USDC (mintB)
 const slippage        = 0.005;
 
-const baseIn = false; // false → mintB is the input side
+const baseIn = true; // true → mintA (SOL) is the input, mintB (USDC) the output
+const isCreatorFeeOnInput =
+  rpcData.feeOn === FeeOn.BothToken ||
+  (rpcData.feeOn === FeeOn.OnlyTokenA && baseIn) ||
+  (rpcData.feeOn === FeeOn.OnlyTokenB && !baseIn);
+const creatorFeeRate = rpcData.enableCreatorFee ? rpcData.configInfo!.creatorFeeRate : new BN(0);
+
 const swapResult = CurveCalculator.swapBaseOutput(
   amountOutWanted,
   baseIn ? rpcData.baseReserve : rpcData.quoteReserve,
   baseIn ? rpcData.quoteReserve : rpcData.baseReserve,
   rpcData.configInfo!.tradeFeeRate,
-  rpcData.configInfo!.creatorFeeRate,
+  creatorFeeRate,
   rpcData.configInfo!.protocolFeeRate,
   rpcData.configInfo!.fundFeeRate,
-  rpcData.feeOn === FeeOn.BothToken || rpcData.feeOn === FeeOn.OnlyTokenB,
+  isCreatorFeeOnInput,
 );
 // swapResult.inputAmount is the required input; there is no sourceAmountSwapped.
+// The SDK sends max_amount_in = inputAmount * (1 + slippage). For a transfer-fee
+// mint on either side, raise inputAmount by the fees first: the program adds the
+// output fee to amount_out and checks max_amount_in against the input including its fee.
 
 const { execute } = await raydium.cpmm.swap({
   poolInfo,
@@ -224,7 +254,7 @@ const { execute } = await raydium.cpmm.addLiquidity({
 await execute({ sendAndConfirm: true });
 ```
 
-The SDK derives the paired amount from the pool's current reserves, inflates each side by the slippage for the instruction's `maximum_*` arguments, and builds the ATA creations if necessary. `raydium.cpmm.computePairAmount({ ... })` returns the same numbers if you want them for a UI preview.
+The SDK re-reads the pool from the RPC and derives the paired amount from its reserves at zero slippage. It then caps each side at those amounts in the instruction's `maximum_*` arguments, and asks for `(1 − slippage)` of the matching LP amount. So slippage lowers the LP you receive; it never raises what you pay. The SDK also adds an LP-token ATA creation when you don't have one. For a UI preview, call `raydium.cpmm.computePairAmount({ poolInfo, baseReserve, quoteReserve, amount, slippage, epochInfo, baseIn })`. It takes a UI amount, not base units, and reduces that amount by `slippage` before pairing it.
 
 ## Withdraw liquidity
 
@@ -247,30 +277,68 @@ const { execute } = await raydium.cpmm.withdrawLiquidity({
 await execute({ sendAndConfirm: true });
 ```
 
+The SDK re-reads the pool and sets each `minimum_*` argument to `(1 − slippage)` of your pro-rata share of the fee-excluded reserves, minus any Token-2022 transfer fee. It creates your ATAs for the two mints if they're missing. When one side is wSOL, it unwraps that side to SOL unless you pass `closeWsol: false`.
+
 ## Collect protocol/fund/creator fees
 
 Source: [`src/cpmm/collectCreatorFee.ts`](https://github.com/raydium-io/raydium-sdk-V2-demo/blob/master/src/cpmm/collectCreatorFee.ts), [`src/cpmm/collectAllCreatorFee.ts`](https://github.com/raydium-io/raydium-sdk-V2-demo/blob/master/src/cpmm/collectAllCreatorFee.ts)
 
-Protocol and fund collection remain authority-gated. Creator fees have two paths: the creator-signed `CollectCreatorFee`, and the additive `CollectCreatorFeePermissionless`, which any payer can invoke but which can transfer only to the creator's canonical ATAs. `0.2.85-alpha` ships module-level builders for both creator paths:
+Protocol and fund collection remain authority-gated. Creator fees have two paths: the creator-signed `CollectCreatorFee`, and the additive `CollectCreatorFeePermissionless`, which any payer can invoke but which can transfer only to the creator's canonical ATAs. `0.2.85-alpha` ships module-level builders for both creator paths. Both use the SDK owner as the creator, so run them from the creator's wallet:
 
 ```ts
-// creator-signed
-const { execute } = await raydium.cpmm.collectCreatorFees({
+// creator-signed: the SDK owner must be the pool's creator
+const { execute: collect } = await raydium.cpmm.collectCreatorFees({
   poolInfo,
   poolKeys,
   txVersion: TxVersion.V0,
 });
+await collect({ sendAndConfirm: true });
 
-// permissionless — any payer; proceeds go to the creator's canonical ATAs
-const { execute } = await raydium.cpmm.collectCreatorFeesPermissionless({
-  poolInfo,
-  poolKeys,
+// several pools at once, creator-signed; the SDK splits them into several transactions
+const poolInfoList = [poolInfo]; // the pool info of every pool this wallet created
+const { execute: collectAll } = await raydium.cpmm.collectMultiCreatorFees({
+  poolInfoList,
   txVersion: TxVersion.V0,
 });
-
-// several pools at once, creator-signed
-await raydium.cpmm.collectMultiCreatorFees({ poolInfoList, txVersion: TxVersion.V0 });
+await collectAll({ sequentially: true });
 ```
+
+`raydium.cpmm.collectCreatorFeesPermissionless({ poolInfo, poolKeys, feePayer })` builds the permissionless instruction, but it also passes the SDK owner as `creator`. It lets a creator's transaction be paid by another `feePayer`; it can't collect for a pool someone else created, which fails the program's `creator == pool_state.pool_creator` check with `ConstraintAddress` (`2012`). To trigger collection for another creator, build the instruction yourself:
+
+```ts
+import {
+  CREATE_CPMM_POOL_PROGRAM,
+  collectCreatorFeePermissionlessInInstruction,
+  getATAAddress,
+} from "@raydium-io/raydium-sdk-v2";
+import { PublicKey, Transaction, sendAndConfirmTransaction } from "@solana/web3.js";
+
+const { poolKeys, rpcData } = await raydium.cpmm.getPoolInfoFromRpc(POOL_ID);
+const creator = rpcData.poolCreator; // PoolState.pool_creator, not your wallet
+const [mintA, mintB] = [rpcData.mintA, rpcData.mintB];
+const [programA, programB] = [rpcData.mintProgramA, rpcData.mintProgramB];
+
+const ix = collectCreatorFeePermissionlessInInstruction(
+  CREATE_CPMM_POOL_PROGRAM,
+  owner.publicKey,                                    // payer; funds any missing creator ATA
+  creator,
+  new PublicKey(poolKeys.authority),
+  new PublicKey(poolKeys.id),
+  rpcData.configId,
+  rpcData.vaultA,
+  rpcData.vaultB,
+  mintA,
+  mintB,
+  getATAAddress(creator, mintA, programA).publicKey, // creator's canonical ATAs
+  getATAAddress(creator, mintB, programB).publicKey,
+  programA,
+  programB,
+);
+// The builder appends amm_config and the creator_fee_share PDA, as the program requires.
+await sendAndConfirmTransaction(connection, new Transaction().add(ix), [owner]);
+```
+
+The program creates either creator ATA if it is missing, at the payer's expense. It returns `NoFeeCollect` (`6014`) when nothing has accrued.
 
 <Warning>
   **Both creator instructions changed their account lists in the 2026-09-19 program upgrade.** Each
@@ -292,8 +360,10 @@ await raydium.cpmm.collectMultiCreatorFees({ poolInfoList, txVersion: TxVersion.
   There is no protocol- or fund-fee builder in the SDK (`makeCollectProtocolFeeInstruction` and
   `makeCollectFundFeeInstruction` do not exist under any name) — those are admin paths, and so are
   `CreateCreatorFeeShare` / `CloseCreatorFeeShare`, which have no builder either. The low-level
-  instruction builders that *do* exist are `collectCpFeeInstruction`,
-  `makeCollectCreatorFeeInstruction` and `collectCreatorFeePermissionlessInInstruction`.
+  CPMM creator-fee builders are `makeCollectCreatorFeeInstruction` and
+  `collectCreatorFeePermissionlessInInstruction`. `collectCpFeeInstruction` is a different thing:
+  it builds the LP-Lock (Burn & Earn) program's instruction that harvests a locked position's LP
+  fees, not a CPMM instruction.
 </Note>
 
 Off-chain you can read accrued fees directly from `PoolState`:
@@ -403,11 +473,13 @@ If your CPI signs as a PDA (e.g., you manage a vault on behalf of depositors), s
 
 A short checklist before opening a support ticket:
 
-- **Sorted mints.** If your derived `poolState` PDA does not match the on-chain pool, you probably forgot to sort the mints.
-- **Stale API quote.** Never pass a reserve value from `api-v3.raydium.io` into `CurveCalculator.swap`. Fetch from an RPC.
+- **Sorted mints.** If your derived `poolState` PDA does not match the on-chain pool, you probably forgot to sort the mints, or the pool was created at a keypair address.
+- **Stale API quote.** Never pass a reserve value from `api-v3.raydium.io` into `CurveCalculator.swapBaseInput` or `swapBaseOutput`. Fetch from an RPC.
+- **Creator-fee side and rate.** The SDK's `computeSwapAmount` charges the tier's creator fee even on pools with the creator fee disabled, and picks the fee side without looking at the swap direction. Use the per-direction rule and the zeroed rate shown in the swap examples above.
 - **Wrong token program.** A Token-2022 mint's vault is owned by the Token-2022 program, not by SPL Token. Always use the pool's `token_0_program` / `token_1_program` fields.
-- **Slippage under-denominated for transfer-fee mints.** If either side of the pool is a Token-2022 transfer-fee mint, your `minimum_amount_out` must be denominated in what the user actually receives, not in what the vault sends.
-- **`NotApproved` on a swap.** Check `PoolState.status` — the admin may have paused swaps on that pool. See [`products/cpmm/instructions`](/docs/en/products/cpmm/instructions) for the status bitmask.
+- **Slippage under-denominated for transfer-fee mints.** If either side of the pool is a Token-2022 transfer-fee mint, your `minimum_amount_out` must be denominated in what the user actually receives, not in what the vault sends. `CurveCalculator` doesn't apply transfer fees, so apply them yourself.
+- **`NotApproved` on a swap.** Check `PoolState.status` — the admin may have paused swaps on that pool — and `open_time`, because swaps fail with the same error before the pool opens. See [`products/cpmm/instructions`](/docs/en/products/cpmm/instructions) for the status bitmask.
+- **Preflight is off by default.** `execute` sends with `skipPreflight = true` by default, so a transaction that would fail is still sent and fails on-chain. Simulate first, or pass `skipPreflight: false`.
 
 ## Where to go next
 

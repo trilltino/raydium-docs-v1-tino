@@ -81,7 +81,7 @@ description: "Definitions of terms used throughout Raydium's documentation. Each
 
 ## G
 
-**Graduation (LaunchLab)** — Event where a bonding-curve launch reaches a threshold and auto-migrates to a CPMM pool. See [`products/launchlab/overview`](/docs/en/products/launchlab/overview).
+**Graduation (LaunchLab)** — Event where a bonding-curve launch reaches its funding threshold and closes curve trading. The CPMM pool is created later, when the configured migration wallet calls `MigrateToCpswap`; the last trade does not create it. See [`products/launchlab/overview`](/docs/en/products/launchlab/overview#funding-and-migration).
 
 ## H
 

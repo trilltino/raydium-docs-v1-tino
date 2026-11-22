@@ -54,16 +54,24 @@ const { poolInfo, poolKeys, rpcData } =
 const baseIn = poolInfo.mintA.address === INPUT_MINT;
 
 // ── Quote ────────────────────────────────────────────────────────
+// The creator fee's side depends on the swap direction, and a pool with the
+// creator fee turned off charges none, whatever its tier's rate.
+const isCreatorFeeOnInput =
+  rpcData.feeOn === FeeOn.BothToken ||
+  (rpcData.feeOn === FeeOn.OnlyTokenA && baseIn) ||
+  (rpcData.feeOn === FeeOn.OnlyTokenB && !baseIn);
+const creatorFeeRate = rpcData.enableCreatorFee ? rpcData.configInfo.creatorFeeRate : new BN(0);
+
 const inputAmount = new BN(AMOUNT_RAW);
 const swapResult  = CurveCalculator.swapBaseInput(
   inputAmount,
   baseIn ? rpcData.baseReserve : rpcData.quoteReserve,
   baseIn ? rpcData.quoteReserve : rpcData.baseReserve,
   rpcData.configInfo.tradeFeeRate,
-  rpcData.configInfo.creatorFeeRate,
+  creatorFeeRate,
   rpcData.configInfo.protocolFeeRate,
   rpcData.configInfo.fundFeeRate,
-  rpcData.feeOn === FeeOn.BothToken || rpcData.feeOn === FeeOn.OnlyTokenB,
+  isCreatorFeeOnInput,
 );
 
 console.log(`Quote: ${inputAmount.toString()} -> ${swapResult.outputAmount.toString()}`);
@@ -112,7 +120,7 @@ Swap landed: https://solscan.io/tx/4Z9...
 
 1. **`Raydium.load`** initialised the SDK — fetched the global config, set up your wallet context.
 2. **`getPoolInfoFromRpc`** pulled the live pool state directly from RPC (not from the API cache). For high-value swaps you always want fresh state.
-3. **`CurveCalculator.swap`** computed the constant-product output net of the pool's fee. This is the same math the program runs on-chain, so you can compare quotes off- and on-chain.
+3. **`CurveCalculator.swapBaseInput`** computed the constant-product output net of the pool's fees. It is close to the program's math but not identical. It ignores Token-2022 transfer fees, and when the creator fee is on the input it can take one input unit more fee than the program. Treat the result as an estimate. See [`products/cpmm/code-demos`](/docs/en/products/cpmm/code-demos#swap-base-input) for the details.
 4. **`raydium.cpmm.swap`** built the transaction with V0 format (address lookup tables enabled) and added an explicit compute-budget config. The compute-budget tip helps the tx land in busy windows.
 5. **`execute({ sendAndConfirm: true })`** signed, sent, and waited for confirmation.
 
@@ -120,7 +128,7 @@ Swap landed: https://solscan.io/tx/4Z9...
 
 - **`Pool not found`** — Wrong `POOL_ID`, or you're pointed at the wrong cluster (mainnet pool ID against a devnet RPC, etc.).
 - **`Insufficient funds for transaction`** — Your wallet doesn't have enough SOL for the swap input + fees + ATA rent.
-- **`Slippage tolerance exceeded`** — The pool's price moved between quote and execution. Re-run; or raise the `slippage` parameter; or use the SDK's `computeAmountOut` which always re-fetches reserves.
+- **`ExceededSlippage` (`6005`)** — The pool's price moved between quote and execution. Re-run the script, which loads the pool again before it quotes, or raise the `slippage` parameter.
 - **`Token account not initialized`** — Output token's ATA didn't exist and the implicit-create instruction landed but failed for some reason; check your wallet's SOL balance and try again.
 
 ## Next
