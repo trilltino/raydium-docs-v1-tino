@@ -1,10 +1,10 @@
 ---
 title: "AMM v4 instructions"
-description: "Every AMM v4 instruction: its arguments, account list, and the checks and errors the program applies. Legacy layouts that still carry ignored OpenBook accounts are noted where they apply."
+description: "Every callable AMM v4 instruction: its arguments, account list, and the checks and errors the program applies. Legacy layouts that still carry ignored OpenBook accounts are noted where they apply."
 ---
 
 <Info>
-  As of the 2026-07 program upgrade, AMM v4's OpenBook / Serum dependency has been **removed**. The legacy v1 `SwapBaseIn` / `SwapBaseOut`, `Deposit`, and `Withdraw` instructions **keep their old account layouts** for backwards compatibility: the market accounts are still accepted in their old positions, but they are **no longer validated or used** (no CPI is issued). New integrations should use the V2 swap entrypoints, which omit the market accounts entirely. Several instructions have been removed and now revert — see the [changelog entry](/docs/en/reference/changelog/2026-07-22-amm-v4-openbook-removal). The account names on this page are descriptive and match neither source exactly. The program crate's builders in `instruction.rs` use names such as `amm_pool`, `amm_coin_vault` and `user_token_source`. The SDK's `AmmV4Keys` uses `id`, `vault.A` / `vault.B`, `authority` and `market*`. Match accounts by position.
+  As of the 2026-07 program upgrade, AMM v4's OpenBook / Serum dependency has been **removed**. The legacy v1 `SwapBaseIn` / `SwapBaseOut`, `Deposit`, and `Withdraw` instructions **keep their old account layouts** for backwards compatibility: the market accounts are still accepted in their old positions, but they are **no longer validated or used** (no CPI is issued). New integrations should use the V2 swap entrypoints, which omit the market accounts entirely. This page documents only callable instructions. See the [2026-07-22 changelog entry](/docs/en/reference/changelog/2026-07-22-amm-v4-openbook-removal) for the retired instruction tags. The account names on this page are descriptive and match neither source exactly. The program crate's builders in `instruction.rs` use names such as `amm_pool`, `amm_coin_vault` and `user_token_source`. The SDK's `AmmV4Keys` uses `id`, `vault.A` / `vault.B`, `authority` and `market*`. Match accounts by position.
 
   The 2026-09 program upgrade adds one admin instruction, `WithdrawExcessLamports` (tag 18), and drops the rent sysvar from `CreateConfigAccount`. Everything a trader or LP calls is unchanged. See the [2026-09-09 changelog entry](/docs/en/reference/changelog/2026-09-09-amm-v4-solana-3-and-excess-lamports).
 </Info>
@@ -26,11 +26,7 @@ description: "Every AMM v4 instruction: its arguments, account list, and the che
 | Upkeep | `UpdateConfigAccount` | 15 | Admin: change program-level config params. |
 | Upkeep | `WithdrawExcessLamports` | 18 | Admin: sweep lamports above the rent-exempt minimum from program-controlled accounts. Added 2026-09. |
 
-The SDK exposes builders for the user-facing instructions only. Upkeep instructions are typically invoked by the Raydium keeper.
-
-**Removed / no longer callable:** `Initialize` (tag 0, use `Initialize2`), `MonitorStep` (2), `MigrateToOpenBook` (5), `WithdrawSrm` (8), `PreInitialize` (10, use `Initialize2`), `SimulateInfo` (12), `AdminCancelOrders` (13). The program crate's builders for them were deleted. The TypeScript SDK still exports two: `makeInitPoolInstructionV4` (tag 0) and `simulatePoolInfoInstruction` (tag 12). Instructions built with them fail.
-
-A transaction carrying one of these tags fails; the program never executes the instruction. Treat all seven as gone rather than as error paths to handle.
+The SDK exposes builders for the user-facing instructions only. Upkeep instructions are typically invoked by the Raydium keeper. Use `Initialize2` for pool creation.
 
 ## `Initialize2`
 
@@ -288,14 +284,6 @@ Pool reserves are now the vault balances (minus pending PnL), so quote math is s
 In the Triton mainnet sample collected on 2026-11-20, Raydium's on-chain AMM Routing program invoked AMM v4 with the 17-account v1 instructions for all 33 observed hops. By contrast, `raydium.liquidity.swap()` in SDK V2 builds the eight-account `SwapBaseInV2` or `SwapBaseOutV2` instruction for AMM v4 pools. Transaction parsers and routers should support both formats.
 
 Arguments are the same as the V1 forms (`amount_in / minimum_amount_out` for `SwapBaseInV2`; `max_amount_in / amount_out` for `SwapBaseOutV2`).
-
-## `MonitorStep` and other removed instructions
-
-<Warning>
-  **Removed — no longer callable.** As of the 2026-07 upgrade, `MonitorStep` (tag 2) has been removed from the program and now **reverts** (`unimplemented!`) if invoked. Its client builder was also deleted. The same applies to `MigrateToOpenBook` (5), `WithdrawSrm` (8), `SimulateInfo` (12), `AdminCancelOrders` (13), and the legacy `Initialize` (0) / `PreInitialize` (10) pool-creation entrypoints — use `Initialize2` instead.
-</Warning>
-
-Historically, `MonitorStep` cranked the pool's OpenBook interaction: it settled filled orders (moving proceeds from the market vaults into the pool vaults via OpenBook CPI), cancelled stale orders, and posted new orders to close the gap between `target_orders` and `amm_open_orders`. With the OpenBook dependency removed, there is nothing to crank and the instruction is gone. Any keeper or integration that still calls it must remove the call.
 
 ## `WithdrawPnl`
 

@@ -1,6 +1,6 @@
 ---
 title: "Stable AMM instructions"
-description: "The currently callable instruction set — Deposit, Withdraw, SwapBaseIn, SwapBaseOut, WithdrawPnl — plus the instructions removed in the 2026-06-22 upgrade."
+description: "The currently callable instruction set: Deposit, Withdraw, SwapBaseIn, SwapBaseOut, and WithdrawPnl."
 ---
 
 <Info>
@@ -13,14 +13,12 @@ description: "The currently callable instruction set — Deposit, Withdraw, Swap
   Two consequences for integrators:
 
   1. **Smaller account layouts.** `SwapBaseIn` / `SwapBaseOut` (**18 → 9**), `Deposit` (**14 → 12**), and `Withdraw` (**21/22 → 12**) drop the dead Serum/market accounts. Old layouts still parse for backwards compatibility. `WithdrawPnl` (**16 → 10**) is a **hard breaking change with no compatibility path** (admin only).
-  2. **Most instructions are removed.** Only `SwapBaseIn`, `SwapBaseOut`, `Deposit`, `Withdraw`, and `WithdrawPnl` remain callable. All other instructions can no longer be called.
+  2. **Only the current surface is documented here.** `SwapBaseIn`, `SwapBaseOut`, `Deposit`, `Withdraw`, and `WithdrawPnl` are the callable instructions. See the changelog for retired instruction tags.
 
   Changelog: [`reference/changelog`](/docs/en/reference/changelog).
 </Warning>
 
 ## Instruction inventory
-
-### Callable
 
 | Instruction | Category | Notes |
 |-------------|----------|-------|
@@ -29,21 +27,6 @@ description: "The currently callable instruction set — Deposit, Withdraw, Swap
 | `SwapBaseIn` | Swap | Exact-input swap. New 9-account layout; old 18-account layout still compatible. |
 | `SwapBaseOut` | Swap | Exact-output swap. New 9-account layout; old 18-account layout still compatible. |
 | `WithdrawPnl` | Admin | Sweep accrued protocol fees. New 10-account layout (**hard breaking — no old-layout compatibility**). |
-
-### Removed (no longer callable)
-
-These were removed in the 2026-06-22 upgrade and can no longer be invoked. See [Removed instructions](#removed-instructions).
-
-| Instruction | Former category | Former purpose |
-|-------------|-----------------|----------------|
-| `Initialize` | Lifecycle | Create a pool. |
-| `PreInitialize` | Lifecycle | Legacy pre-allocation helper. |
-| `InitModelData` | Model setup | Create and initialize the lookup table. |
-| `UpdateModelData` | Model setup | Populate up to 5 table elements per call. |
-| `MonitorStep` | Crank | Settle OpenBook fills, repost orders. |
-| `SetParams` | Admin | Change pool parameters. |
-| `WithdrawSrm` | Legacy | Sweep SRM fee-discount rebates. |
-| `SimulateInfo` | Diagnostic | Read-only quote helper. |
 
 ## `Deposit`
 
@@ -201,19 +184,6 @@ Admin-only. Sweep accrued protocol fees from `need_take_pnl_*` into designated P
 
 - `need_take_pnl_coin` and `need_take_pnl_pc` are transferred to the admin's accounts.
 - Counters are zeroed.
-
-## Removed instructions
-
-The following instructions were removed in the 2026-06-22 upgrade and **can no longer be called**. They are documented here only so integrators recognize them in historical transactions and SDKs.
-
-- **`Initialize`** — formerly bootstrapped a new Stable AMM pool. Removed.
-- **`PreInitialize`** — legacy pre-allocation helper. Removed.
-- **`InitModelData`** — formerly created and initialized the `ModelDataInfo` lookup table. Removed.
-- **`UpdateModelData`** — formerly populated up to 5 lookup-table elements per call. Removed.
-- **`MonitorStep`** — the OpenBook crank that settled fills and reposted the order grid. Already long-dormant after the pool stopped posting to OpenBook; now removed.
-- **`SetParams`** — admin parameter changes (status, fees, owner, model-data key, etc.). Removed.
-- **`WithdrawSrm`** — swept SRM fee-discount rebates from early Serum-era pools. Removed.
-- **`SimulateInfo`** — read-only quote helper. Removed; use the SDK's off-chain stable-curve helpers for quoting (see [Code demos](/docs/en/products/stable/code-demos)).
 
 ## Where to go next
 

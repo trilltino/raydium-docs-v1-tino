@@ -113,10 +113,6 @@ New: total assets = vault balances − pending PnL (need_take_pnl)
 
 This is the value the curve math treats as effective reserves (the accrued-but-unswept `need_take_pnl` portion sits physically in the vault but is excluded from pricing). Quoting code and indexers that previously read OpenOrders balances must drop that term.
 
-## MonitorStep (removed)
-
-`MonitorStep` was the **crank instruction** that settled pending OpenBook fills, recomputed `AmmInfo.target_orders`, and reposted the limit-order grid derived from the lookup table. The pool stopped posting orders to OpenBook years ago, so the crank had nothing left to do; it was **removed in the 2026-06-22 upgrade**. Integrators do not need to crank Stable pools.
-
 ## Summary: why this works
 
 The lookup table + interpolation design is **efficient and flexible**:
