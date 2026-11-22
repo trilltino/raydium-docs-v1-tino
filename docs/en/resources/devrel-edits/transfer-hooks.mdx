@@ -3,6 +3,11 @@ title: "Transfer hooks"
 description: "Changes to the Transfer hooks page in Solana fundamentals."
 ---
 
+- 2026-11-22 · Added two sections on building a hook with the `raydium-transfer-hook` kit:
+  - **[How a kit hook is structured](/docs/en/solana-fundamentals/transfer-hooks#how-a-kit-hook-is-structured):** what each part of the kit does, how a transfer flows through a template, and each template file's job, with the Starter's state and `initialize` code. It also covers what you change and what you reuse, a table for choosing among the 16 templates, and the design questions to answer before writing a rule.
+  - **[Build your own hook](/docs/en/solana-fundamentals/transfer-hooks#build-your-own-hook):** the steps from copying a template to registering the program and generating a test scenario from its IDL.
+
+  Before this, the page used the Starter throughout without introducing it, and showed how to test a hook but not how to build one. Checked against `raydium-transfer-hook` at `4314661`: its README, `AGENTS.md`, `CONTRIBUTING.md`, hook host guide and the Starter's source.
 - 2026-10-28 · Added [Transfer hooks](/docs/en/solana-fundamentals/transfer-hooks) to Solana fundamentals, with a sidebar entry, a card on the chapter landing page, and fallback redirects for the 13 locales. The page explains hook execution, account resolution, how to build and test a transfer-limit rule with the community `raydium-transfer-hook` kit, and Raydium compatibility requirements.
 
-This entry records the initial addition only. Later revisions are not listed individually. No upstream PR has been opened.
+Revisions between these two entries are not listed individually. No upstream PR has been opened.

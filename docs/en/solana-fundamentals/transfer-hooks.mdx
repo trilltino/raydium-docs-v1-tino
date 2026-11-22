@@ -1,6 +1,6 @@
 ---
 title: "Transfer hooks"
-description: "How a Token-2022 transfer hook runs, how its accounts resolve, how to write and test a rule, which authorities can change it, and how a hooked token moves through Raydium pools."
+description: "How a Token-2022 transfer hook runs, how a hook built with the raydium-transfer-hook kit is structured, how its accounts resolve, how to build and test your own rule, which authorities can change it, and how a hooked token moves through Raydium pools."
 ---
 
 <Note>
@@ -12,6 +12,177 @@ The Transfer Hook extension and Transfer Hook Interface introduce the ability to
 ## How Token-2022 calls the hook
 
 In a CPMM or CLMM swap, deposit or withdrawal, the pool program calls Token-2022, and Token-2022 calls the hook's `Execute(amount)` from the [Transfer Hook interface](https://www.solana-program.com/docs/transfer-hook-interface). Each call is a cross-program invocation (CPI): one program calling another in the same transaction. Token-2022 moves the tokens, sets a `transferring` flag on both accounts, calls the hook, then clears both flags once the hook returns. The hook sees balances after the move. If it errors, the whole operation rolls back, and the transaction fee is still charged. The hook can't use the sender's signature. It sees addresses, not who traded, and the pool's PDA signs payouts from the vault. `hook-kit` checks that each call comes from a real transfer with the expected accounts. It then hands the amount and balances to the hook's rule: the function that accepts or rejects the transfer. See [A complete rule: the transfer limit](#a-complete-rule-the-transfer-limit).
+
+## How a kit hook is structured
+
+A hook built with the kit is one Anchor program, copied from a template. Two shared parts do the work every hook repeats: `hook-kit`, a library compiled into the program, and `hook-host`, the off-chain tooling that builds transfers and runs tests. You write the policy. The examples on this page come from the Starter, the smallest template, which rejects any single transfer above a limit fixed at setup.
+
+### The parts of the kit
+
+| Part | What it does | Where it runs | What you do with it |
+|---|---|---|---|
+| Templates | 16 standalone Anchor programs in `templates/simple`, `intermediate`, `advanced` and `trading`. Each is a complete hook for one policy. | On-chain | Copy the nearest one and change it. |
+| `hook-kit` | Validates every `Execute` call, builds and writes the extra-account list, implements the standard list-update instruction, wraps Token-2022 transfers for programs that send the token, and defines the shared errors from `0x8001`. | On-chain, compiled into your program | Call it. Don't change it. |
+| `hook-host` and `test-scenario` | Resolves a transfer's extra accounts, runs JSON scenarios on LiteSVM or a cluster, creates test mints, dry-runs transfers and runs pool tests. | Off-chain | Write scenarios for it. |
+| Hook-enabled CPMM and CLMM | Pool programs with the hook-aware instructions listed in [Transfers inside a pool](#transfers-inside-a-pool), from `raydium-hook-contracts`. | On-chain, in the pool tests | Test your hook against them. |
+
+### How a transfer flows through a template
+
+```text
+TransferChecked (Token-2022)
+└─ execute                         instructions/execute.rs
+   ├─ hook-kit validation          returns a TransferContext, or an error from 0x8001
+   ├─ load the template's state    state/, with a version check
+   ├─ the rule                     rule.rs: accept or reject
+   └─ optional state write or CPI
+```
+
+1. Token-2022 calls the template's `execute` from inside `TransferChecked`.
+2. `hook-kit` checks that this is a genuine transfer of this mint with the declared accounts, and returns a `TransferContext`. See [Inside the Execute handler](#inside-the-execute-handler).
+3. The handler loads the template's state. The Starter reads its config account and checks its version.
+4. The handler calls the rule, which accepts or rejects the transfer.
+5. A template that keeps running state writes it here, or calls another program.
+
+An error at any step rolls back the whole transfer. A mint calls exactly one hook program, so several policies on one token live in one program. See [Choose a starting template](#choose-a-starting-template).
+
+### Inside a template
+
+Templates share one layout under `src/`, and each file has one job:
+
+| File | Its job | In the Starter |
+|---|---|---|
+| `lib.rs` | The program ID and the instruction entry points. `execute` and `update_extra_account_meta_list` use the interface's discriminators from `hook-kit`, so Token-2022 and standard tools can call them. | `initialize`, `update_extra_account_meta_list`, `execute` |
+| `rule.rs` | The policy, as plain functions over values that are already validated: amounts, balances, and any timestamp or slot passed in. No Anchor accounts and no clock reads, so it tests as ordinary Rust. | `RuleParams`, `validate_rule_params`, `enforce_transfer_limit` |
+| `instructions/execute.rs` | The `Execute` accounts, the `hook-kit` validation, loading state, the call into the rule, and any state writes. | Checks the config's version, then enforces the limit. |
+| `instructions/initialize.rs` and other setup | Attaching the policy to a mint, and any updates gated by an authority. | Creates the config and writes the extra-account list. No update instruction: the limit never changes. |
+| `instructions/update_extra_account_meta_list.rs` | The interface's standard list-repair instruction, a thin wrapper over `hook_kit::update_meta_list`. | Copied unchanged into every template. |
+| `state/` | Account layouts, PDA seeds, the `EXTRA_ACCOUNT_META_LIST` constant, and tests that pin each layout's bytes. | `TransferHookConfig` at `["hook-config", mint]` |
+| `error.rs` | The template's error codes, in a block of codes no other template uses. | `0x7xxx` |
+| `client.rs` | Off-chain instruction builders, left out of the on-chain build. | `initialize_instruction`, `update_extra_account_meta_list_instruction` |
+
+The Starter's `state/mod.rs` connects setup, the list and the handler. It names the config's seed and version, and declares the one extra every transfer carries:
+
+```rust state/mod.rs
+pub const TRANSFER_HOOK_CONFIG_SEED: &[u8] = b"hook-config";
+pub const TRANSFER_HOOK_CONFIG_VERSION: u8 = 1;
+
+declare_meta_list!(
+    pub const EXTRA_ACCOUNT_META_LIST = [pda_meta(TRANSFER_HOOK_CONFIG_SEED, 1, false)]
+);
+```
+
+`pda_meta(TRANSFER_HOOK_CONFIG_SEED, 1, false)` declares a PDA derived from the `"hook-config"` seed and the account at position 1, the mint. `false` makes it read-only. `declare_meta_list!` builds the list's bytes at compile time, and the build fails if an entry is malformed, for example if it reads an account listed after it.
+
+That entry points at the config account:
+
+```rust state/transfer_hook_config.rs
+#[account(discriminator = [137, 155, 101, 95, 138, 72, 8, 182])]
+#[derive(InitSpace, Debug, PartialEq, Eq)]
+pub struct TransferHookConfig {
+    pub version: u8,
+    pub bump: u8,
+    pub extra_account_meta_list_bump: u8,
+    pub mint: Pubkey,
+    pub rule_params: RuleParams,
+}
+```
+
+- `version` lets `execute` refuse a config written for a different layout, with `UnsupportedVersion`.
+- `mint` ties the config to one mint. The `Execute` accounts check it with `has_one = mint`.
+- The two bumps let `Execute` check the config and list addresses without searching for them.
+- `rule_params` is the rule's input, defined in `rule.rs`.
+
+`initialize` attaches the policy to a mint. From `instructions/initialize.rs`:
+
+```rust initialize.rs
+pub fn initialize(ctx: Context<Initialize>, rule_params: RuleParams) -> Result<()> {
+    hook_kit::validate_hook_setup(
+        ctx.program_id,
+        &ctx.accounts.mint.to_account_info(),
+        &ctx.accounts.transfer_hook_authority.to_account_info(),
+    )?;
+
+    require!(
+        !hook_kit::has_confidential_extension(&ctx.accounts.mint.to_account_info())?,
+        TransferHookStarterError::UnsupportedMintExtension
+    );
+
+    rule::validate_rule_params(&rule_params)?;
+
+    ctx.accounts
+        .transfer_hook_config
+        .set_inner(TransferHookConfig {
+            version: TRANSFER_HOOK_CONFIG_VERSION,
+            bump: ctx.bumps.transfer_hook_config,
+            extra_account_meta_list_bump: ctx.bumps.extra_account_meta_list,
+            mint: ctx.accounts.mint.key(),
+            rule_params,
+        });
+
+    hook_kit::write_meta_list_checked(
+        ctx.program_id,
+        &ctx.accounts.mint.key(),
+        &ctx.accounts.extra_account_meta_list,
+        ctx.bumps.extra_account_meta_list,
+        &EXTRA_ACCOUNT_META_LIST,
+    )
+}
+```
+
+In order, it:
+
+1. Requires the mint's transfer-hook authority to sign, so only that authority can attach a policy to the mint.
+2. Refuses a mint with confidential transfers, whose hidden balances a rule can't read. Every template does this.
+3. Validates the parameters with the rule's own check.
+4. Creates the config, then writes the canonical list to its PDA.
+
+### What you change and what you reuse
+
+- **Reuse unchanged:** `hook-kit`, the `update_extra_account_meta_list` instruction copied from the Starter, and `hook-host` with `test-scenario`.
+- **Write or change:** `rule.rs`, the state layout and seeds, `EXTRA_ACCOUNT_META_LIST`, `initialize` and any update instructions, the error block, `client.rs` and the program ID.
+- **Change together:** when the accounts or the state change, update the list, the `Execute` accounts, the state, the client builders and the IDL in one change. A list that disagrees with `Execute` fails every transfer.
+- **Treat as fixed once deployed:** PDA seeds, discriminators, account layouts and sizes, instruction arguments, the order and flags of the extras, the program ID and the error codes. Changing one breaks existing mints or clients, so it needs new IDLs, updated layout tests and a migration. Never reuse or renumber an error code. The Starter keeps its retired codes in `RETIRED_CODES`.
+
+### Choose a starting template
+
+Start from the template whose policy is closest to yours, and keep the constraints in its row when you adapt it:
+
+| Template | Tier | Policy | Constraints to keep |
+|---|---|---|---|
+| Starter | Simple | Rejects any single transfer above a limit. | The default starting point. The limit is fixed at setup. |
+| Venue gate | Simple | Checks transfers against an approved token-account address. | A fixed controller set at setup. The config is read-only during `Execute`. |
+| Transfer pause | Simple | Pauses transfers. | A fixed controller. Starts unpaused. Pausing also blocks exits. |
+| Creator commitment | Intermediate | Keeps a vesting floor on a creator's committed token account. | One token account per commitment. The mint authority is revoked. |
+| Fair launch | Intermediate | Caps buys per wallet and per slot during a launch window. | Buys come from registered venues. Wallet caps need `ImmutableOwner`. |
+| Multi-policy | Intermediate | Combines local limits with its own credential check. | The start for combining rules. Every destination, vaults included, needs `ImmutableOwner`. |
+| Holder rewards | Advanced | Streams funding to registered holders by balance and time. | Treat the pool vault separately. Registration is permissionless. |
+| Authenticated periods | Advanced | Pays rewards by period. A period closes only after every registered holder settles, and burns go through the program. | The mint needs PermissionedBurn, with its mint, freeze and hook authorities revoked before setup. |
+| Tranche credit | Advanced | Credit tranches with risk, counterparty and exposure checks. | Investor records bind token accounts. Exits when stale or halted follow the configuration. |
+| Credential gate | Trading | Requires the recipient to hold a credential, except for sells into one bound vault. | Owns its credentials. The issuer is the freeze authority when there is one. |
+| Trader eligibility | Trading | Classifies each transfer, such as a buy or a sell, and requires the matching credential. | The issuer is the mint's freeze authority. Vault addresses are registered. |
+| Fee split rewards | Trading | Splits funding the integration supplies in fixed shares, with the remainder going to holders. | The split can't change. The reward mint has no freeze or mint authority. |
+| Block0 antisnipe | Trading | Blocks and meters outflows from pool vaults at launch. | Specific to a launch. Owner registration and cohorts are optional. |
+| Circulating cap | Trading, proof of concept | Caps the supply held outside one registered vault, by slot. | The mint authority is revoked. One vault only. |
+| Market cap gate | Trading, proof of concept | Limits transfers to set venues until a TWAP and oracle market-cap check passes. | The mint authority is revoked. A liquidity floor applies. |
+| Venue surcharge | Trading, proof of concept | Charges transfers to unknown program-owned accounts 50 bps against a signed receipt. | Experimental. 18 accounts per hooked transfer. |
+
+- One mint calls one hook program. To combine rules, such as a limit with a credential check, start from Multi-policy rather than stacking templates.
+- Credential gate, Trader eligibility and Multi-policy keep their own credentials. An issuer verifies a wallet off-chain and records an approval on-chain for one program, issuer, mint and wallet. Each deploys on its own.
+- Your integration, not the hook, collects fees and moves or locks liquidity.
+
+The kit's [template guide](https://github.com/trilltino/raydium-transfer-hook/blob/main/AGENTS.md#choosing-a-template) names each template's entry points in `rule.rs` and the full constraints.
+
+### Design questions before you write a rule
+
+The answers decide the state, the extras and the authorities your template needs:
+
+1. **What must pass, and what must fail?** Write one transfer the rule accepts and one it rejects, with the reason. They become your first tests.
+2. **Can a hook see it?** The rule sees the accounts, the amount, the balances after the move and any transfer fee. `TransferContext` also gives the balances before the move. A hook doesn't see who is acting or why, and doesn't run on mint, burn or `SetAuthority`. If the policy depends on those, enforce the closest rule a hook can.
+3. **Who configures it, and can that change?** A limit fixed at `initialize`, like the Starter's, needs no config authority. An adjustable one adds an update instruction gated by an authority, and holders then have to trust that authority. See [Authorities after launch](#authorities-after-launch).
+4. **Does it keep running state?** A rule that counts or accrues writes an account during transfers. That account is writable in the list, and transfers that write the same account can't run in parallel.
+5. **Does it depend on time?** Read the clock in the handler and pass the timestamp or slot to the rule, so the rule stays testable as plain Rust.
+6. **Does it key on owners or supply?** Owner-keyed rules need `ImmutableOwner` on the destination, which `hook_kit::require_immutable_destination_owner` checks. Supply-based rules need the mint authority revoked, which `hook_kit::require_mint_authority_revoked` checks at setup.
+7. **Does it involve a pool?** Name the vault addresses the rule trusts. See [Rules that involve a pool](#rules-that-involve-a-pool).
 
 ## Accounts the hook receives
 
@@ -196,6 +367,33 @@ In a swap, one side of each hooked transfer is a pool vault owned by the pool's 
 - Pausing transfers blocks exits as well as buys. Letting holders sell or withdraw during a pause needs an explicit exception, such as the Tranche credit template's `allow_halted_exit` flag.
 - Owner-keyed rules need `ImmutableOwner` on the destination. Without it, `SetAuthority` can move the account to an unchecked wallet without a transfer.
 - A counter over vault outflows counts the transfers the hook saw. It does not count trades, transactions or bundles.
+
+## Build your own hook
+
+This is the path from the Starter to a hook of your own. The kit's [contributing guide](https://github.com/trilltino/raydium-transfer-hook/blob/main/CONTRIBUTING.md#building-a-template) and [registration checklist](https://github.com/trilltino/raydium-transfer-hook/blob/main/AGENTS.md#registering-a-new-program) have the full commands.
+
+1. **Start from a working build.** Clone the kit and run the Starter's tests, as in [Check the rule](#1-check-the-rule).
+2. **Copy the nearest template** into `templates/<level>/<name>/` and rename its package and library. Keep the copy inside the kit's workspace. Templates take `hook-kit` and their dependency versions from it, so a copy outside it won't build.
+3. **Write the rule** in `rule.rs`: the parameters or state it reads, the check that runs at setup, and the function that accepts or rejects a transfer. Answer the [design questions](#design-questions-before-you-write-a-rule) first.
+4. **Wire it into `execute.rs`** after the `hook-kit` validation: load the state and check its version, call the rule, then write any state.
+5. **Update the rest in the same change.** Change the state, `EXTRA_ACCOUNT_META_LIST`, `initialize`, the errors and `client.rs` together. Keep `update_extra_account_meta_list.rs` returning your program's canonical list.
+6. **Register the program.** Give it its own `declare_id!` and an unused block of error codes, and add it to `Anchor.toml`. Keep the interface tests in `lib.rs`. Add a row for it to the `TEMPLATES` table in `hook-host/tests/conformance.rs`, which runs the kit's shared `Execute`, list-update and mint-extension tests against it:
+
+   ```rust lib.rs
+   #[cfg(test)]
+   mod interface_contract {
+       hook_kit::interface_contract_tests!(crate::state::EXTRA_ACCOUNT_META_LIST);
+   }
+   ```
+
+7. **Build it and generate a scenario.** Build the program and its IDL with the contributing guide's commands, then have `test-scenario` write a starting scenario from the IDL:
+
+   ```bash
+   test-scenario init-scenario --idl target/idl/my_hook.json --out tests/my-cases.json
+   ```
+
+   The file holds two wallets with token accounts, a setup instruction, an example accepted transfer, a placeholder refusal and a balance check. Edit the values to match your rule: the IDL can't say which outcomes you intend. See the guide's [Generate a starting point](https://github.com/trilltino/raydium-transfer-hook/blob/main/hook-host/GUIDE.md#generate-a-starting-point).
+8. **Test it** from the narrowest level up, as below, pointing `check` at your own program folder and scenario.
 
 ## Test it
 
