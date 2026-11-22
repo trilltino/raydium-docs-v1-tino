@@ -1,6 +1,6 @@
 ---
 title: "Farm / Staking instructions"
-description: "CreateFarm, Deposit, Withdraw, Harvest, AddReward / SetRewards / RestartRewards, WithdrawReward — the full instruction surface across farm v3, v5, and v6."
+description: "CreateFarm, Deposit, Withdraw, AddReward / SetRewards / RestartRewards, and WithdrawReward — the instruction surface across farm v3, v5, and v6."
 ---
 
 <Info>
@@ -15,13 +15,13 @@ description: "CreateFarm, Deposit, Withdraw, Harvest, AddReward / SetRewards / R
 | Add a user ledger (may be implicit) | `CreateUserLedger` | `CreateAssociatedLedger` | Implicit in `Deposit` |
 | Stake | `Deposit` | `Deposit` | `Deposit` |
 | Unstake | `Withdraw` | `Withdraw` | `Withdraw` |
-| Claim rewards only | N/A (use `Deposit 0`) | N/A (use `Deposit 0`) | `Harvest` |
+| Claim rewards only | `Withdraw` with `amount = 0` | `Withdraw` with `amount = 0` | `Withdraw` with `amount = 0` |
 | Add a reward stream after creation | N/A | `AddReward` | `AddReward` |
 | Edit an existing reward stream | N/A | `SetRewards` | `SetRewards` |
 | Restart a reward after end_time | N/A | `RestartRewards` | `RestartRewards` |
 | Withdraw unclaimed reward budget (admin) | N/A | `WithdrawReward` | `WithdrawReward` |
 
-On v3 and v5, the canonical way to claim rewards without changing stake is to call `Deposit` with `amount = 0`. The program treats this as a pure settlement. v6 introduced an explicit `Harvest` for clarity.
+On every version, the SDK claims rewards with `Withdraw` and `amount = 0`. **Harvest** is the user-facing action; the SDK has no separate harvest builder. Mainnet claims sampled on 22 November 2026 used the same call on v3, v5 and v6, and a few v5 claims used `Deposit` with `amount = 0` instead. The evidence is in `public/tino-changes/evidence/farm-claims-2026-11-22/`.
 
 The SDK abstracts all of these behind `raydium.farm.deposit({ ... })` etc. The sections below document the underlying account lists for integrators who need to build instructions manually (aggregators, monitoring tools, SDK extensions).
 
@@ -114,7 +114,7 @@ If the `user_ledger` does not exist, the SDK prepends a `CreateAccount`-style ix
 
 **Preconditions**
 
-- `amount > 0` for a true stake (v6 forbids `amount = 0` — use `Harvest` for claim-only).
+- `amount > 0` for a true stake. Use `Withdraw` with `amount = 0` for a claim-only v6 transaction.
 - `user_staking_ata` holds at least `amount`.
 - Each live reward vault holds at least the pending owed to this user.
 
@@ -137,13 +137,13 @@ amount: u64
 - `amount ≤ user_ledger.deposited`.
 - Farm is not paused.
 
-## `Harvest` (v6)
+## Claim-only settlement
 
 Claim pending rewards without changing stake.
 
-**Arguments** — none.
+On every version, call `Withdraw` with `amount = 0`. This is what the SDK's `harvestAllRewards` sends.
 
-**Accounts** — same as `Deposit`, no staking-side movement.
+**Accounts** — the same accounts as the selected version's `Withdraw` or `Deposit`. No staking-side tokens move when the amount is zero.
 
 **Effect** — refresh `reward_per_share_x64[i]`, pay out `pending_i`, re-snapshot `reward_debts[i]`. No change to `total_staked` or `deposited`.
 
@@ -228,12 +228,12 @@ reward_index: u8
 
 - `Deposit` / `Withdraw` have the same shape as v6 but use up to 2 reward slots and `reward_per_share` is `u128` (fixed-point with a different radix).
 - `CreateAssociatedLedger` is a required separate call before the first `Deposit`; v6 merged it.
-- `AddReward` is available, `Harvest` is not (use `Deposit 0`).
+- `AddReward` is available. Claim with `Withdraw` and `amount = 0`, as on v6.
 
 ## v3 variations
 
 - Single reward stream. No `AddReward`, no second slot.
-- `Deposit 0` is the only way to claim.
+- Claim with `Withdraw` and `amount = 0`, as on v5 and v6.
 - `CreateUserLedger` must be called before the first `Deposit`.
 
 ## State-change matrix
@@ -243,7 +243,7 @@ reward_index: u8
 | `CreateFarm` | 0 | — | 0 | funded by creator |
 | `Deposit(n)` | +n | +n | refreshed | −pending (paid out) |
 | `Withdraw(n)` | −n | −n | refreshed | −pending |
-| `Harvest` | — | — | refreshed | −pending |
+| Claim only: `Withdraw(0)` on any version | — | — | refreshed | −pending |
 | `AddReward` | — | — | — | +new budget |
 | `SetRewards` | — | — | — | +delta budget |
 | `RestartRewards` | — | — | — | +budget |

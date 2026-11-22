@@ -103,7 +103,7 @@ The wallet configured as the SDK owner signs as creator and is stored in `PoolSt
   **Keep the SDK owner as the transaction fee payer for this example.** In `0.2.85-alpha`, the CPMM create builders mark the creator account as read-only, while the program expects that account to be writable. The example works when the owner is also the fee payer because Solana makes the fee payer writable. A separate `feePayer` has not been verified and may fail.
 </Warning>
 
-The rate comes from `AmmConfig.creator_fee_rate`: `500` (0.05%) on tier 0 on 2026-11-21. If it is zero, enabling the creator-fee path accrues nothing. At collection, the program moves the configured protocol share into the protocol bucket and pays the remainder to the creator. That share was 5% on tiers 0–20 on the same date. See [`products/cpmm/fees`](/docs/en/products/cpmm/fees) and [`products/cpmm/instructions`](/docs/en/products/cpmm/instructions#initializev2).
+The rate comes from `AmmConfig.creator_fee_rate`: `500` (0.05%) on tier 0 on 2026-11-21. If it is zero, enabling the creator-fee path accrues nothing. At collection, the program moves the configured protocol share into the protocol bucket and pays the remainder to the creator. That share defaulted to 5% on tiers 0–20 on the same date, unless a per-creator `CreatorFeeShare` override applies. See [`products/cpmm/fees`](/docs/en/products/cpmm/fees) and [`products/cpmm/instructions`](/docs/en/products/cpmm/instructions#initializev2).
 
 After confirmation you can fetch the live pool state with:
 

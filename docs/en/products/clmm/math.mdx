@@ -83,23 +83,28 @@ The program does one of two things:
 
 - **Input exceeds `Δamount0`?** Set `sqrt_c' = sqrt_t`, cross the tick (apply `liquidity_net`), decrement remaining input by `Δamount0`, increment output by `Δamount1`, and repeat.
 
-For the opposite direction (`token1 → token0`, price going down), the formulas have `sqrt_c` and `sqrt_t` swapped and the inversion in the other slot.
+For the opposite direction (`token1 → token0`, price going up), the formulas have `sqrt_c` and `sqrt_t` swapped and the inversion in the other slot.
 
-The full Rust implementation lives in `raydium-clmm/programs/amm/src/libraries/swap_math.rs`. The logic there matches Uniswap v3's `SwapMath.computeSwapStep` one-for-one.
+The full Rust implementation lives in `raydium-clmm/programs/amm/src/libraries/swap_math.rs`. It follows Uniswap v3's `SwapMath.computeSwapStep` for input-side fees and adds an output-side fee mode for single-sided-fee pools.
 
 ## Fees on each step
 
-Trade fees are taken off the **input** amount in each step, same convention as CPMM:
+Which side pays the fee depends on the pool's `fee_on` and the swap direction (`is_fee_on_input`). For a `FromInput` pool, and for the input side of a single-sided pool, the step fee is the Uniswap v3 one. On the output side of a single-sided pool it comes off the gross output:
 
 ```
-step_fee_amount  = ceil(step_input * trade_fee_rate / 1_000_000)
-step_net_input   = step_input - step_fee_amount
-protocol_portion = floor(step_fee_amount * protocol_fee_rate / 1_000_000)
-fund_portion     = floor(step_fee_amount * fund_fee_rate     / 1_000_000)
-lp_portion       = step_fee_amount - protocol_portion - fund_portion
+// fee on input, exact-input step
+if the step stops short of the next tick:  fee = amount_remaining − amount_in
+else:                                       fee = ceil(amount_in * fee_rate / (1_000_000 − fee_rate))
+// fee on output (single-sided pools, one direction)
+fee        = ceil(gross_out * fee_rate / 1_000_000)
+amount_out = gross_out − fee
+
+protocol_portion = floor(fee * protocol_fee_rate / 1_000_000)
+fund_portion     = floor(fee * fund_fee_rate     / 1_000_000)
+lp_portion       = fee − protocol_portion − fund_portion
 ```
 
-The LP portion is split across the currently-in-range liquidity by updating the global fee-growth accumulator:
+Here `amount_in` is the step's input net of the fee, and `fee_rate` is the tier's rate plus any dynamic surcharge. The LP portion is split across the currently-in-range liquidity by updating the global fee-growth accumulator of the token the fee was taken in. If no liquidity is in range when a fee is charged, for example on a limit-order fill in an empty part of the curve, the LP portion is added to the protocol counter instead:
 
 $$
 \text{fee\_growth\_global}_{\text{in}} \mathrel{+}= \text{lp\_portion} \cdot \frac{2^{64}}{L}
@@ -172,7 +177,7 @@ $$
 \text{reward\_growth\_global} \mathrel{+}= \text{emission\_per\_second} \cdot \Delta t \cdot \frac{2^{64}}{L}
 $$
 
-— emissions scale inversely with active liquidity, so a denser pool pays each position proportionally less per second, but over more positions total. The per-position reward owed is
+— emissions scale inversely with active liquidity, so a denser pool pays each position proportionally less per second, but over more positions total. While `L = 0`, the clock advances but nothing is emitted; those tokens stay in the vault for the funder to recover with `CollectRemainingRewards` after `end_time`. The per-position reward owed is
 
 $$
 \text{reward\_owed} = (\text{reward\_growth\_inside}_{\text{now}} - \text{reward\_growth\_inside}_{\text{last}}) \cdot L / 2^{64}
@@ -195,8 +200,8 @@ User: `SwapBaseInput` exact-input 1,000 token0.
 Step 1 — fees:
 
 ```
-trade_fee       = ceil(1000 * 500 / 1_000_000)  = 1
-step_net_input  = 999
+step_net_input  = floor(1000 * (1_000_000 − 500) / 1_000_000)  = 999
+trade_fee       = 1000 − 999                                   = 1   // the step stops short of the tick
 ```
 
 Step 2 — does 999 fit within the current tick range?
@@ -232,7 +237,7 @@ After accounting for rounding, the user receives ≈ 998 token1. The fee (1 toke
 
 ## Limit-order matching during swap
 
-When a swap step crosses a tick that holds open limit orders, those orders consume swap input **before** the LP curve does, at the tick's exact price. The matching is FIFO within the tick by `order_phase` cohort.
+When a swap step reaches a tick that holds open limit orders, those orders are filled at the tick's exact price **before** the swap crosses the tick. The matching is FIFO within the tick by `order_phase` cohort.
 
 ### Per-cohort state on `TickState`
 
@@ -274,13 +279,15 @@ fn match_limit_orders_at_tick(tick, swap_input_remaining, sqrt_p):
     return  # tick has no more limit orders
 ```
 
-Output tokens going to the limit-order owners are **not** transferred per swap. They sit virtually in the pool's output vault until the order owner calls `SettleLimitOrder` (or `DecreaseLimitOrder`). The pool simply tracks how much of the cohort is now filled via `unfilled_ratio_x64`. Each `LimitOrderState` stores its own `(order_phase, unfilled_ratio_x64)` snapshot at open time, so settlement reduces to:
+Output tokens going to the limit-order owners are **not** transferred per swap. They sit virtually in the pool's output vault until the order owner calls `SettleLimitOrder` (or `DecreaseLimitOrder`). The pool simply tracks how much of the cohort is now filled via `unfilled_ratio_x64`. Each `LimitOrderState` stores its own `(order_phase, unfilled_ratio_x64)` snapshot and a `settle_base`, so settlement in `settle_filled_order` reduces to:
 
 ```
-filled_amount  = total_amount × (1 − tick_now.unfilled_ratio_x64 / order.unfilled_ratio_x64)
-                if tick_now.order_phase > order.order_phase
-                else 0
-output_amount  = price_at(tick_index) × filled_amount   # adjusted for direction
+if tick.order_phase == order.order_phase:        filled = 0                      # cohort not reached yet
+elif tick.order_phase == order.order_phase + 1:  # cohort partly filled
+    remaining = floor(settle_base × tick.unfilled_ratio_x64 / order.unfilled_ratio_x64)
+    filled    = settle_base − remaining − (1 if the division was inexact else 0)
+else:                                            filled = settle_base             # cohort fully filled
+payout = output_at_tick(filled, tick, direction) − order.settled_output
 ```
 
 This O(1) settlement is the whole point of the cohort design — a tick can fill arbitrarily many orders without per-order gas.
@@ -289,11 +296,11 @@ This O(1) settlement is the whole point of the cohort design — a tick can fill
 
 In a swap step, limit-order matching happens **at** the tick (zero `Δsqrt_price`); LP curve consumption happens **between** ticks. The order is therefore:
 
-1. Cross tick `t_cross` (apply LP `liquidity_net` change first, since this is how Uniswap-V3 does it).
-2. Fill any limit orders sitting at `t_cross`.
-3. Continue along the LP curve to the next initialized tick or to `swap_input` exhaustion.
+1. Move along the LP curve to the tick `t`.
+2. Fill the limit orders sitting at `t`. If the swap's remaining amount runs out here, the price stays at `t` and the tick is not crossed.
+3. Only then cross `t` (apply `liquidity_net`) and continue to the next initialized tick or until the input is exhausted.
 
-Limit orders thus give traders *more* effective liquidity at exactly the order's tick price (a price-improvement effect), at the cost of LPs not earning fees on that portion of the swap volume — the limit-order portion of the trade is fee-free for the swapper, since the limit-order placer is acting as a maker. The dynamic-fee surcharge (if enabled) still applies to the LP portion of the same swap.
+Limit orders give traders more liquidity at exactly the order's tick price. The fill is **not** fee-free: the swapper pays the pool's current fee rate, base plus any dynamic surcharge, on the limit-order portion too (`amm_fee_amount`). That fee is split between LPs, protocol and fund like any other swap fee.
 
 ## Dynamic fee derivation
 
@@ -312,21 +319,23 @@ where:
 - `vol_acc` is the per-swap accumulator after the update rule below
 - `tick_spacing` is from `PoolState.tick_spacing`
 
-The result is clamped at $100{,}000 / 10^6 = 10\%$.
+The surcharge is rounded up, and both it and the total are clamped at $100{,}000 / 10^6 = 10\%$.
 
 ### Accumulator update
 
-Two rules are applied each swap, in order:
+The reference is updated once per swap, before the first step; the accumulator is updated as the swap moves through tick-spacing groups.
 
-**Decay.** The reference floor decays based on time since last update:
+**Decay.** The reference floor decays based on the time since `last_update_timestamp`:
 
 $$
 \text{vol\_ref} = \begin{cases}
-0 & \text{if } \Delta t > \text{decay\_period} \\
-\text{vol\_acc}_{\text{prev}} \cdot \dfrac{\text{reduction\_factor}}{10{,}000} & \text{if } \text{filter\_period} < \Delta t \le \text{decay\_period} \\
-\text{vol\_ref}_{\text{prev}} & \text{if } \Delta t \le \text{filter\_period}
+\text{vol\_ref}_{\text{prev}} & \text{if } \Delta t < \text{filter\_period} \\
+\text{vol\_acc}_{\text{prev}} \cdot \dfrac{\text{reduction\_factor}}{10{,}000} & \text{if } \text{filter\_period} \le \Delta t < \text{decay\_period} \\
+0 & \text{if } \Delta t \ge \text{decay\_period}
 \end{cases}
 $$
+
+In the last two cases the program also resets $t_{\text{ref}}$ to the current tick-spacing index and sets `last_update_timestamp` to now; in the first, nothing changes.
 
 **Accumulate.** The new accumulator is the reference plus tick-distance traversed since the previous reference index:
 
@@ -350,7 +359,7 @@ The `filter_period` window prevents tiny sub-second oscillations (e.g., MEV bots
 - All intermediate products go through `u128` or `u256`-shaped arithmetic. CLMM uses `U128Sqrt` helpers and `FullMath::mulDiv` patterns directly ported from Uniswap v3.
 - Division rounding is chosen per-step to enforce the invariant `k' ≥ k` locally. `SwapBaseInput` rounds output **down**; `SwapBaseOutput` rounds input **up**.
 - Tick crossings that drop `PoolState.liquidity` to zero are allowed (the price can traverse a "liquidity hole") but the swap simply advances to the next initialized tick without consuming input, charging no fee.
-- Overflow guard: `sqrt_price_x64` is kept in the inclusive range `[MIN_SQRT_PRICE_X64, MAX_SQRT_PRICE_X64]` corresponding to `[MIN_TICK, MAX_TICK]`. A swap that would push past either bound reverts with `SqrtPriceLimitOverflow`.
+- Price limit: the swap loop runs until the amount is used up or the price reaches `sqrt_price_limit_x64`, and stops there, filling partly. `0` means no limit (the bound just inside `MIN_SQRT_PRICE_X64` or `MAX_SQRT_PRICE_X64`). `SqrtPriceLimitOverflow` rejects a limit on the wrong side of the current price or outside those bounds; slippage is then checked with `TooLittleOutputReceived` / `TooMuchInputPaid`.
 
 ## Where to go next
 

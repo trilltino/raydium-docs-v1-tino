@@ -22,22 +22,22 @@ A tick corresponds to a 0.01% price move, or ~1 basis point. The mapping is:
 | `MAX_TICK = 443636` | ≈ `1.84e19` |
 | `MIN_TICK = -443636` | ≈ `5.42e-20` |
 
-`MIN_TICK` and `MAX_TICK` are chosen so that `sqrt_price_x64` fits in a `u128` at both ends. Every pool enforces that `tick_lower >= MIN_TICK` and `tick_upper <= MAX_TICK`. In practice the web UI clamps the range to something much narrower to prevent users from locking liquidity into unreachable ticks.
+`MIN_TICK` and `MAX_TICK` are chosen so that `sqrt_price_x64` fits in a `u128` at both ends. Every pool enforces that `tick_lower >= MIN_TICK` and `tick_upper <= MAX_TICK`.
 
 ## Tick spacing
 
 A pool's `AmmConfig` fixes a **tick spacing** — the only ticks a position is allowed to use as endpoints. If `tick_spacing = 60`, only ticks `…, −120, −60, 0, 60, 120, …` are valid. An attempt to open a position with endpoint `31` reverts with `TickAndSpacingNotMatch`.
 
-Common published spacings:
+Spacing belongs to the fee tier, not to the fee rate: on 2026-11-22 the 0.01% and 0.05% rates each existed at spacings 1 and 10 (see [Accounts → `AmmConfig`](/docs/en/products/clmm/accounts#ammconfig)). The price step between allowed endpoints at each spacing in use:
 
-| Fee tier | `trade_fee_rate` | Tick spacing | Coarsest price step per tick position |
-|----------|------------------|--------------|---------------------------------------|
-| 0.01% | `100` | 1 | 0.01% |
-| 0.05% | `500` | 10 | 0.10% |
-| 0.25% | `2500` | 60 | 0.60% |
-| 1.00% | `10000` | 120 | 1.21% |
+| Tick spacing | Price step between allowed endpoints |
+|--------------|--------------------------------------|
+| 1 | 0.01% |
+| 10 | 0.10% |
+| 60 | 0.60% |
+| 120 | 1.21% |
 
-The coarser the spacing, the fewer tick arrays to initialize, the cheaper to open a wide position, and the blurrier the price boundary. Volatile pairs typically live in 120-spacing tiers; stables live in 1-spacing tiers.
+The coarser the spacing, the blurrier the price boundary, and the more price each tick array covers, so a new position is more likely to land in arrays that already exist. A position never pays for more than the two arrays holding its endpoints, whatever its width.
 
 ## Tick arrays
 
@@ -52,7 +52,7 @@ A position endpoint `t = 2040` at `tick_spacing = 60` lives in the tick array wi
 
 ### When an array is created
 
-A tick array is lazy: the **first** position that references any tick inside it initializes the array, paying the rent. Swaps do not initialize tick arrays — they skip over uninitialized arrays using the bitmap. There is no separate init-tick-array instruction: `OpenPosition*` and `IncreaseLiquidity*` call `TickArrayState::get_or_create_tick_array` internally and allocate a missing array at `payer`'s expense. You simply pass the tick-array PDA — even when it is still uninitialized and system-owned.
+A tick array is lazy: the **first** position or limit order that needs it initializes the array, paying the rent. Swaps do not initialize tick arrays — they skip over uninitialized arrays using the bitmap. There is no separate init-tick-array instruction: `OpenPosition*` and `OpenLimitOrder` call `TickArrayState::get_or_create_tick_array` internally and allocate a missing array at the payer's expense. You simply pass the tick-array PDA, even when it is still uninitialized and system-owned. `IncreaseLiquidity*` cannot create one; its arrays already exist because the position's opening created them.
 
 ### Tick arrays are not closed
 
@@ -97,12 +97,12 @@ On every tick cross during a swap, the program adds `liquidity_net` (possibly ne
 
 ## Positions as NFTs
 
-A Raydium CLMM position is an NFT. Opening a position mints a brand-new mint with supply 1 into the caller's wallet, and the mint's authority is the CLMM program. The program keys position ownership to **whoever holds a balance in an ATA of that mint** at CPI time.
+A Raydium CLMM position is an NFT. Opening a position creates a new mint, mints its single token to the owner, and then removes the mint authority. The pool PDA stays as freeze authority. The program keys position ownership to **whoever signs as the authority of a token account holding that NFT**, ATA or not.
 
 Consequences:
 
 - **Positions are normally transferable.** A wallet can sell or airdrop a position by transferring the NFT. The new holder can then call `DecreaseLiquidity` to collect outstanding fees and rewards, `IncreaseLiquidity`, and other owner-authorized instructions. The exception is a position frozen under the restricted-issuer path below.
-- **Positions are addressable outside CLMM.** Marketplaces and wallets display positions like other NFTs. The SDK sets a reasonable `name`/`symbol` on the mint metadata.
+- **Positions are addressable outside CLMM.** Marketplaces and wallets display positions like other NFTs. When `with_metadata` is set, the program itself writes the metadata: name `Raydium Concentrated Liquidity`, symbol `RCL`, and a URI under `dynamic-ipfs.raydium.io` keyed by the position account.
 - **A position's PDA is derived from the NFT mint.** You can find the `PersonalPositionState` without knowing who currently holds it.
 
 ### Restricted-issuer positions
@@ -153,7 +153,7 @@ An out-of-range position:
 
 - Holds 100% of *one* token. If `tick_current < tick_lower` — price **below** the range — the position is entirely **token0**; if `tick_current >= tick_upper` — price **above** the range — it is entirely **token1**. Price is quoted `token1/token0`, so a position walked through by a rising price ends up holding the quote asset.
 - Does **not** earn swap fees.
-- **Does** continue to accrue rewards if the pool's reward streams emit to out-of-range liquidity — but Raydium's default behavior is "emit only to in-range", matching the Uniswap v3 convention. See [`products/clmm/fees`](/docs/en/products/clmm/fees).
+- Does **not** earn rewards either. Reward growth uses the same inside/outside accumulators as fees, so only in-range liquidity accrues it; there is no setting that pays out-of-range positions. See [`products/clmm/fees`](/docs/en/products/clmm/fees).
 
 LPs managing CLMM positions spend most of their attention keeping positions in range as price moves.
 

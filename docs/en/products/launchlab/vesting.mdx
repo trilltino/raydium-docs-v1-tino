@@ -26,17 +26,17 @@ Vesting for a launch is described by three numbers, recorded once at `Initialize
 | Field | Type | Meaning |
 |-------|------|---------|
 | `total_locked_amount` | `u64` | Sum of all base tokens locked across all beneficiaries (creator + platform). Must satisfy `total_locked_amount <= supply * max_lock_rate / 1_000_000` from the binding `GlobalConfig`. |
-| `cliff_period` | `u64` (seconds) | Wait time after fundraising ends before any tokens unlock. |
+| `cliff_period` | `u64` (seconds) | Wait time after fundraising completes before any tokens unlock. |
 | `unlock_period` | `u64` (seconds) | Duration of the linear unlock window after the cliff. `0` means everything unlocks instantly at the end of the cliff. |
 
-These three values live on `PoolState.vesting_schedule` (a `VestingSchedule` struct) plus the on-chain `start_time`, which the program records as `block_time + cliff_period` at the moment fundraising successfully ends (when graduation conditions are first met).
+These three values live on `PoolState.vesting_schedule` (a `VestingSchedule` struct) plus the on-chain `start_time`. The buy that completes fundraising records `start_time` as its own `block_time + cliff_period`. The later `MigrateToCpswap` transaction does not change it, so a delayed migration does not delay the unlock schedule.
 
 ```rust states/pool.rs
 pub struct VestingSchedule {
     pub total_locked_amount:     u64,
     pub cliff_period:            u64,
     pub unlock_period:           u64,
-    pub start_time:              u64,   // set by the program at fundraising end
+    pub start_time:              u64,   // set by the buy that completes fundraising
     pub allocated_share_amount:  u64,   // running sum of allocations to vesting records
 }
 ```
@@ -45,7 +45,7 @@ pub struct VestingSchedule {
 
 ## Linear unlock formula
 
-After fundraising ends, the program computes the cumulative unlocked amount for each `VestingRecord` as:
+Once `start_time` is set, the program computes the cumulative unlocked amount for each `VestingRecord` as:
 
 ```
 elapsed         = min(now, start_time + unlock_period) − start_time
@@ -195,7 +195,7 @@ The creator allocates two `VestingRecord` accounts immediately after `Initialize
 
 `allocated_share_amount = 100_000_000`, equal to `total_locked_amount` — no further allocations possible.
 
-Fundraising completes on `2027-01-01T00:00Z`. The program sets `start_time = 2027-01-01 + 180 days = 2027-06-30`.
+Fundraising completes on `2027-01-01T00:00Z`. The buy that fills the curve sets `start_time = 2027-01-01 + 180 days = 2027-06-30`. Migration lands shortly afterwards and leaves `start_time` unchanged.
 
 On `2027-09-28` (90 days after `start_time`), Beneficiary A calls `ClaimVestedToken`:
 
@@ -221,7 +221,7 @@ A receives another 34.52M tokens. After `2028-06-30` (the end of `unlock_period`
 
 - **Beneficiary loses their key.** The pubkey on `VestingRecord.beneficiary` is the only signer that can call `ClaimVestedToken`. There is no recovery path. Set the beneficiary to a multisig if recovery matters.
 - **Token-2022 transfer fees.** If the base mint is a Token-2022 mint with a transfer-fee extension, the beneficiary receives `delta_amount − transfer_fee`, not the full delta. The pool's vault still records the gross amount as transferred — the difference accrues to the mint's withheld-fee account.
-- **Pool not graduated.** Calling `ClaimVestedToken` before graduation reverts. The vesting clock starts only when fundraising actually completes; an aborted launch (which never sets `start_time`) leaves locked tokens unreachable in the vault.
+- **Pool not migrated.** Calling `ClaimVestedToken` before migration reverts with `PoolNotMigrated`, even after `start_time` has passed. The clock starts when fundraising completes, so a late migration delays only the first claim, not the schedule. A launch that never completes fundraising, or never migrates, leaves locked tokens unreachable in the vault.
 - **Over-allocation attempts.** The program enforces `allocated_share_amount <= total_locked_amount` on every `CreateVestingAccount`. The remainder (if any) of `total_locked_amount` left unallocated is **lost** — those tokens stay in the vault forever once the launch graduates. Allocate the full amount unless that's the intent.
 
 ## Pointers

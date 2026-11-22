@@ -16,7 +16,7 @@ A live CLMM pool is described by the following account families. All are owned b
 | `AmmConfig` | Fee tier: trade-fee rate, protocol share, fund share, default tick-spacing. Shared across all pools in this tier. | 1 (shared) |
 | `PoolState` | Current `sqrt_price_x64`, current tick, total liquidity, fee growth globals, reward info, observation pointer. | 1 |
 | `TickArrayState` | A block of `TICK_ARRAY_SIZE` adjacent ticks. Only initialized on demand. | 0 ≤ N ≤ range |
-| `TickArrayBitmapExtension` | Overflow bitmap tracking which tick arrays exist past the inline bitmap in `PoolState`. | 0 or 1 |
+| `TickArrayBitmapExtension` | Overflow bitmap tracking which tick arrays exist past the inline bitmap in `PoolState`. Created by every pool-creation instruction. | 1 |
 | `PersonalPositionState` | One per LP position. Stores the range, liquidity, and last-seen fee/reward growth. Authority = NFT owner. | 1 per position |
 | Position NFT mint | Mint with supply 1, associated with `PersonalPositionState`. Its token account is unfrozen by default; a V2 open freezes it only when an underlying mint matches the restricted-issuer filter. | 1 per position |
 | `ObservationState` | Ring buffer of price observations for the TWAP. | 1 |
@@ -33,7 +33,7 @@ The pool's live state, read on every swap and every position change.
 pub struct PoolState {
     pub bump:           [u8; 1],
     pub amm_config:     Pubkey,            // fee tier binding
-    pub owner:          Pubkey,            // admin (multisig)
+    pub owner:          Pubkey,            // pool creator (any address under CreateCustomizablePoolV2)
     pub token_mint_0:   Pubkey,
     pub token_mint_1:   Pubkey,
     pub token_vault_0:  Pubkey,
@@ -62,9 +62,9 @@ pub struct PoolState {
     // Reserved padding for future upgrades.
     pub padding5: [u128; 4],
 
-    // Status bitmask. Bits 0-5: open-position, decrease-liquidity,
-    // collect-fee, collect-reward, swap, limit-order. A set bit disables
-    // the corresponding operation.
+    // Status bitmask. Bits 0-5: open-position / increase-liquidity,
+    // decrease-liquidity, collect-fee, collect-reward, swap, limit-order.
+    // A set bit disables the corresponding operation.
     pub status:  u8,
 
     // Fee-collection mode (CollectFeeOn).
@@ -91,7 +91,7 @@ pub struct PoolState {
     pub fund_fees_token_0: u64,
     pub fund_fees_token_1: u64,
 
-    pub open_time:    u64,                 // currently disabled by the program
+    pub open_time:    u64,                 // must be in the past at creation, so it never delays swaps
     pub recent_epoch: u64,
 
     // Per-pool dynamic-fee state. Zero-valued unless the pool was
@@ -136,20 +136,24 @@ pub struct AmmConfig {
 
 Since the 2026-09 upgrade, `CreateAmmConfig` writes the program's hardcoded `protocol_fee_owner::ID` into `owner` and `fund_fee_owner::ID` into `fund_owner`. Before that, it copied the admin signer's key into both. Existing configs keep whatever they were created or rotated to, so read both fields off the account. `UpdateAmmConfig` params `3` / `4` still rotate them. Addresses are in [`reference/program-addresses`](/docs/en/reference/program-addresses#clmm-fee-owner-wallets).
 
-A typical published set of CLMM fee tiers (confirm against `GET https://api-v3.raydium.io/main/clmm-config`):
+On 2026-11-22 mainnet had 21 CLMM `AmmConfig` accounts, indexes 0–20. Every one sends 12% of the trade fee to protocol (`protocol_fee_rate = 120_000`) and 4% to the fund (`fund_fee_rate = 40_000`). The first four, and the most-used:
 
-| Index | `trade_fee_rate` | Tick spacing | Typical use |
-|-------|------------------|--------------|-------------|
-| 0 | `100` (0.01%) | 1 | Stable pairs, USDC/USDT |
-| 1 | `500` (0.05%) | 10 | Correlated blue-chips |
-| 2 | `2_500` (0.25%) | 60 | Standard pairs |
-| 3 | `10_000` (1.00%) | 120 | Volatile or long-tail |
+| Index | `trade_fee_rate` | Tick spacing | Pools among the 2,000 highest-TVL |
+|-------|------------------|--------------|-----------------------------------|
+| 0 | `100` (0.01%) | 10 | 4 |
+| 1 | `2_500` (0.25%) | 60 | 300 |
+| 2 | `500` (0.05%) | 10 | 6 |
+| 3 | `10_000` (1.00%) | 120 | 747 |
+| 4 | `100` (0.01%) | 1 | 305 |
+| 19 | `40_000` (4.00%) | 120 | 286 |
+
+Index is not ordered by fee. Read the account, or `GET https://api-v3.raydium.io/main/clmm-config`, which on that date listed 18 of the 21 and left out indexes 0, 2 and 20.
 
 `protocol_fee_rate` and `fund_fee_rate` are fractions of the trade fee; same convention as CPMM. See [`products/clmm/fees`](/docs/en/products/clmm/fees).
 
 ## `TickArrayState`
 
-CLMM does not store a single record per tick. That would be billions of accounts. Instead it groups **`TICK_ARRAY_SIZE` adjacent initialized-or-not ticks** (typically 60 or 88 depending on program version) into a `TickArrayState` that is lazily created on first use.
+CLMM does not store a single record per tick. That would be billions of accounts. Instead it groups **`TICK_ARRAY_SIZE` = 60 adjacent ticks**, initialized or not, into a `TickArrayState` that is created on first use.
 
 ```rust
 pub const TICK_ARRAY_SIZE: usize = 60;
@@ -194,7 +198,7 @@ Rules:
 
 - A position endpoint tick *t* must satisfy `t % tick_spacing == 0`. The program rejects off-spacing positions.
 - The tick's **array** is located at `floor(t / (TICK_ARRAY_SIZE * tick_spacing)) * (TICK_ARRAY_SIZE * tick_spacing)`.
-- A tick array is initialized lazily: the first position or swap that touches an uninitialized array creates it, paying the rent.
+- A tick array is initialized lazily: the first `OpenPosition*` or `OpenLimitOrder` that needs an uninitialized array creates it, paying the rent. Swaps and `IncreaseLiquidity*` never create one; they require it to exist.
 - A tick array is **never closed** by the program. Once allocated it persists for the life of the pool, even after every tick inside it returns to `liquidity_gross == 0`. Subsequent positions and swaps reuse the existing account at no extra rent. There is no `ClosePosition`-driven cleanup path for tick arrays.
 
 ### `TickArrayBitmapExtension`
@@ -209,7 +213,7 @@ pub struct TickArrayBitmapExtension {
 }
 ```
 
-If your position's range is "normal", you never think about the extension account. Full-range positions (e.g., `(MIN_TICK, MAX_TICK)`) require it; the SDK resolves it for you.
+Every pool has one: `CreatePool` and both customizable-pool instructions create it. An instruction needs it only when a tick array it touches starts beyond the inline ±512 arrays. Whether a full-range position does depends on tick spacing: 512 arrays of 60 ticks reach `MAX_TICK = 443636` at a spacing of 15 or more, so smaller spacings need the extension. The SDK resolves it for you.
 
 ## Positions
 
@@ -217,7 +221,7 @@ A CLMM position is a **bundle** of three accounts plus a mint:
 
 ### Position NFT mint
 
-An SPL Token or Token-2022 mint with supply 1. The position NFT in the owner's wallet is an ATA holding that single token. The program keys authorization to the **current holder of the NFT's ATA balance**, not to a Pubkey stored in state.
+An SPL Token or Token-2022 mint with supply 1, usually held in the owner's ATA. The program keys authorization to **whoever signs as the authority of a token account holding that NFT** (`amount == 1`), not to a Pubkey stored in state. The account need not be an ATA.
 
 New position NFT mints set `pool_state` as their freeze authority before minting the single token and removing mint authority. **Setting a freeze authority does not itself freeze the NFT account.** The account remains unfrozen and transferable unless both conditions hold: the caller uses `OpenPositionV2` or `OpenPositionWithToken22Nft`, and at least one underlying vault mint's freeze authority appears on CLMM's restricted-issuer list. Only then does CLMM freeze the NFT account after minting. This changes no `PersonalPositionState` or `PoolState` bytes.
 
@@ -290,7 +294,7 @@ Dynamic fee parameters live in two places. The reusable template — `DynamicFee
 
 ### `DynamicFeeConfig`
 
-```rust programs/amm/src/states/pool_fee.rs
+```rust programs/amm/src/states/dynamic_fee_config.rs
 pub struct DynamicFeeConfig {
     pub index:                       u16,    // identifier; PDA seed component
     pub filter_period:               u16,    // seconds — within this window the volatility reference is held
@@ -344,7 +348,7 @@ pub struct LimitOrderState {
     pub zero_for_one:       bool,    // direction: true sells token0 for token1
     pub order_phase:        u64,     // snapshot of TickState.order_phase at open time
     pub total_amount:       u64,     // input-token amount placed
-    pub filled_amount:      u64,     // informational; computed precisely on settle
+    pub filled_amount:      u64,     // updated by settle and decrease; close needs it == total_amount
     pub settle_base:        u64,     // unfilled remainder at last settle/decrease
     pub settled_output:     u64,     // cumulative output-token paid to owner
     pub open_time:          u64,
@@ -358,7 +362,7 @@ Lifecycle:
 1. **Open** — user calls `open_limit_order`, deposits `total_amount` of the input token, the order is bound to a `TickState` cohort.
 2. **(optional) Increase / Decrease** — `increase_limit_order` adds to `total_amount`; `decrease_limit_order` returns unfilled tokens (and any settled output up to that point).
 3. **Settle** — when the cohort is fully or partially filled, the owner *or* the operational keeper calls `settle_limit_order` to push output tokens to the owner's ATA.
-4. **Close** — once `unfilled_amount == 0`, the account is closeable. Rent always returns to `owner`.
+4. **Close** — once `total_amount − filled_amount == 0`, the account is closeable. A filled order must be settled first, because only settle and decrease update `filled_amount`. Rent always returns to `owner`.
 
 PDA seed: `[owner.as_ref(), limit_order_nonce.key().as_ref(), limit_order_nonce.order_nonce.to_be_bytes().as_ref()]`. The order PDA is therefore unique per `(owner, nonce_index, order_nonce)`.
 
@@ -496,26 +500,26 @@ The exact seed strings should always be double-checked against the on-chain IDL 
 
 | Event | Accounts created | Accounts destroyed |
 |-------|------------------|---------------------|
-| `CreatePool` | `poolState`, `observation`, `token_0_vault`, `token_1_vault` | — |
-| `OpenPosition[V2]` / `OpenPositionWithToken22Nft` | NFT mint + ATA, `personalPosition`, possibly new `tickArrayState`(s), `tickArrayBitmapExtension` if not yet existing; may freeze the NFT ATA for a restricted-issuer pool | — |
-| `IncreaseLiquidity` | Possibly new `tickArrayState`(s) | — |
+| `CreatePool` | `poolState`, `observation`, `token_0_vault`, `token_1_vault`, `tickArrayBitmapExtension` | — |
+| `OpenPosition[V2]` / `OpenPositionWithToken22Nft` | NFT mint + ATA, `personalPosition`, possibly new `tickArrayState`(s); may freeze the NFT ATA for a restricted-issuer pool | — |
+| `IncreaseLiquidity` | — (both tick arrays must already exist) | — |
 | `DecreaseLiquidity` / `DecreaseLiquidityV2` | — | Possibly clears tick entries (but the `tickArrayState` itself is not closed) |
 | `ClosePosition` | — | NFT ATA, `personalPosition`, and Token-2022 NFT mint; a classic SPL NFT mint remains at supply zero. Frozen path first thaws via the pool passed in remaining accounts. |
-| `SwapV2` | Possibly new `tickArrayState` | — |
+| `SwapV2` | — | — |
 | `OpenLimitOrder` | `limitOrderState`, possibly `limitOrderNonce` (init-if-needed), possibly new `tickArrayState` | — |
 | `IncreaseLimitOrder` | — | — |
-| `DecreaseLimitOrder` | — | Closes `limitOrderState` if order is fully consumed |
+| `DecreaseLimitOrder` | — | — (never closes the order; use `CloseLimitOrder`) |
 | `SettleLimitOrder` | — | — |
 | `CloseLimitOrder` | — | `limitOrderState` (rent → `owner`) |
 | `CreateDynamicFeeConfig` | `dynamicFeeConfig` | — |
-| `CreateCustomizablePool` | `poolState`, `observation`, vaults — same as `CreatePool`. Snapshots `dynamicFeeConfig` if `enable_dynamic_fee = true`. | — |
-| `CreateCustomizablePoolV2` | `poolState` (at a `seed_index`-derived address), `observation`, vaults — like `CreateCustomizablePool`. Permissionless. | — |
+| `CreateCustomizablePool` | `poolState`, `observation`, vaults, `tickArrayBitmapExtension` — same as `CreatePool`. Snapshots `dynamicFeeConfig` if `enable_dynamic_fee = true`. | — |
+| `CreateCustomizablePoolV2` | `poolState` (at a `seed_index`-derived address), `observation`, vaults, `tickArrayBitmapExtension` — like `CreateCustomizablePool`. Permissionless. | — |
 | `UpdateRewardInfos` | — | — |
 | `CloseProtocolPosition` (admin) | — | Vestigial `protocolPositionState` (rent → admin) |
 
 `DecreaseLiquidity` and `DecreaseLiquidityV2` also transfer outstanding position fees and rewards. A zero-liquidity decrease collects them without reducing position liquidity.
 
-`TickArrayState` accounts are **never closed by the program** — they persist for the life of the pool. Once a tick array has been initialised it remains on-chain even when every tick inside it returns to `liquidity_gross == 0`. Re-using an existing tick array is free; only the first position to touch a never-initialised array pays its rent.
+`TickArrayState` accounts are **never closed by the program** — they persist for the life of the pool. Once a tick array has been initialised it remains on-chain even when every tick inside it returns to `liquidity_gross == 0`. Re-using an existing tick array is free; only the first position or limit order to need a never-initialised array pays its rent.
 
 ## What to read where
 

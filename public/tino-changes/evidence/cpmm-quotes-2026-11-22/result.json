@@ -1,0 +1,817 @@
+{
+  "generated_at": "2026-11-22T16:06:05.389Z",
+  "sdk": "@raydium-io/raydium-sdk-v2@0.2.85-alpha",
+  "program": "raydium-io/raydium-cp-swap@3d69122790e97cd6aff24e8ba95940793773f58c",
+  "generator": {
+    "lcg": "x = x * 6364136223846793005 + 1442695040888963407 mod 2^64, output x >> 11",
+    "seed": 42,
+    "cases_per_combination": 40,
+    "reserves": "uniform within a random digit count of 6 to 15",
+    "amounts": "uniform 0.01% to 10% of the input reserve (exact input) or output reserve (exact output), at least 1"
+  },
+  "tiers": 25,
+  "documented_side_matches_program": "24000 of 24000",
+  "documented_creator_fee_when_disabled": 0,
+  "offline": {
+    "swap_base_input": {
+      "documented": {
+        "creator_fee_on_input": {
+          "cases": 4000,
+          "quote_equal": 2904,
+          "all_fields_equal": 1196,
+          "sdk_lower": 1096,
+          "sdk_higher": 0,
+          "sdk_fee_one_unit_higher_when_lower": 1096,
+          "examples": [
+            {
+              "tier": 0,
+              "mode": "BothToken",
+              "baseIn": true,
+              "amount": "1400623",
+              "inV": "88849506",
+              "outV": "733366488732",
+              "program": "11347751633",
+              "sdk": "11347743633"
+            },
+            {
+              "tier": 0,
+              "mode": "BothToken",
+              "baseIn": true,
+              "amount": "42979",
+              "inV": "742517",
+              "outV": "711362397161",
+              "program": "38812273393",
+              "sdk": "38811417041"
+            },
+            {
+              "tier": 0,
+              "mode": "BothToken",
+              "baseIn": true,
+              "amount": "746440",
+              "inV": "8340770",
+              "outV": "689414003",
+              "program": "56473703",
+              "sdk": "56473633"
+            }
+          ]
+        },
+        "BothToken_A_to_B_enabled": {
+          "cases": 1000,
+          "quote_equal": 726,
+          "all_fields_equal": 288,
+          "sdk_lower": 274,
+          "sdk_higher": 0,
+          "sdk_fee_one_unit_higher_when_lower": 274,
+          "examples": []
+        },
+        "BothToken_B_to_A_enabled": {
+          "cases": 1000,
+          "quote_equal": 723,
+          "all_fields_equal": 310,
+          "sdk_lower": 277,
+          "sdk_higher": 0,
+          "sdk_fee_one_unit_higher_when_lower": 277,
+          "examples": []
+        },
+        "creator_fee_disabled": {
+          "cases": 6000,
+          "quote_equal": 6000,
+          "all_fields_equal": 6000,
+          "sdk_lower": 0,
+          "sdk_higher": 0,
+          "sdk_fee_one_unit_higher_when_lower": 0,
+          "examples": []
+        },
+        "BothToken_A_to_B_disabled": {
+          "cases": 1000,
+          "quote_equal": 1000,
+          "all_fields_equal": 1000,
+          "sdk_lower": 0,
+          "sdk_higher": 0,
+          "sdk_fee_one_unit_higher_when_lower": 0,
+          "examples": []
+        },
+        "BothToken_B_to_A_disabled": {
+          "cases": 1000,
+          "quote_equal": 1000,
+          "all_fields_equal": 1000,
+          "sdk_lower": 0,
+          "sdk_higher": 0,
+          "sdk_fee_one_unit_higher_when_lower": 0,
+          "examples": []
+        },
+        "OnlyTokenA_A_to_B_enabled": {
+          "cases": 1000,
+          "quote_equal": 725,
+          "all_fields_equal": 294,
+          "sdk_lower": 275,
+          "sdk_higher": 0,
+          "sdk_fee_one_unit_higher_when_lower": 275,
+          "examples": []
+        },
+        "creator_fee_on_output": {
+          "cases": 2000,
+          "quote_equal": 2000,
+          "all_fields_equal": 2000,
+          "sdk_lower": 0,
+          "sdk_higher": 0,
+          "sdk_fee_one_unit_higher_when_lower": 0,
+          "examples": []
+        },
+        "OnlyTokenA_B_to_A_enabled": {
+          "cases": 1000,
+          "quote_equal": 1000,
+          "all_fields_equal": 1000,
+          "sdk_lower": 0,
+          "sdk_higher": 0,
+          "sdk_fee_one_unit_higher_when_lower": 0,
+          "examples": []
+        },
+        "OnlyTokenA_A_to_B_disabled": {
+          "cases": 1000,
+          "quote_equal": 1000,
+          "all_fields_equal": 1000,
+          "sdk_lower": 0,
+          "sdk_higher": 0,
+          "sdk_fee_one_unit_higher_when_lower": 0,
+          "examples": []
+        },
+        "OnlyTokenA_B_to_A_disabled": {
+          "cases": 1000,
+          "quote_equal": 1000,
+          "all_fields_equal": 1000,
+          "sdk_lower": 0,
+          "sdk_higher": 0,
+          "sdk_fee_one_unit_higher_when_lower": 0,
+          "examples": []
+        },
+        "OnlyTokenB_A_to_B_enabled": {
+          "cases": 1000,
+          "quote_equal": 1000,
+          "all_fields_equal": 1000,
+          "sdk_lower": 0,
+          "sdk_higher": 0,
+          "sdk_fee_one_unit_higher_when_lower": 0,
+          "examples": []
+        },
+        "OnlyTokenB_B_to_A_enabled": {
+          "cases": 1000,
+          "quote_equal": 730,
+          "all_fields_equal": 304,
+          "sdk_lower": 270,
+          "sdk_higher": 0,
+          "sdk_fee_one_unit_higher_when_lower": 270,
+          "examples": []
+        },
+        "OnlyTokenB_A_to_B_disabled": {
+          "cases": 1000,
+          "quote_equal": 1000,
+          "all_fields_equal": 1000,
+          "sdk_lower": 0,
+          "sdk_higher": 0,
+          "sdk_fee_one_unit_higher_when_lower": 0,
+          "examples": []
+        },
+        "OnlyTokenB_B_to_A_disabled": {
+          "cases": 1000,
+          "quote_equal": 1000,
+          "all_fields_equal": 1000,
+          "sdk_lower": 0,
+          "sdk_higher": 0,
+          "sdk_fee_one_unit_higher_when_lower": 0,
+          "examples": []
+        }
+      },
+      "computeSwapAmount": {
+        "creator_fee_on_input": {
+          "cases": 4000,
+          "quote_equal": 2198,
+          "all_fields_equal": 902,
+          "sdk_lower": 1751,
+          "sdk_higher": 51,
+          "sdk_fee_one_unit_higher_when_lower": 822,
+          "examples": [
+            {
+              "tier": 0,
+              "mode": "BothToken",
+              "baseIn": true,
+              "amount": "1400623",
+              "inV": "88849506",
+              "outV": "733366488732",
+              "program": "11347751633",
+              "sdk": "11347743633"
+            },
+            {
+              "tier": 0,
+              "mode": "BothToken",
+              "baseIn": true,
+              "amount": "42979",
+              "inV": "742517",
+              "outV": "711362397161",
+              "program": "38812273393",
+              "sdk": "38811417041"
+            },
+            {
+              "tier": 0,
+              "mode": "BothToken",
+              "baseIn": true,
+              "amount": "746440",
+              "inV": "8340770",
+              "outV": "689414003",
+              "program": "56473703",
+              "sdk": "56473633"
+            }
+          ]
+        },
+        "BothToken_A_to_B_enabled": {
+          "cases": 1000,
+          "quote_equal": 726,
+          "all_fields_equal": 288,
+          "sdk_lower": 274,
+          "sdk_higher": 0,
+          "sdk_fee_one_unit_higher_when_lower": 274,
+          "examples": []
+        },
+        "BothToken_B_to_A_enabled": {
+          "cases": 1000,
+          "quote_equal": 723,
+          "all_fields_equal": 310,
+          "sdk_lower": 277,
+          "sdk_higher": 0,
+          "sdk_fee_one_unit_higher_when_lower": 277,
+          "examples": []
+        },
+        "creator_fee_disabled": {
+          "cases": 6000,
+          "quote_equal": 1,
+          "all_fields_equal": 0,
+          "sdk_lower": 5999,
+          "sdk_higher": 0,
+          "sdk_fee_one_unit_higher_when_lower": 17,
+          "examples": [
+            {
+              "tier": 0,
+              "mode": "BothToken",
+              "baseIn": true,
+              "amount": "2537211",
+              "inV": "78056042",
+              "outV": "2334529886682",
+              "program": "73316928568",
+              "sdk": "73281320745"
+            },
+            {
+              "tier": 0,
+              "mode": "BothToken",
+              "baseIn": true,
+              "amount": "472070279",
+              "inV": "9085962735",
+              "outV": "298205755184517",
+              "program": "14693345304605",
+              "sdk": "14686342916985"
+            },
+            {
+              "tier": 0,
+              "mode": "BothToken",
+              "baseIn": true,
+              "amount": "42733",
+              "inV": "1102129",
+              "outV": "94087497724",
+              "program": "3503434078",
+              "sdk": "3501693192"
+            }
+          ]
+        },
+        "BothToken_A_to_B_disabled": {
+          "cases": 1000,
+          "quote_equal": 0,
+          "all_fields_equal": 0,
+          "sdk_lower": 1000,
+          "sdk_higher": 0,
+          "sdk_fee_one_unit_higher_when_lower": 4,
+          "examples": []
+        },
+        "BothToken_B_to_A_disabled": {
+          "cases": 1000,
+          "quote_equal": 1,
+          "all_fields_equal": 0,
+          "sdk_lower": 999,
+          "sdk_higher": 0,
+          "sdk_fee_one_unit_higher_when_lower": 4,
+          "examples": []
+        },
+        "OnlyTokenA_A_to_B_enabled": {
+          "cases": 1000,
+          "quote_equal": 19,
+          "all_fields_equal": 0,
+          "sdk_lower": 930,
+          "sdk_higher": 51,
+          "sdk_fee_one_unit_higher_when_lower": 1,
+          "examples": []
+        },
+        "creator_fee_on_output": {
+          "cases": 2000,
+          "quote_equal": 1021,
+          "all_fields_equal": 1001,
+          "sdk_lower": 82,
+          "sdk_higher": 897,
+          "sdk_fee_one_unit_higher_when_lower": 0,
+          "examples": [
+            {
+              "tier": 0,
+              "mode": "OnlyTokenB",
+              "baseIn": true,
+              "amount": "251850423201",
+              "inV": "3625468541924",
+              "outV": "82585964",
+              "program": "5349135",
+              "sdk": "5349302"
+            },
+            {
+              "tier": 0,
+              "mode": "OnlyTokenB",
+              "baseIn": true,
+              "amount": "191834",
+              "inV": "9283985",
+              "outV": "820120478",
+              "program": "16554010",
+              "sdk": "16554150"
+            },
+            {
+              "tier": 0,
+              "mode": "OnlyTokenB",
+              "baseIn": true,
+              "amount": "19030189",
+              "inV": "412149721",
+              "outV": "845922",
+              "program": "37226",
+              "sdk": "37227"
+            }
+          ]
+        },
+        "OnlyTokenA_B_to_A_enabled": {
+          "cases": 1000,
+          "quote_equal": 1000,
+          "all_fields_equal": 1000,
+          "sdk_lower": 0,
+          "sdk_higher": 0,
+          "sdk_fee_one_unit_higher_when_lower": 0,
+          "examples": []
+        },
+        "OnlyTokenA_A_to_B_disabled": {
+          "cases": 1000,
+          "quote_equal": 0,
+          "all_fields_equal": 0,
+          "sdk_lower": 1000,
+          "sdk_higher": 0,
+          "sdk_fee_one_unit_higher_when_lower": 4,
+          "examples": []
+        },
+        "OnlyTokenA_B_to_A_disabled": {
+          "cases": 1000,
+          "quote_equal": 0,
+          "all_fields_equal": 0,
+          "sdk_lower": 1000,
+          "sdk_higher": 0,
+          "sdk_fee_one_unit_higher_when_lower": 1,
+          "examples": []
+        },
+        "OnlyTokenB_A_to_B_enabled": {
+          "cases": 1000,
+          "quote_equal": 21,
+          "all_fields_equal": 1,
+          "sdk_lower": 82,
+          "sdk_higher": 897,
+          "sdk_fee_one_unit_higher_when_lower": 0,
+          "examples": []
+        },
+        "OnlyTokenB_B_to_A_enabled": {
+          "cases": 1000,
+          "quote_equal": 730,
+          "all_fields_equal": 304,
+          "sdk_lower": 270,
+          "sdk_higher": 0,
+          "sdk_fee_one_unit_higher_when_lower": 270,
+          "examples": []
+        },
+        "OnlyTokenB_A_to_B_disabled": {
+          "cases": 1000,
+          "quote_equal": 0,
+          "all_fields_equal": 0,
+          "sdk_lower": 1000,
+          "sdk_higher": 0,
+          "sdk_fee_one_unit_higher_when_lower": 1,
+          "examples": []
+        },
+        "OnlyTokenB_B_to_A_disabled": {
+          "cases": 1000,
+          "quote_equal": 0,
+          "all_fields_equal": 0,
+          "sdk_lower": 1000,
+          "sdk_higher": 0,
+          "sdk_fee_one_unit_higher_when_lower": 3,
+          "examples": []
+        }
+      }
+    },
+    "swap_base_output": {
+      "documented": {
+        "creator_fee_on_input": {
+          "cases": 4000,
+          "quote_equal": 4000,
+          "all_fields_equal": 4000,
+          "sdk_lower": 0,
+          "sdk_higher": 0,
+          "sdk_fee_one_unit_higher_when_lower": 0,
+          "examples": []
+        },
+        "BothToken_A_to_B_enabled": {
+          "cases": 1000,
+          "quote_equal": 1000,
+          "all_fields_equal": 1000,
+          "sdk_lower": 0,
+          "sdk_higher": 0,
+          "sdk_fee_one_unit_higher_when_lower": 0,
+          "examples": []
+        },
+        "BothToken_B_to_A_enabled": {
+          "cases": 1000,
+          "quote_equal": 1000,
+          "all_fields_equal": 1000,
+          "sdk_lower": 0,
+          "sdk_higher": 0,
+          "sdk_fee_one_unit_higher_when_lower": 0,
+          "examples": []
+        },
+        "creator_fee_disabled": {
+          "cases": 6000,
+          "quote_equal": 6000,
+          "all_fields_equal": 6000,
+          "sdk_lower": 0,
+          "sdk_higher": 0,
+          "sdk_fee_one_unit_higher_when_lower": 0,
+          "examples": []
+        },
+        "BothToken_A_to_B_disabled": {
+          "cases": 1000,
+          "quote_equal": 1000,
+          "all_fields_equal": 1000,
+          "sdk_lower": 0,
+          "sdk_higher": 0,
+          "sdk_fee_one_unit_higher_when_lower": 0,
+          "examples": []
+        },
+        "BothToken_B_to_A_disabled": {
+          "cases": 1000,
+          "quote_equal": 1000,
+          "all_fields_equal": 1000,
+          "sdk_lower": 0,
+          "sdk_higher": 0,
+          "sdk_fee_one_unit_higher_when_lower": 0,
+          "examples": []
+        },
+        "OnlyTokenA_A_to_B_enabled": {
+          "cases": 1000,
+          "quote_equal": 1000,
+          "all_fields_equal": 1000,
+          "sdk_lower": 0,
+          "sdk_higher": 0,
+          "sdk_fee_one_unit_higher_when_lower": 0,
+          "examples": []
+        },
+        "creator_fee_on_output": {
+          "cases": 2000,
+          "quote_equal": 2000,
+          "all_fields_equal": 2000,
+          "sdk_lower": 0,
+          "sdk_higher": 0,
+          "sdk_fee_one_unit_higher_when_lower": 0,
+          "examples": []
+        },
+        "OnlyTokenA_B_to_A_enabled": {
+          "cases": 1000,
+          "quote_equal": 1000,
+          "all_fields_equal": 1000,
+          "sdk_lower": 0,
+          "sdk_higher": 0,
+          "sdk_fee_one_unit_higher_when_lower": 0,
+          "examples": []
+        },
+        "OnlyTokenA_A_to_B_disabled": {
+          "cases": 1000,
+          "quote_equal": 1000,
+          "all_fields_equal": 1000,
+          "sdk_lower": 0,
+          "sdk_higher": 0,
+          "sdk_fee_one_unit_higher_when_lower": 0,
+          "examples": []
+        },
+        "OnlyTokenA_B_to_A_disabled": {
+          "cases": 1000,
+          "quote_equal": 1000,
+          "all_fields_equal": 1000,
+          "sdk_lower": 0,
+          "sdk_higher": 0,
+          "sdk_fee_one_unit_higher_when_lower": 0,
+          "examples": []
+        },
+        "OnlyTokenB_A_to_B_enabled": {
+          "cases": 1000,
+          "quote_equal": 1000,
+          "all_fields_equal": 1000,
+          "sdk_lower": 0,
+          "sdk_higher": 0,
+          "sdk_fee_one_unit_higher_when_lower": 0,
+          "examples": []
+        },
+        "OnlyTokenB_B_to_A_enabled": {
+          "cases": 1000,
+          "quote_equal": 1000,
+          "all_fields_equal": 1000,
+          "sdk_lower": 0,
+          "sdk_higher": 0,
+          "sdk_fee_one_unit_higher_when_lower": 0,
+          "examples": []
+        },
+        "OnlyTokenB_A_to_B_disabled": {
+          "cases": 1000,
+          "quote_equal": 1000,
+          "all_fields_equal": 1000,
+          "sdk_lower": 0,
+          "sdk_higher": 0,
+          "sdk_fee_one_unit_higher_when_lower": 0,
+          "examples": []
+        },
+        "OnlyTokenB_B_to_A_disabled": {
+          "cases": 1000,
+          "quote_equal": 1000,
+          "all_fields_equal": 1000,
+          "sdk_lower": 0,
+          "sdk_higher": 0,
+          "sdk_fee_one_unit_higher_when_lower": 0,
+          "examples": []
+        }
+      },
+      "computeSwapAmount": {
+        "creator_fee_on_input": {
+          "cases": 4000,
+          "quote_equal": 3029,
+          "all_fields_equal": 3000,
+          "sdk_lower": 922,
+          "sdk_higher": 49,
+          "sdk_fee_one_unit_higher_when_lower": 1,
+          "examples": [
+            {
+              "tier": 0,
+              "mode": "OnlyTokenA",
+              "baseIn": true,
+              "amount": "359148",
+              "inV": "25124199684",
+              "outV": "4360763",
+              "program": "2261701199",
+              "sdk": "2261802220"
+            },
+            {
+              "tier": 0,
+              "mode": "OnlyTokenA",
+              "baseIn": true,
+              "amount": "6684345725129",
+              "inV": "24357169",
+              "outV": "609440711627440",
+              "program": "270926",
+              "sdk": "270927"
+            },
+            {
+              "tier": 0,
+              "mode": "OnlyTokenA",
+              "baseIn": true,
+              "amount": "5335558100",
+              "inV": "147190137",
+              "outV": "99375278924",
+              "program": "8376298",
+              "sdk": "8376526"
+            }
+          ]
+        },
+        "BothToken_A_to_B_enabled": {
+          "cases": 1000,
+          "quote_equal": 1000,
+          "all_fields_equal": 1000,
+          "sdk_lower": 0,
+          "sdk_higher": 0,
+          "sdk_fee_one_unit_higher_when_lower": 0,
+          "examples": []
+        },
+        "BothToken_B_to_A_enabled": {
+          "cases": 1000,
+          "quote_equal": 1000,
+          "all_fields_equal": 1000,
+          "sdk_lower": 0,
+          "sdk_higher": 0,
+          "sdk_fee_one_unit_higher_when_lower": 0,
+          "examples": []
+        },
+        "creator_fee_disabled": {
+          "cases": 6000,
+          "quote_equal": 3,
+          "all_fields_equal": 3,
+          "sdk_lower": 5997,
+          "sdk_higher": 0,
+          "sdk_fee_one_unit_higher_when_lower": 10,
+          "examples": [
+            {
+              "tier": 0,
+              "mode": "BothToken",
+              "baseIn": true,
+              "amount": "5424976269712",
+              "inV": "675383735085547",
+              "outV": "55887835145233",
+              "program": "72788653407666",
+              "sdk": "72825157245884"
+            },
+            {
+              "tier": 0,
+              "mode": "BothToken",
+              "baseIn": true,
+              "amount": "1088869",
+              "inV": "8450893",
+              "outV": "50853248",
+              "program": "185374",
+              "sdk": "185467"
+            },
+            {
+              "tier": 0,
+              "mode": "BothToken",
+              "baseIn": true,
+              "amount": "376072",
+              "inV": "474769719",
+              "outV": "5753516",
+              "program": "33286277",
+              "sdk": "33302970"
+            }
+          ]
+        },
+        "BothToken_A_to_B_disabled": {
+          "cases": 1000,
+          "quote_equal": 0,
+          "all_fields_equal": 0,
+          "sdk_lower": 1000,
+          "sdk_higher": 0,
+          "sdk_fee_one_unit_higher_when_lower": 3,
+          "examples": []
+        },
+        "BothToken_B_to_A_disabled": {
+          "cases": 1000,
+          "quote_equal": 0,
+          "all_fields_equal": 0,
+          "sdk_lower": 1000,
+          "sdk_higher": 0,
+          "sdk_fee_one_unit_higher_when_lower": 3,
+          "examples": []
+        },
+        "OnlyTokenA_A_to_B_enabled": {
+          "cases": 1000,
+          "quote_equal": 29,
+          "all_fields_equal": 0,
+          "sdk_lower": 922,
+          "sdk_higher": 49,
+          "sdk_fee_one_unit_higher_when_lower": 1,
+          "examples": []
+        },
+        "creator_fee_on_output": {
+          "cases": 2000,
+          "quote_equal": 1025,
+          "all_fields_equal": 1000,
+          "sdk_lower": 52,
+          "sdk_higher": 923,
+          "sdk_fee_one_unit_higher_when_lower": 0,
+          "examples": [
+            {
+              "tier": 0,
+              "mode": "OnlyTokenB",
+              "baseIn": true,
+              "amount": "4461595",
+              "inV": "27638721",
+              "outV": "96406472",
+              "program": "1345228",
+              "sdk": "1345196"
+            },
+            {
+              "tier": 0,
+              "mode": "OnlyTokenB",
+              "baseIn": true,
+              "amount": "79358785147165",
+              "inV": "97334366936",
+              "outV": "858573261645609",
+              "program": "9943302025",
+              "sdk": "9942807901"
+            },
+            {
+              "tier": 0,
+              "mode": "OnlyTokenB",
+              "baseIn": true,
+              "amount": "45833",
+              "inV": "890042454884",
+              "outV": "701919",
+              "program": "62366079178",
+              "sdk": "62363873071"
+            }
+          ]
+        },
+        "OnlyTokenA_B_to_A_enabled": {
+          "cases": 1000,
+          "quote_equal": 1000,
+          "all_fields_equal": 1000,
+          "sdk_lower": 0,
+          "sdk_higher": 0,
+          "sdk_fee_one_unit_higher_when_lower": 0,
+          "examples": []
+        },
+        "OnlyTokenA_A_to_B_disabled": {
+          "cases": 1000,
+          "quote_equal": 0,
+          "all_fields_equal": 0,
+          "sdk_lower": 1000,
+          "sdk_higher": 0,
+          "sdk_fee_one_unit_higher_when_lower": 0,
+          "examples": []
+        },
+        "OnlyTokenA_B_to_A_disabled": {
+          "cases": 1000,
+          "quote_equal": 0,
+          "all_fields_equal": 0,
+          "sdk_lower": 1000,
+          "sdk_higher": 0,
+          "sdk_fee_one_unit_higher_when_lower": 0,
+          "examples": []
+        },
+        "OnlyTokenB_A_to_B_enabled": {
+          "cases": 1000,
+          "quote_equal": 25,
+          "all_fields_equal": 0,
+          "sdk_lower": 52,
+          "sdk_higher": 923,
+          "sdk_fee_one_unit_higher_when_lower": 0,
+          "examples": []
+        },
+        "OnlyTokenB_B_to_A_enabled": {
+          "cases": 1000,
+          "quote_equal": 1000,
+          "all_fields_equal": 1000,
+          "sdk_lower": 0,
+          "sdk_higher": 0,
+          "sdk_fee_one_unit_higher_when_lower": 0,
+          "examples": []
+        },
+        "OnlyTokenB_A_to_B_disabled": {
+          "cases": 1000,
+          "quote_equal": 1,
+          "all_fields_equal": 1,
+          "sdk_lower": 999,
+          "sdk_higher": 0,
+          "sdk_fee_one_unit_higher_when_lower": 1,
+          "examples": []
+        },
+        "OnlyTokenB_B_to_A_disabled": {
+          "cases": 1000,
+          "quote_equal": 2,
+          "all_fields_equal": 2,
+          "sdk_lower": 998,
+          "sdk_higher": 0,
+          "sdk_fee_one_unit_higher_when_lower": 3,
+          "examples": []
+        }
+      }
+    }
+  },
+  "mainnet": {
+    "slot": 472601598,
+    "pools": [
+      {
+        "pool": "4GWh5saKgzoukhhj4Rh3p5FmPU6yPuAexV6FaH5JQYfm",
+        "fee_on": "OnlyTokenA",
+        "enable_creator_fee": true,
+        "amount_in_token_a": "28699697",
+        "program_output": "12958556857",
+        "program_creator_fee": "286997",
+        "documented_output": "12958556857",
+        "documented_creator_fee": "286997",
+        "compute_swap_amount_output": "12958755479",
+        "compute_swap_amount_creator_fee": "130896520",
+        "compute_swap_amount_shortfall": "-198622"
+      },
+      {
+        "pool": "BqPC5X4d3DM7JyQBRQnA5D6HbGDque4C6r3451S7ciVN",
+        "fee_on": "BothToken",
+        "enable_creator_fee": false,
+        "amount_in_token_a": "101061978",
+        "program_output": "56953480380",
+        "program_creator_fee": "0",
+        "documented_output": "56953480380",
+        "documented_creator_fee": "0",
+        "compute_swap_amount_output": "56924960698",
+        "compute_swap_amount_creator_fee": "50531",
+        "compute_swap_amount_shortfall": "28519682"
+      }
+    ]
+  }
+}

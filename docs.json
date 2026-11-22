@@ -62,6 +62,11 @@
       "permanent": false
     },
     {
+      "source": "/docs/i18n/ar/resources/devrel-edits/clmm-docs-updates",
+      "destination": "/docs/en/resources/devrel-edits/clmm-docs-updates",
+      "permanent": false
+    },
+    {
       "source": "/docs/i18n/ar/resources/devrel-edits/cpmm-docs-updates",
       "destination": "/docs/en/resources/devrel-edits/cpmm-docs-updates",
       "permanent": false
@@ -99,6 +104,11 @@
     {
       "source": "/docs/i18n/de/resources/devrel-edits/amm-v4-docs-updates",
       "destination": "/docs/en/resources/devrel-edits/amm-v4-docs-updates",
+      "permanent": false
+    },
+    {
+      "source": "/docs/i18n/de/resources/devrel-edits/clmm-docs-updates",
+      "destination": "/docs/en/resources/devrel-edits/clmm-docs-updates",
       "permanent": false
     },
     {
@@ -142,6 +152,11 @@
       "permanent": false
     },
     {
+      "source": "/docs/i18n/es/resources/devrel-edits/clmm-docs-updates",
+      "destination": "/docs/en/resources/devrel-edits/clmm-docs-updates",
+      "permanent": false
+    },
+    {
       "source": "/docs/i18n/es/resources/devrel-edits/cpmm-docs-updates",
       "destination": "/docs/en/resources/devrel-edits/cpmm-docs-updates",
       "permanent": false
@@ -179,6 +194,11 @@
     {
       "source": "/docs/i18n/fr/resources/devrel-edits/amm-v4-docs-updates",
       "destination": "/docs/en/resources/devrel-edits/amm-v4-docs-updates",
+      "permanent": false
+    },
+    {
+      "source": "/docs/i18n/fr/resources/devrel-edits/clmm-docs-updates",
+      "destination": "/docs/en/resources/devrel-edits/clmm-docs-updates",
       "permanent": false
     },
     {
@@ -222,6 +242,11 @@
       "permanent": false
     },
     {
+      "source": "/docs/i18n/id/resources/devrel-edits/clmm-docs-updates",
+      "destination": "/docs/en/resources/devrel-edits/clmm-docs-updates",
+      "permanent": false
+    },
+    {
       "source": "/docs/i18n/id/resources/devrel-edits/cpmm-docs-updates",
       "destination": "/docs/en/resources/devrel-edits/cpmm-docs-updates",
       "permanent": false
@@ -259,6 +284,11 @@
     {
       "source": "/docs/i18n/ja/resources/devrel-edits/amm-v4-docs-updates",
       "destination": "/docs/en/resources/devrel-edits/amm-v4-docs-updates",
+      "permanent": false
+    },
+    {
+      "source": "/docs/i18n/ja/resources/devrel-edits/clmm-docs-updates",
+      "destination": "/docs/en/resources/devrel-edits/clmm-docs-updates",
       "permanent": false
     },
     {
@@ -302,6 +332,11 @@
       "permanent": false
     },
     {
+      "source": "/docs/i18n/ko/resources/devrel-edits/clmm-docs-updates",
+      "destination": "/docs/en/resources/devrel-edits/clmm-docs-updates",
+      "permanent": false
+    },
+    {
       "source": "/docs/i18n/ko/resources/devrel-edits/cpmm-docs-updates",
       "destination": "/docs/en/resources/devrel-edits/cpmm-docs-updates",
       "permanent": false
@@ -339,6 +374,11 @@
     {
       "source": "/docs/i18n/pt/resources/devrel-edits/amm-v4-docs-updates",
       "destination": "/docs/en/resources/devrel-edits/amm-v4-docs-updates",
+      "permanent": false
+    },
+    {
+      "source": "/docs/i18n/pt/resources/devrel-edits/clmm-docs-updates",
+      "destination": "/docs/en/resources/devrel-edits/clmm-docs-updates",
       "permanent": false
     },
     {
@@ -382,6 +422,11 @@
       "permanent": false
     },
     {
+      "source": "/docs/i18n/ru/resources/devrel-edits/clmm-docs-updates",
+      "destination": "/docs/en/resources/devrel-edits/clmm-docs-updates",
+      "permanent": false
+    },
+    {
       "source": "/docs/i18n/ru/resources/devrel-edits/cpmm-docs-updates",
       "destination": "/docs/en/resources/devrel-edits/cpmm-docs-updates",
       "permanent": false
@@ -419,6 +464,11 @@
     {
       "source": "/docs/i18n/tr/resources/devrel-edits/amm-v4-docs-updates",
       "destination": "/docs/en/resources/devrel-edits/amm-v4-docs-updates",
+      "permanent": false
+    },
+    {
+      "source": "/docs/i18n/tr/resources/devrel-edits/clmm-docs-updates",
+      "destination": "/docs/en/resources/devrel-edits/clmm-docs-updates",
       "permanent": false
     },
     {
@@ -462,6 +512,11 @@
       "permanent": false
     },
     {
+      "source": "/docs/i18n/vi/resources/devrel-edits/clmm-docs-updates",
+      "destination": "/docs/en/resources/devrel-edits/clmm-docs-updates",
+      "permanent": false
+    },
+    {
       "source": "/docs/i18n/vi/resources/devrel-edits/cpmm-docs-updates",
       "destination": "/docs/en/resources/devrel-edits/cpmm-docs-updates",
       "permanent": false
@@ -502,6 +557,11 @@
       "permanent": false
     },
     {
+      "source": "/docs/i18n/zh-Hant/resources/devrel-edits/clmm-docs-updates",
+      "destination": "/docs/en/resources/devrel-edits/clmm-docs-updates",
+      "permanent": false
+    },
+    {
       "source": "/docs/i18n/zh-Hant/resources/devrel-edits/cpmm-docs-updates",
       "destination": "/docs/en/resources/devrel-edits/cpmm-docs-updates",
       "permanent": false
@@ -539,6 +599,11 @@
     {
       "source": "/docs/i18n/zh/resources/devrel-edits/amm-v4-docs-updates",
       "destination": "/docs/en/resources/devrel-edits/amm-v4-docs-updates",
+      "permanent": false
+    },
+    {
+      "source": "/docs/i18n/zh/resources/devrel-edits/clmm-docs-updates",
+      "destination": "/docs/en/resources/devrel-edits/clmm-docs-updates",
       "permanent": false
     },
     {
@@ -1089,6 +1154,7 @@
                   "docs/en/resources/devrel-edits/transfer-hooks",
                   "docs/en/resources/devrel-edits/amm-v4-docs-updates",
                   "docs/en/resources/devrel-edits/cpmm-docs-updates",
+                  "docs/en/resources/devrel-edits/clmm-docs-updates",
                   "docs/en/resources/devrel-edits/user-flow-docs-updates"
                 ]
               },

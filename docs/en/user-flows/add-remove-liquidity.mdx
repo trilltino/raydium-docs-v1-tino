@@ -82,7 +82,7 @@ CLMM fee or reward → per-position pending balance
                    → DecreaseLiquidity, including a zero-liquidity collection
 
 Farm reward → farm ledger pending balance
-            → Farm v6 Harvest, or legacy v3/v5 Deposit with amount = 0
+            → Withdraw with amount = 0 on Farm v6 or legacy v3/v5
 ```
 
 For the complete claim paths and troubleshooting, see [Claim rewards](/docs/en/user-flows/claim-rewards).
@@ -97,7 +97,7 @@ Farm rewards accrue while your LP tokens are staked in an active farm. Harvestin
 4. Review pending amounts per reward stream.
 5. Confirm and approve in your wallet.
 
-Farm v6 uses `Harvest`. Legacy Farm v3 and v5 use `Deposit` with `amount = 0` to claim without changing stake. Farm deposits and withdrawals can also settle pending rewards, so review the confirmation carefully.
+**Harvest** is the UI action. On Farm v6 and on legacy Farm v3 and v5, the SDK behind it sends `Withdraw` with `amount = 0`, which claims without changing your stake. Farm deposits and withdrawals can also settle pending rewards, so review the confirmation carefully.
 
 ## Collect CLMM fees and rewards
 

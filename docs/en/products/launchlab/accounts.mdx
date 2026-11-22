@@ -74,7 +74,7 @@ pub struct VestingSchedule {
     pub total_locked_amount:    u64,
     pub cliff_period:           u64,
     pub unlock_period:          u64,
-    pub start_time:             u64,           // set at graduation
+    pub start_time:             u64,           // set by the buy that completes fundraising
     pub allocated_share_amount: u64,           // running sum across VestingRecords
 }
 ```
@@ -83,8 +83,8 @@ pub struct VestingSchedule {
 
 ```
 0 = Fund            — accepting buys / sells; below total_quote_fund_raising
-1 = Migrate         — threshold reached; awaiting MigrateToAmm / MigrateToCpswap
-2 = Trade           — migration done; post-graduation AMM trading, vesting clock running
+1 = Migrate         — threshold reached; vesting clock started; awaiting MigrateToAmm / MigrateToCpswap
+2 = Trade           — migration done; post-graduation AMM trading; vesting claims allowed after start_time
 ```
 
 Integrator-facing fields:
@@ -233,13 +233,14 @@ Read it only when the owning `PlatformConfig.restrict_curve_param` is `1` — at
 
 | Event | Status | `real_base` | `real_quote` | Post-graduation pool |
 |-------|--------|-------------|--------------|----------------------|
-| `Initialize` | Funding | 0 | 0 | — |
-| `BuyExactIn` / `BuyExactOut` | Funding | `+base_out` | `+quote_in_after_fee` | — |
-| `SellExactIn` / `SellExactOut` | Funding | `−base_in` | `−quote_out_before_fee` | — |
-| `MigrateToCpswap` (or legacy `MigrateToAmm`) | Funding → Migrate → Migrated | (frozen) | (frozen) | created; CPMM LP is split into platform-owned locked LP and burned LP |
+| `Initialize` | Fund | 0 | 0 | — |
+| `BuyExactIn` / `BuyExactOut` | Fund | `+base_out` | `+quote_in_after_fee` | — |
+| Buy that completes fundraising | Fund → Migrate | `+base_out` | `+quote_in_after_fee` | — (sets `vesting_schedule.start_time`) |
+| `SellExactIn` / `SellExactOut` | Fund | `−base_in` | `−quote_out_before_fee` | — |
+| `MigrateToCpswap` (or legacy `MigrateToAmm`) | Migrate → Trade | (frozen) | (frozen) | created; CPMM LP is split into platform-owned locked LP and burned LP |
 | `ClaimCreatorFee` / `ClaimPlatformFee*` | any | — | — | drains a fee vault |
-| `CreateVestingAccount` | Funding | — | — | bumps `vesting_schedule.allocated_share_amount` |
-| `ClaimVestedToken` | Migrated only | — | — | drains `base_vault` |
+| `CreateVestingAccount` | Fund | — | — | bumps `vesting_schedule.allocated_share_amount` |
+| `ClaimVestedToken` | Trade only | — | — | drains `base_vault` |
 | `CollectExcessLamports` | any | — | — | — (moves lamports only, never token balances) |
 
 ## Where to go next

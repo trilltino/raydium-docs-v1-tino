@@ -13,14 +13,13 @@ description: "Harvest farm rewards and collect CLMM fees and rewards through the
 |---|---|
 | CPMM LP fees | Fees remain in pool reserves; withdraw LP to realize your share |
 | CLMM LP fees and position rewards | `DecreaseLiquidity` or `DecreaseLiquidityV2`, including zero-liquidity collection |
-| Farm v6 rewards | `Harvest` |
-| Legacy Farm v3/v5 rewards | `Deposit` with `amount = 0` |
+| Farm v6 and legacy Farm v3/v5 rewards | `Withdraw` with `amount = 0` |
 | Locked-position LP fees | LP-Lock collection by the current Fee Key holder; see [Burn & Earn](/docs/en/user-flows/burn-and-earn) |
 
 ```text
 CPMM fee → pool reserves → LP withdrawal
 CLMM fee/reward → position counters → DecreaseLiquidity
-Farm reward → farm ledger → v6 Harvest or legacy Deposit(0)
+Farm reward → farm ledger → Withdraw(0) on Farm v3, v5 or v6
 ```
 
 ## Farm harvest
@@ -35,7 +34,7 @@ Farm rewards accrue while your eligible LP tokens are staked in an active farm. 
 4. Review pending amounts per reward stream.
 5. Confirm and approve in your wallet.
 
-Farm v6 has an explicit `Harvest` instruction. Legacy Farm v3 and v5 instead use `Deposit` with `amount = 0` to settle rewards without changing stake. Identify the farm's program version before building or debugging a transaction.
+**Harvest** is the UI action. On Farm v6 and on legacy Farm v3 and v5, the SDK behind it sends `Withdraw` with `amount = 0`, which settles rewards without changing your stake. Identify the farm's program version before building or debugging a transaction.
 
 ## Combined deposit or withdraw with harvest
 
@@ -126,6 +125,6 @@ After harvest or collection:
 
 ## Pointers
 
-- [`products/farm-staking/instructions`](/docs/en/products/farm-staking/instructions) — harvest instruction details.
+- [`products/farm-staking/instructions`](/docs/en/products/farm-staking/instructions) — version-specific claim-only instruction details.
 - [`products/clmm/fees`](/docs/en/products/clmm/fees) — CLMM's built-in rewards.
 - [`integration-guides/wallet-integration`](/docs/en/integration-guides/wallet-integration) — showing pending rewards in a wallet UI.

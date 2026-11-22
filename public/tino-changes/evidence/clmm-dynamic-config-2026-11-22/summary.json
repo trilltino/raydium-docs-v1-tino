@@ -1,0 +1,25 @@
+{
+  "generated_at": "2026-11-22T15:56:22.179191+00:00",
+  "completed_near_slot": 472598884,
+  "api": "https://api-v3.raydium.io/main/clmm-dynamic-config",
+  "on_chain_configs": 4,
+  "api_configs": 4,
+  "fields_compared": 20,
+  "fields_matching": 6,
+  "mismatches": [
+    "index 0 filter_period: on-chain 10, API 30",
+    "index 0 dynamic_fee_control: on-chain 99999, API 10000",
+    "index 0 max_volatility_accumulator: on-chain 500000, API 4000000",
+    "index 1 filter_period: on-chain 10, API 60",
+    "index 1 dynamic_fee_control: on-chain 19723, API 15000",
+    "index 1 max_volatility_accumulator: on-chain 390000, API 600000",
+    "index 2 filter_period: on-chain 15, API 60",
+    "index 2 dynamic_fee_control: on-chain 2055, API 15000",
+    "index 2 max_volatility_accumulator: on-chain 260000, API 150000",
+    "index 3 filter_period: on-chain 30, API 180",
+    "index 3 decay_period: on-chain 900, API 3600",
+    "index 3 reduction_factor: on-chain 5000, API 7000",
+    "index 3 dynamic_fee_control: on-chain 1736, API 25000",
+    "index 3 max_volatility_accumulator: on-chain 200000, API 80000"
+  ]
+}

@@ -97,12 +97,12 @@ console.log("harvest txs:", txIds);
 
 The builder packs as many farms per transaction as the 1232-byte limit allows and splits the rest into follow-up transactions, which is why it returns `txIds` rather than a single `txId`.
 
-For a single farm, harvest with the `amount: 0` idiom — this is what [`src/farm/harvest.ts`](https://github.com/raydium-io/raydium-sdk-V2-demo/blob/master/src/farm/harvest.ts) does, on every version including v6:
+For a single v6 farm, harvest with `Withdraw`'s `amount: 0` idiom. The SDK's [`src/farm/harvest.ts`](https://github.com/raydium-io/raydium-sdk-V2-demo/blob/master/src/farm/harvest.ts) dispatches the claim through `withdraw`:
 
 ```ts
 const { execute } = await raydium.farm.withdraw({
   farmInfo,
-  amount: new BN(0),        // 0 = harvest-only path
+  amount: new BN(0),        // v6 claim-only path
   txVersion: TxVersion.V0,
 });
 await execute({ sendAndConfirm: true });

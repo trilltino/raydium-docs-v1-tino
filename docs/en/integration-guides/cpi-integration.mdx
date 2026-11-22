@@ -204,7 +204,7 @@ Common bug: passing `user` as `payer` while `escrow_input_ata` is owned by the e
 Several Raydium instructions take a variable-length list of accounts appended after the fixed ones — **remaining accounts**.
 
 - **CLMM `SwapV2`**: 1–8 `TickArrayState` accounts for the tick arrays the swap may traverse, in swap direction.
-- **Farm v6 `Deposit` / `Harvest` / `Withdraw`**: `(reward_vault, user_reward_ata)` pairs, one pair per live reward slot.
+- **Farm v6 `Deposit` / `Withdraw`** (including the `Withdraw` with `amount = 0` that claims rewards): `(reward_vault, user_reward_ata)` pairs, one pair per live reward slot.
 - **Token-2022 transfer-hook mints**: the transfer-hook program plus any accounts the hook needs.
 
 The Anchor CPI helpers don't type-check remaining accounts. Pass them through:
@@ -224,7 +224,7 @@ remaining = [
 ]
 ```
 
-For farm v6 harvest:
+For a Farm v6 claim (`Withdraw` with `amount = 0`):
 
 ```
 remaining = [

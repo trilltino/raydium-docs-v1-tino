@@ -1,0 +1,32 @@
+{
+  "generated_at": "2026-11-22T15:50:20.882963+00:00",
+  "ui_bundle": {
+    "bundle": "https://raydium.io/_next/static/chunks/pages/_app-92f61537ff49318b.js",
+    "bundle_sha256": "121e32674483d0ded54472e946ea376494800376d2ca9f1363529cea5ce24df7"
+  },
+  "launchlab_referral_percent": 1.0,
+  "launchlab_default_slippage_percent": 2.5,
+  "cpmm_ui_trade_fee_percents": [
+    0.25,
+    0.3,
+    0.5,
+    1.0,
+    1.5,
+    2.0,
+    2.5,
+    4.0
+  ],
+  "cpmm_configs_in_api": 21,
+  "launchlab_public_sol_config": {
+    "pubkey": "6s1xP3hpbAfFoNtUNF8mfHsjr2Bd97JxFJRWLbL6aHuX",
+    "default_raise_sol": 85.0,
+    "minimum_raise_sol": 24.0,
+    "max_share_fee_percent": 1.0,
+    "max_lock_percent": 80.0,
+    "min_migrate_percent": 15.0
+  },
+  "sources": {
+    "cpmm_config": "https://api-v3.raydium.io/main/cpmm-config",
+    "launchlab_configs": "https://launch-mint-v1.raydium.io/main/configs"
+  }
+}

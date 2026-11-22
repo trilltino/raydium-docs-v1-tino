@@ -198,7 +198,7 @@ let cpi_ctx = CpiContext::new(program_id, accounts)
 Order always matters, since the receiver program iterates remaining accounts in the order you pass them. Two confirmed orderings:
 
 - **CLMM `SwapV2`**: [tick arrays](#applying-the-pattern-clmm), ordered directionally.
-- **Farm v6**: `(reward_vault, user_reward_ata)` pairs, but only from the second reward stream onward; see [Farm v6](#farm-v6) for what decoding a real transaction shows.
+- **Farm v6**: `(reward_vault, user_reward_ata)` pairs after the fixed accounts, one pair per reward stream, starting with the first; see [Farm v6](#farm-v6) for the full order.
 
 ## Applying the pattern: CLMM
 
@@ -419,7 +419,7 @@ See [`products/amm-v4/code-demos`](/docs/en/products/amm-v4/code-demos) for the 
 
 **If you need Rust CPI regardless**, for example composing from another on-chain program, build the `Instruction` by hand, the same way as [AMM v4](#amm-v4-manual-instruction-construction): derive the real account list and instruction discriminators independently, for example by decoding the SDK's TypeScript layouts (`raydium-sdk-V2`'s farm module), decoding real transactions directly (see below), or dumping and disassembling the deployed program.
 
-For the zero-argument instruction shape consistent with a harvest or claim call, the real account order is a fixed prefix (`token_program`, the farm's state account, a vault-authority PDA, that PDA's first reward vault, a second PDA, the caller, and the caller's ATA for that first reward mint), followed by `(reward_vault_i, user_reward_ata_i)` pairs in `remaining_accounts` for every reward stream after the first. The pairing convention is real, but it only starts at the second reward stream: the first stream's vault and ATA are fixed accounts, not adjacent to each other, and not part of `remaining_accounts` at all.
+A Farm v6 claim is `Withdraw` (tag `2`) with a zero `u64` amount, so its data is 9 bytes. The SDK's `makeWithdrawInstructionV6` and mainnet claims observed on 22 November 2026 use the same account order. Seven fixed accounts come first: `token_program`, the farm's state account, the farm authority PDA, the farm's LP vault, the caller's ledger PDA, the caller (signer), and the caller's LP token account. Then come `(reward_vault_i, user_reward_ata_i)` pairs, one per reward stream, starting with the first. `Deposit` (tag `1`) uses the same list with `system_program` inserted after `token_program`.
 
 ## Testing a CPI flow
 

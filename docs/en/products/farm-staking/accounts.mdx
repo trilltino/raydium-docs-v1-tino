@@ -158,7 +158,7 @@ The per-stream debt is the accounting offset described in the overview:
 pending_for_stream_i = deposited × reward_per_share_x64[i] / 2^64  − reward_debts[i]
 ```
 
-After each `Deposit`, `Withdraw`, or `Harvest`, the debt is reset to the current `deposited × reward_per_share_x64[i] / 2^64`.
+After each `Deposit` or `Withdraw`, including a zero-amount claim-only call, the debt is reset to the current `deposited × reward_per_share_x64[i] / 2^64`.
 
 ## Authority PDAs
 

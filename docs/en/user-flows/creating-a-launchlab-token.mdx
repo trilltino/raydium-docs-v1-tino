@@ -110,10 +110,10 @@ Vesting locks part of the token supply and releases it linearly to designated wa
 | Field | Description |
 |---|---|
 | Total locked amount | Tokens reserved across creator and platform beneficiaries, subject to UI, config, and platform limits. |
-| Cliff period | Wait time after fundraising ends before tokens start unlocking. |
+| Cliff period | Wait time after fundraising completes before tokens start unlocking. |
 | Unlock period | Duration of linear unlock after the cliff. |
 
-The program records the vesting start when fundraising successfully ends and the launch becomes ready to migrate. It does not wait for the later `MigrateToCpswap` transaction. Claims still require the launch to have completed migration.
+The buy that completes fundraising records the vesting `start_time` as its block time plus the cliff period. The later `MigrateToCpswap` transaction does not change it. Claims still require the launch to have migrated (the `Trade` state).
 
 <Warning>
   Supply, total locked amount, cliff, and unlock period are fixed at launch. A later platform-config update does not rewrite an existing launch's schedule.

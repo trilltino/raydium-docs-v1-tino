@@ -4,7 +4,7 @@ description: "End-to-end TypeScript examples: create a CLMM pool, open a positio
 ---
 
 <Info>
-  **Version banner.** All TypeScript demos target `@raydium-io/raydium-sdk-v2@0.2.85-alpha` on Solana mainnet-beta. They were last executed against `0.2.42-alpha` (2026-04); their call signatures were re-checked against the published `0.2.85-alpha` package on 2026-11-20. The Rust CPI skeleton at the end targets `raydium-clmm` on `master`, Anchor `1.0.2`, the same pin as the CPMM page, so the two can live in one crate. Program IDs come from [`reference/program-addresses`](/docs/en/reference/program-addresses) via the SDK.
+  **Version banner.** All TypeScript demos target `@raydium-io/raydium-sdk-v2@0.2.85-alpha` on Solana mainnet-beta. They were last executed against `0.2.42-alpha` (2026-04); on 2026-11-22 every TypeScript block on this page was type-checked against the published `0.2.85-alpha` package, and the program behavior checked against `raydium-clmm` at `6d7a0f82`. The Rust CPI skeleton at the end targets `raydium-clmm` on `master`, Anchor `1.0.2`, the same pin as the CPMM page, so the two can live in one crate. Program IDs come from [`reference/program-addresses`](/docs/en/reference/program-addresses) via the SDK.
 </Info>
 
 ## Setup
@@ -52,7 +52,7 @@ const mintB = await raydium.token.getTokenInfo(
 // getClmmConfigs() returns ApiClmmConfigInfo (id is a string). createPool wants
 // ClmmConfigInfo, which needs a PublicKey id plus fundOwner/description — convert:
 const clmmConfigs = await raydium.api.getClmmConfigs();
-const picked = clmmConfigs.find((c) => c.index === 1)!;        // 0.05% tier
+const picked = clmmConfigs.find((c) => c.index === 1)!;        // 0.25% tier, tick spacing 60
 const ammConfig = { ...picked, id: new PublicKey(picked.id), fundOwner: "", description: "" };
 
 const initialPrice = new Decimal(160);        // 160 USDC per SOL
@@ -73,8 +73,11 @@ The SDK:
 
 - Sorts `mint1`/`mint2` by byte order before derivation.
 - Computes `sqrt_price_x64 = floor(sqrt(initialPrice × 10^(dB−dA)) × 2^64)`.
-- Creates the `observation` and `tick_array_bitmap_extension` accounts.
-- Pays the pool-creation fee defined by `ammConfig`.
+- Passes the `observation` and `tick_array_bitmap_extension` PDAs, which `CreatePool` creates.
+
+CLMM charges no pool-creation fee; unlike CPMM, its `AmmConfig` has no such field. The creator pays only rent for the new accounts.
+
+`getClmmConfigs()` returns the configs the API lists: 18 of the 21 on mainnet on 2026-11-22, without indexes 0, 2 and 20.
 
 ## Open a position in a chosen range
 
@@ -157,18 +160,37 @@ const allPositions = await raydium.clmm.getOwnerPositionInfo({
 const positionAccount = allPositions.find((p) => p.nftMint.equals(positionNftMint));
 if (!positionAccount) throw new Error("position not found for this wallet");
 
-const { execute } = await raydium.clmm.increasePositionFromBase({
+// Quote the liquidity a 0.005 SOL deposit adds to this position's range.
+const slippage = 0.01;
+const amountA = new BN(5_000_000);
+const quote = await PoolUtils.getLiquidityAmountOutFromAmountIn({
   poolInfo,
+  slippage: 0,
+  inputA: true,
+  tickLower: positionAccount.tickLower,
+  tickUpper: positionAccount.tickUpper,
+  amount: amountA,
+  add: true,
+  amountHasFee: true,
+  epochInfo: await raydium.fetchEpochInfo(),
+});
+
+// increasePositionFromLiquidity takes the position exactly as getOwnerPositionInfo returns it.
+const { execute } = await raydium.clmm.increasePositionFromLiquidity({
+  poolInfo,
+  poolKeys,
   ownerPosition: positionAccount,
   ownerInfo: { useSOLBalance: true },   // required
-  base: "MintA",
-  baseAmount: new BN(5_000_000),
-  otherAmountMax: new BN(1_000_000_000),
-  txVersion: TxVersion.V0,              // no poolKeys member on this call
+  liquidity: new BN(new Decimal(quote.liquidity.toString()).mul(1 - slippage).toFixed(0)),
+  amountMaxA: amountA,
+  amountMaxB: new BN(new Decimal(quote.amountSlippageB.amount.toString()).mul(1 + slippage).toFixed(0)),
+  txVersion: TxVersion.V0,
 });
 
 await execute({ sendAndConfirm: true });
 ```
+
+`increasePositionFromBase` wants a `ClmmPoolPersonalPosition` with prices and amounts filled in, not the raw position `getOwnerPositionInfo()` returns, so it does not type-check with this input. The demo repo uses `increasePositionFromLiquidity`, as above.
 
 ## Decrease liquidity (and collect fees at the same time)
 
@@ -197,12 +219,12 @@ To **collect fees and rewards only**, call `decreaseLiquidity` with `liquidity =
 To close the position entirely after zeroing liquidity and fees, pass `ownerInfo: { closePosition: true }` on the final `decreaseLiquidity` call. The SDK appends `ClosePosition` and burns the NFT.
 
 <Warning>
-  **Restricted-issuer positions require a compatible close builder.** These positions have a frozen NFT token account. `ClosePosition` must append the position's pool ID as the first remaining account so CLMM can thaw the account before burning it. The program-source branch does not include an SDK change. Confirm that your SDK release explicitly supports the frozen close path before enabling restricted-issuer position creation.
+  **Restricted-issuer positions require a compatible close builder.** These positions have a frozen NFT token account. `ClosePosition` must append the position's pool ID as the first remaining account so CLMM can thaw the account before burning it. SDK `0.2.85-alpha` does this on every close: `closePositionInstructions` passes `poolInfo.id` as that account. Older SDK releases may not.
 </Warning>
 
 For a direct Anchor client, keep the declared accounts unchanged and append the pool:
 
-This example targets Solana `mainnet-beta` and was last verified against CLMM source `ecb1577` on 2026-08-13. See [program addresses](/docs/en/reference/program-addresses).
+This example targets Solana `mainnet-beta` and was checked against CLMM source `6d7a0f82` on 2026-11-22. See [program addresses](/docs/en/reference/program-addresses).
 
 ```ts
 await program.methods
@@ -300,7 +322,7 @@ const { execute } = await raydium.clmm.swap({
 await execute({ sendAndConfirm: true });
 ```
 
-The simulation walks the tick map off-chain with the same logic as the on-chain program and returns the amount out (`amountCalculated`) plus the exact account list the swap will touch (`accounts`).
+The simulation walks the tick map off-chain with the same logic as the on-chain program, including the pool's fee side, the dynamic fee and limit-order fills. It returns the amount out (`amountCalculated`) plus the exact account list the swap will touch (`accounts`).
 
 Always pass the `remainingAccounts` the simulation returns: too few and the swap reverts mid-walk with `NotEnoughTickArrayAccount`; stale ones just waste compute.
 
@@ -393,8 +415,8 @@ const orderData = getOrderTick({
   price: targetPrice,
 });
 
-// A sell order must sit above the current tick; a buy order below it.
-if (orderData.tick < rpcData.tickCurrent) throw new Error("sell price must be > current price");
+// A sell order must sit strictly above the current tick; a buy order strictly below it.
+if (orderData.tick <= rpcData.tickCurrent) throw new Error("sell price must be > current price");
 
 const { execute, extInfo } = await raydium.clmm.openLimitOrder({
   poolInfo,
@@ -436,7 +458,7 @@ await raydium.clmm.decreaseLimitOrder({
 }).then((b) => b.execute({ sendAndConfirm: true }));
 ```
 
-`decreaseLimitOrder` can only remove from the **unfilled** portion of the order; the filled portion is locked until settlement. Both instructions revert with `InvalidOrderPhase` if the order has already been fully filled.
+`decreaseLimitOrder` settles any filled output first, then removes up to `amount` from the **unfilled** portion. On a fully filled order it just pays out the output and removes nothing. `increaseLimitOrder` reverts with `InvalidOrderPhase` as soon as the order's cohort has started filling.
 
 ### Settle a filled order
 
@@ -555,18 +577,18 @@ Remaining-account order for `SwapV2`:
 [tick_array_bitmap_extension?, tick_array_0, tick_array_1, …]
 ```
 
-If the swap never needs the extension, omit it; otherwise it is the first remaining account.
+If the swap never needs the extension, omit it. The program classifies recognized remaining accounts by data length, so the extension may sit anywhere. It preserves the encounter order of tick arrays, which must stay in walk order starting with the array that holds the current tick.
 
 ## Common pitfalls
 
 - **Off-spacing tick endpoints** → `TickAndSpacingNotMatch`. Always snap via `TickUtil.getPriceAndTick` (singular `TickUtil`).
 - **Not enough tick arrays supplied in `SwapV2`** → `NotEnoughTickArrayAccount`. Take the list from `swapInternal(...).accounts`.
-- **Full-range position without the bitmap extension** → the extension PDA must be writable; the SDK handles this automatically.
+- **Position endpoints outside the inline bitmap** → pass the bitmap-extension PDA as writable. A full-range position needs it only when its endpoint arrays fall outside inline coverage; at tick spacing 15 or greater, the full range fits inline. The SDK handles this automatically.
 - **Mistaking `sqrt_price_x64` for `price`** → a factor-of-2 confusion here is particularly painful. When in doubt, let the SDK compute it from a human-readable price.
 - **Collecting rewards too eagerly** → each collect is a zero-liquidity `DecreaseLiquidity` and costs one transaction. Batch via `harvestAllRewards` across many positions, and remember its `execute` needs `{ sequentially: true }`.
 - **Closing NFT accounts yourself** → `ClosePosition` burns the NFT and closes its ATA. It also closes a Token-2022 NFT mint; a classic SPL Token mint remains at supply zero because that program cannot close mints. Do not close supported accounts separately or the instruction will revert.
 - **Opening a limit order at a non-spaced tick** → `TickAndSpacingNotMatch`. Always quantize via the exported `getOrderTick` helper.
-- **Calling `decreaseLimitOrder` on a fully-filled order** → `InvalidOrderPhase`. Use `settleLimitOrder` then `closeLimitOrder` instead.
+- **Calling `increaseLimitOrder` after the order started filling** → `InvalidOrderPhase`. Open a new order instead. For a filled order, `settleLimitOrder` then `closeLimitOrder`; `closeLimitOrder` fails with `InvalidLimitOrderAmount` until the fill has been settled.
 - **Expecting an `enableDynamicFee` flag** → there is none. Omitting `dynamicFeeConfig` simply creates a static-fee pool, silently and with no error. If you wanted dynamic fees, pass the config account's `PublicKey`, picked from `/main/clmm-dynamic-config`.
 
 ## Where to go next

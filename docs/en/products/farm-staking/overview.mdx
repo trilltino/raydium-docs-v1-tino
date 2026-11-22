@@ -38,7 +38,7 @@ pending(user)    := user.staked × (reward_per_share − user.reward_debt)
 - **`reward_per_share`** is stored on the farm account as a fixed-point counter (Q64.64 in v5+, Q56.8 in v3). It only grows.
 - **`user.reward_debt`** is the snapshot of `reward_per_share` at the user's last interaction. It is not a debt the user owes; it is an offset used to compute future accruals.
 - On `Deposit` and `Withdraw`, the farm first settles pending rewards (crediting `user.pending_reward` or sending directly to the user's ATA, depending on version), then updates `user.reward_debt` to the current counter.
-- On `Harvest`, the farm pays out `pending_reward` and snapshots `reward_debt` again.
+- On a claim-only call (`Withdraw(0)` on any version), the farm pays out `pending_reward` and snapshots `reward_debt` again.
 
 The per-second emission rate enters the accounting via a lazy update:
 
@@ -50,7 +50,7 @@ if total_staked > 0:
 reward.last_update_time := now
 ```
 
-Lazy: no instruction is emitted "every second." The counter is refreshed every time anyone touches the farm (`Deposit`, `Withdraw`, `Harvest`, admin update). Farms with no activity accrue a growing gap that is closed on the next interaction.
+Lazy: no instruction is emitted "every second." The counter is refreshed every time anyone touches the farm (`Deposit`, `Withdraw`, including zero-amount claim calls, or an admin update). Farms with no activity accrue a growing gap that is closed on the next interaction.
 
 ## Staking mint vs reward mint
 

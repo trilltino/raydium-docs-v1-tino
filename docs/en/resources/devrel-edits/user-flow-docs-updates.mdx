@@ -3,13 +3,15 @@ title: "User-flow docs updates"
 description: "Corrections to the liquidity-provider and LaunchLab user flows, with the old and new wording and links to the source behind each change."
 ---
 
-- 2026-11-21 · **[Liquidity-provider and LaunchLab user flows](/docs/en/user-flows):** Corrects the 11 audited user-flow pages and the linked references that repeated the same errors. No upstream PR has been opened. The changes are in this checkout.
+- 2026-11-21 to 2026-11-22 · **[Liquidity-provider and LaunchLab user flows](/docs/en/user-flows):** Corrects the 11 audited user-flow pages and the linked references that repeated the same errors. A [follow-up pass](#follow-up-pass-on-22-november) corrects the Farm v6 claim path, shows from mainnet transactions when the LaunchLab vesting clock starts, and saves evidence for the Raydium UI and API values the pages quote. No upstream PR has been opened. The changes are in this checkout.
 
 **In short.** The user guides mixed current behavior with retired AMM v4 and LaunchLab models. They described orderbook operations that AMM v4 now rejects, CLMM collection instructions that do not exist, permissionless LaunchLab migration that the IDL does not permit, and a referral rate that no longer matches the Raydium UI. This pass corrects those mechanics, replaces unsupported return and security claims, and adds the missing state, account, fee, lock, and claim flows.
 
 ## Pages edited
 
-**For traders:** none. [Swap](/docs/en/user-flows/swap) and [Perpetuals](/docs/en/user-flows/perpetuals) were not edited in this pass.
+**For traders:**
+
+- [Referrals & Blinks](/docs/en/user-flows/referrals-and-blinks): its pointer to LaunchLab referrals now gives the Raydium UI's 1% rate instead of 0.1%. The page's swap-referral content was not audited. [Swap](/docs/en/user-flows/swap) and [Perpetuals](/docs/en/user-flows/perpetuals) were not edited.
 
 **For liquidity providers:**
 
@@ -28,14 +30,19 @@ description: "Corrections to the liquidity-provider and LaunchLab user flows, wi
 - [How creator fees work](/docs/en/user-flows/how-creator-fees-work): separates bonding-curve creator fees, CPMM creator fees, and locked-LP Fee Key revenue by beneficiary and claim path.
 - [LaunchLab platforms](/docs/en/user-flows/launchlab-platforms): replaces invented platform fields with the current `PlatformConfig` model for fees, vesting, LP rights, Token-2022 authority, and launch restrictions.
 
+**Elsewhere in the user guide:** the [landing-page cards](/docs/en/user-flows) and the [developer launch flow](/docs/en/user-flows/launch-token-launchlab) received consistency edits only. See [Linked-page consistency](#linked-page-consistency-and-repository-guidance).
+
 **How to read this page.** Each change links to the affected section and supporting source. **Was** records the previous wording or missing coverage. **Now** records the replacement or addition. Quotation marks indicate exact wording; "…" marks omitted text.
 
 **How it was checked.**
 
 - **Public program source:** `raydium-amm` at [`9c54069`](https://github.com/raydium-io/raydium-amm/tree/9c54069c6bd86d52cd6622705b98c274ee33ba4a), `raydium-cp-swap` at [`3d69122`](https://github.com/raydium-io/raydium-cp-swap/tree/3d69122790e97cd6aff24e8ba95940793773f58c), and `raydium-clmm` at [`6d7a0f8`](https://github.com/raydium-io/raydium-clmm/tree/6d7a0f82d2f293c553c69aaf943377367c6c4cc6).
 - **Published interfaces:** LaunchLab IDL at [`e7e0c96`](https://github.com/raydium-io/raydium-idl/tree/e7e0c96fe77bcf6a020b84a44c47a722aac8e359), SDK source at [`32a184e`](https://github.com/raydium-io/raydium-sdk-V2/tree/32a184eb0aea15ddbb485e24a1a73d3723fd94d6), and the official LP-Lock CPI interface at [`115df27`](https://github.com/raydium-io/raydium-cpi/tree/115df2779d53bacc7db9d0be2773a4b48a6d372b).
-- **Current product behavior:** the Raydium production UI was inspected without a wallet on 19 November 2026. Its LaunchLab referral module uses `10_000 / 1_000_000 = 1%`; its default LaunchLab slippage is 2.5%; its creation tabs are **JustSendIt** and **Advanced**; its CPMM lock UI offers partial percentages. Live [CPMM config](https://api-v3.raydium.io/main/cpmm-config) and [LaunchLab config](https://launch-mint-v1.raydium.io/main/configs) responses were checked on the same date.
-- **Source unavailable:** LaunchLab, LP-Lock, and Farm program implementations are not public. Claims about them use their IDLs, SDKs, official interfaces, local technical references, APIs, and UI evidence. No transaction was signed or submitted, and no code example was executed on a cluster.
+- **Current product behavior:** the Raydium production UI was inspected without a wallet on 19 November 2026. Its LaunchLab creation tabs were **JustSendIt** and **Advanced**. That observation was not captured, so treat it as dated. The other UI and API values were captured on 22 November by `scripts/check-user-flow-live-values.py`:
+  - From the production JavaScript bundle: the LaunchLab referral `shareFeeRate` of `10_000 / 1_000_000 = 1%`, and the default LaunchLab slippage of 2.5%. The evidence records the bundle URL, its SHA-256 and the matched code.
+  - From the live [CPMM config](https://api-v3.raydium.io/main/cpmm-config) and [LaunchLab config](https://launch-mint-v1.raydium.io/main/configs) APIs: the CPMM fee tiers the UI shows, and the public SOL config's 85 SOL default raise, 24 SOL minimum, 1% maximum share fee, 80% maximum lock and 15% minimum migration rate. Both responses are saved verbatim, and every value matched the 19 November check.
+  - The evidence is in `public/tino-changes/evidence/user-flows-2026-11-22/`.
+- **Source unavailable:** LaunchLab, LP-Lock, and Farm program implementations are not public. Claims about them use their IDLs, SDKs, official interfaces, local technical references, APIs, UI evidence and, from 22 November, mainnet transactions read over RPC. No transaction was signed or submitted, and no code example was executed on a cluster.
 
 ## AMM v4 and pool-selection corrections
 
@@ -79,13 +86,13 @@ description: "Corrections to the liquidity-provider and LaunchLab user flows, wi
 - **[Claim rewards](/docs/en/user-flows/claim-rewards) and [Add or remove liquidity](/docs/en/user-flows/add-remove-liquidity#how-fee-and-reward-claims-differ):** adds the actual CLMM and farm claim paths.
   - **Was:** the UI buttons were documented without explaining that no standalone `CollectFees` or `CollectReward` instruction exists.
   - **Now:** "CLMM pays both through `DecreaseLiquidity` or `DecreaseLiquidityV2`." The new argument block sets `liquidity = 0`, `amount_0_min = 0`, and `amount_1_min = 0`, and lists each reward's vault, recipient, and mint remaining-account group.
-- **[Claim rewards, claim paths](/docs/en/user-flows/claim-rewards#claim-paths-at-a-glance):** separates CPMM reserve accrual, CLMM position counters, Farm v6, legacy farms, and Fee Key harvesting.
+- **[Claim rewards, claim paths](/docs/en/user-flows/claim-rewards#claim-paths-at-a-glance):** separates CPMM reserve accrual, CLMM position counters, farm claims, and Fee Key harvesting. The [follow-up pass](#farm-claim-path) corrected the farm instruction this entry first gave.
   - **Was:** farm harvesting was described without version-specific instructions.
-  - **Now:** "Farm v6 has an explicit `Harvest` instruction. Legacy Farm v3 and v5 instead use `Deposit` with `amount = 0` to settle rewards without changing stake."
+  - **Now:** "**Harvest** is the UI action. On Farm v6 and on legacy Farm v3 and v5, the SDK behind it sends `Withdraw` with `amount = 0`, which settles rewards without changing your stake."
 - **Both claim sections:** removes prescribed weekly/monthly cadence and indefinite reward availability language.
   - **Was:** "For larger positions, weekly or monthly claims are often enough." … "You can still claim it after the end time unless the farm has been wound down in an unusual way."
   - **Now:** "No protocol rule requires a particular claim cadence." … "Claiming previously earned rewards still requires available reward-vault funds and a farm state that has not been wound down."
-- **[Burn & Earn, supported pools](/docs/en/user-flows/burn-and-earn#supported-pool-types):** CPMM permits partial locks, and CLMM full range is a recommendation rather than a demonstrated protocol restriction. Sources: [official LP-Lock CPI](https://github.com/raydium-io/raydium-cpi/blob/115df2779d53bacc7db9d0be2773a4b48a6d372b/programs/locking-cpi/src/lib.rs) · current CPMM lock UI
+- **[Burn & Earn, supported pools](/docs/en/user-flows/burn-and-earn#supported-pool-types):** CPMM permits partial locks, and CLMM full range is a recommendation rather than a demonstrated protocol restriction. Source: [official LP-Lock CPI, `lock_cp_liquidity(lp_amount)`](https://github.com/raydium-io/raydium-cpi/blob/115df2779d53bacc7db9d0be2773a4b48a6d372b/programs/locking-cpi/src/lib.rs#L51-L56)
   - **Was:** "There is no partial lock. If you want 50% locked and 50% movable, split the position into two positions first."
   - **Now:** "You do not need to split a CPMM position merely to lock 50% of its LP balance."
 - **[Burn & Earn, program flow](/docs/en/user-flows/burn-and-earn#how-the-lock-works-at-the-program-level):** uses the actual lock and collection names and documents the separate Fee Key owner and optional metadata.
@@ -110,7 +117,7 @@ description: "Corrections to the liquidity-provider and LaunchLab user flows, wi
 - **[Buying, launch states](/docs/en/user-flows/buying-a-launchlab-token#after-the-funding-threshold):** removes permissionless automatic migration and guaranteed aggregator timing.
   - **Was:** "the token migrates to a Raydium AMM pool automatically" … "You can sell back to the curve at any time before graduation"
   - **Now:** "The last qualifying trade makes the launch eligible for migration. It does not make any trader an authorized migration caller and does not pay that caller a bounty." Curve selling is now restricted to `Fund`, with `Migrate` and `Trade` explained separately.
-- **[Buying, slippage](/docs/en/user-flows/buying-a-launchlab-token#slippage):** replaces generic trading advice with the observed UI default.
+- **[Buying, slippage](/docs/en/user-flows/buying-a-launchlab-token#slippage):** replaces generic trading advice with the observed UI default. Evidence: `public/tino-changes/evidence/user-flows-2026-11-22/ui-bundle.json`
   - **Was:** "A reasonable starting point for most launches is 1–3%; raise it only if needed on very low-liquidity launches nearing graduation."
   - **Now:** "The Raydium LaunchLab UI's default was **2.5%** when checked on 2026-11-19. This is a UI default, not a universally safe setting or a recommendation for every launch."
 - **[Buying, verification and risks](/docs/en/user-flows/buying-a-launchlab-token#verify-the-token-and-launch):** adds quote-mint identity, launch state, fee components, Token-2022 authorities, migrated pool identity, and the limits of mint-authority checks. LP risk now distinguishes current platform Fee Keys from historical creator keys.
@@ -123,16 +130,16 @@ description: "Corrections to the liquidity-provider and LaunchLab user flows, wi
 - **[Creation, modes and parameters](/docs/en/user-flows/creating-a-launchlab-token#configuration-options):** replaces "fully configurable" supply with current UI presets and config validation. Source: [SDK curve validation](https://github.com/raydium-io/raydium-sdk-V2/blob/32a184eb0aea15ddbb485e24a1a73d3723fd94d6/src/raydium/launchpad/curve/curve.ts#L196-L245)
   - **Was:** "Token supply | Fixed default | Fully configurable" … "The minimum graduation threshold is **24 SOL**."
   - **Now:** "Current UI presets: 100M, 1B, or 10B" … "The public SOL configuration's default target was **85 SOL** and its minimum was **24 SOL** when checked on 2026-11-19." A table now separates live config values from UI limits and protocol validation.
-- **[Creation, vesting](/docs/en/user-flows/creating-a-launchlab-token#vesting):** starts the schedule at fundraising completion, not the later migration transaction, and separates beneficiary records from initialization.
+- **[Creation, vesting](/docs/en/user-flows/creating-a-launchlab-token#vesting):** starts the schedule at fundraising completion, not the later migration transaction, and separates beneficiary records from initialization. The follow-up pass confirmed the start from [mainnet execution](#launchlab-vesting-clock-start).
   - **Was:** "Wait time after graduation before any tokens unlock" and step 5 said to "set beneficiary wallets and schedule" during initialization.
-  - **Now:** "The program records the vesting start when fundraising successfully ends and the launch becomes ready to migrate." … "`InitializeV2` or `InitializeWithToken2022` records the total locked amount and schedule, not a list of beneficiary wallets."
+  - **Now:** "The buy that completes fundraising records the vesting `start_time` as its block time plus the cliff period. The later `MigrateToCpswap` transaction does not change it." … "`InitializeV2` or `InitializeWithToken2022` records the total locked amount and schedule, not a list of beneficiary wallets."
 - **[Creation, LP and Fee Keys](/docs/en/user-flows/creating-a-launchlab-token#post-migration-lp-and-creator-fees):** removes the old creator-LP-share toggle and the promise of a new creator Fee Key.
   - **Was:** "LP tokens are minted to the CPMM pool." … "If you enabled post-migration fees, a **Fee Key NFT** is minted to your wallet."
   - **Now:** "The pool's initial LP tokens are minted to the migration recipient controlled by the launch flow" … "No new creator-owned Fee Key is minted merely because you created the token."
 - **[Creation, cost and pitfalls](/docs/en/user-flows/creating-a-launchlab-token#what-creation-costs):** replaces stale fixed SOL estimates with fee/rent review and removes the unsupported claim that an initial buy prevents near-zero-cost sniping.
   - **Was:** "~0.05–0.1 SOL for creation", "~0.1–0.5 SOL for creation and vault rent", and "Without an early buy, sniping bots may capture all early tokens at near-zero cost"
   - **Now:** "Review the exact balance changes before signing. A fixed SOL estimate becomes stale when account requirements, rent, priority fees, or platform configuration change." The sniping strategy row is removed.
-- **[Earn referral fees](/docs/en/user-flows/earn-referral-fees-launchlab):** changes the Raydium UI rate from 0.1% to 1% while preserving the per-integration `shareFeeRate` cap model.
+- **[Earn referral fees](/docs/en/user-flows/earn-referral-fees-launchlab):** changes the Raydium UI rate from 0.1% to 1% while preserving the per-integration `shareFeeRate` cap model. Evidence: `public/tino-changes/evidence/user-flows-2026-11-22/ui-bundle.json`
   - **Was:** "anyone who trades via your link generates a **0.1% commission** paid directly to your wallet."
   - **Now:** "The referral rate is **1%** of the applicable trade amount." … "Payment goes to your quote-token associated token account, not to a pending off-chain balance."
 - **[Referral attribution](/docs/en/user-flows/earn-referral-fees-launchlab#link-and-attribution-scope):** replaces the durable-session implication with observed `lreferrer` propagation.
@@ -164,8 +171,56 @@ description: "Corrections to the liquidity-provider and LaunchLab user flows, wi
 - **[Resources quick links](/docs/en/resources#quick-links):** links this change record.
 - **[`AGENTS.md`](https://github.com/trilltino/raydium-docs-v1-tino/blob/main/AGENTS.md):** replaces the reference to missing `UNSLOP.md` with the repository's actual style preferences and `CONTRIBUTION_STANDARDS.md`.
 
+## Follow-up pass on 22 November
+
+A review of the 21 November pass asked for execution evidence behind the Farm v6 claim path and the LaunchLab vesting start, a corrected page inventory, and saved evidence for the UI and API values. The LaunchLab pages also disagreed with each other: the vesting page put the start at fundraising completion and the instructions page at migration. An uncommitted edit between the passes had settled this in favour of migration. This pass checks each point against mainnet transactions, the SDK or the production UI, corrects what was wrong, and saves the evidence. The farm claim path turned out to be wrong on every farm version, not only v6.
+
+### Farm claim path
+
+- **[Claim rewards](/docs/en/user-flows/claim-rewards#farm-harvest), [Add or remove liquidity](/docs/en/user-flows/add-remove-liquidity#harvest-farm-rewards), [Farm instructions](/docs/en/products/farm-staking/instructions#instruction-inventory) and [Farm overview](/docs/en/products/farm-staking/overview):** the 21 November pass said Farm v6 has an explicit `Harvest` instruction, and that legacy v3 and v5 claim with `Deposit` and `amount = 0`. The SDK and mainnet both claim with `Withdraw` and `amount = 0` on every version. Sources: [`harvestAllRewards`, farm.ts L964–982](https://github.com/raydium-io/raydium-sdk-V2/blob/32a184eb0aea15ddbb485e24a1a73d3723fd94d6/src/raydium/farm/farm.ts#L964-L982) · [`makeWithdrawInstructionV6`, instruction.ts L838–876](https://github.com/raydium-io/raydium-sdk-V2/blob/32a184eb0aea15ddbb485e24a1a73d3723fd94d6/src/raydium/farm/instruction.ts#L838-L876)
+  - **Was:** "Farm v6 has an explicit `Harvest` instruction. Legacy Farm v3 and v5 instead use `Deposit` with `amount = 0` to settle rewards without changing stake." The farm instruction page had a `Harvest` (v6) section that took no arguments.
+  - **Now:** "**Harvest** is the UI action. On Farm v6 and on legacy Farm v3 and v5, the SDK behind it sends `Withdraw` with `amount = 0`, which settles rewards without changing your stake." The farm instruction page replaces the `Harvest` section with "Claim-only settlement".
+  - **Evidence:** `scripts/check-farm-claims.py` decoded the 1,000 most recent successful transactions of each farm program by the SDK's instruction tags:
+
+    | Program | Window | `Withdraw`, amount 0 | `Deposit`, amount 0 | Other calls |
+    |---|---|---|---|---|
+    | Farm v6 | 15 Oct – 22 Nov 2026 | 563 | 0 | 372 stakes, 235 unstakes, 89 farm-creator calls |
+    | Farm v5 | 23 Jan – 22 Nov 2026 | 490 | 3 | 322 unstakes, 57 ledger creations, 606 calls with tag 2, which the SDK does not build |
+    | Farm v3 | 17 – 22 Nov 2026 | 424 | 0 | 433 stakes, 143 unstakes, 71 ledger creations |
+
+    The Farm v6 sample contained no instruction outside the SDK's six. The evidence is in `public/tino-changes/evidence/farm-claims-2026-11-22/`.
+- **[Rust CPI, Farm v6](/docs/en/sdk-api/rust-cpi#farm-v6), [CPI integration](/docs/en/integration-guides/cpi-integration#remaining-accounts) and the [home page](/docs/en):** these described a separate harvest call, and Rust CPI gave an account order that does not match a real claim. The SDK builds a 9-byte `Withdraw`: the tag and a zero `u64`. In three saved claims, the fourth account is the farm's LP vault: it holds the same mint as the caller's LP account, seventh, and is owned by the farm authority. The reward pairs start with the first reward.
+  - **Was:** "For the zero-argument instruction shape consistent with a harvest or claim call, the real account order is a fixed prefix (`token_program`, the farm's state account, a vault-authority PDA, that PDA's first reward vault, a second PDA, the caller, and the caller's ATA for that first reward mint), followed by `(reward_vault_i, user_reward_ata_i)` pairs in `remaining_accounts` for every reward stream after the first." CPI integration listed "Farm v6 `Deposit` / `Harvest` / `Withdraw`", and the home page's farm card listed `harvest` as an instruction.
+  - **Now:** "Seven fixed accounts come first: `token_program`, the farm's state account, the farm authority PDA, the farm's LP vault, the caller's ledger PDA, the caller (signer), and the caller's LP token account. Then come `(reward_vault_i, user_reward_ata_i)` pairs, one per reward stream, starting with the first." The home page card lists `createFarm · deposit · withdraw`.
+
+### LaunchLab vesting clock start
+
+- **Evidence:** the IDL's `PoolState` has no timestamp besides `vesting_schedule.start_time`. Whichever instruction writes it therefore does so at block time `start_time − cliff_period`. `scripts/check-launchlab-vesting.py` read all 18,902 migrated LaunchLab pools and took the 12 most recent of the 102 that lock tokens with a cliff. For each, it decoded the transactions within 60 seconds of that block time, including the `pool_status` each trade event reports. It found the completing buy, the first trade whose event reports `Migrate`, in 10 pools:
+  - In 9, the completing buy's block time equals `start_time − cliff_period`.
+  - In 8, migration landed in a later slot. In 3 of those it also landed in a later second, 1 to 9 seconds after the clock start, so migration cannot have set the clock.
+  - In the tenth, the buy and the migration share a slot one second after `start_time − cliff_period`, which fits neither reading exactly.
+  - The other 2 pools had no transaction within 60 seconds of the clock start in the RPC's history.
+
+  The evidence is in `public/tino-changes/evidence/launchlab-vesting-2026-11-22/result.json`.
+- **[Vesting](/docs/en/products/launchlab/vesting), [accounts](/docs/en/products/launchlab/accounts) and [Creating a LaunchLab token](/docs/en/user-flows/creating-a-launchlab-token#vesting):** keep fundraising completion as the start, and name the instruction that sets it.
+  - **Was:** "These three values live on `PoolState.vesting_schedule` (a `VestingSchedule` struct) plus the on-chain `start_time`, which the program records as `block_time + cliff_period` at the moment fundraising successfully ends (when graduation conditions are first met)."
+  - **Now:** "The buy that completes fundraising records `start_time` as its own `block_time + cliff_period`. The later `MigrateToCpswap` transaction does not change it, so a delayed migration does not delay the unlock schedule."
+- **[LaunchLab instructions, `Buy`](/docs/en/products/launchlab/instructions#buy-canonical-variant-buyexactin):** said a separate `Graduate` instruction ends the curve. The IDL has no such instruction, and the completing buy's own trade event reports `Migrate`.
+  - **Was:** "If `quote_reserve_real ≥ quote_reserve_target` after the update, the SDK typically chains a `Graduate` ix in the same transaction. The program does not auto-graduate inside `Buy` — a subsequent `Graduate` is required."
+  - **Now:** "If this buy completes fundraising, the program moves `pool_state.status` to `Migrate` and sets `vesting_schedule.start_time = block_time + cliff_period` in the same instruction. There is no separate graduate instruction."
+- **[LaunchLab instructions, migration](/docs/en/products/launchlab/instructions#migratetoamm-/-migratetocpswap) and the state tables on [instructions](/docs/en/products/launchlab/instructions#state-change-matrix) and [accounts](/docs/en/products/launchlab/accounts#lifecycle-account-transitions):** had migration set `start_time`, and used a `Migrated` status that the IDL's `PoolStatus` (`Fund`, `Migrate`, `Trade`) does not have.
+  - **Was:** "Flip `pool_state.status = Migrated`, set `vesting_schedule.start_time = block_time + cliff_period`." The accounts table showed migration as "Funding → Migrate → Migrated".
+  - **Now:** "Set `pool_state.status = Trade`. `vesting_schedule.start_time` is left unchanged: the buy that completed fundraising already set it." Both tables use `Fund`, `Migrate` and `Trade`, with the completing buy as the `Fund → Migrate` step.
+
+### Inventory and UI evidence
+
+- **[Pages edited](#pages-edited):** said no trader page was edited. The 21 November pass changed the LaunchLab-referral pointer on [Referrals & Blinks](/docs/en/user-flows/referrals-and-blinks) and made consistency edits to the [landing-page cards](/docs/en/user-flows) and the [developer launch flow](/docs/en/user-flows/launch-token-launchlab). The inventory now lists all three.
+- **How it was checked:** the 21 November record quoted UI values with nothing saved, including "its CPMM lock UI offers partial percentages". That claim is dropped, and the partial-lock statement now rests on the LP-Lock interface's `lp_amount` argument. `scripts/check-user-flow-live-values.py` now captures the LaunchLab referral rate and default slippage from the production bundle, and both config APIs. Every value matched the 19 November check.
+
 ## Follow-ups
 
+- **LaunchLab `Buy` details:** the `Buy` section on [LaunchLab instructions](/docs/en/products/launchlab/instructions#buy-canonical-variant-buyexactin) still uses names that are not in the IDL, such as `launch_state.status == Active` and `state_data.num_buys`. This pass corrected only its graduation step; the rest needs its own audit.
+- **Farm instruction inventory:** 606 of the sampled Farm v5 calls use tag 2, which the SDK does not build. The [farm instruction page](/docs/en/products/farm-staking/instructions#instruction-inventory) lists `SetRewards` for v5 and v6, but the SDK has no builder for it and the Farm v6 sample held no unknown tag. Neither has been identified.
 - **Translations:** this pass changes English pages only. Locale navigation and fallback redirects are regenerated for the new DevRel page; translated content still needs to pick up the English corrections.
 - **Live configuration:** CPMM tiers, LaunchLab limits, UI defaults, routes, and referral rates are point-in-time observations. Recheck the API or production UI before treating them as current later.
 - **Deployed binaries:** this pass checked public source and current interfaces. It did not prove that deployed binaries were built from the cited source commits.

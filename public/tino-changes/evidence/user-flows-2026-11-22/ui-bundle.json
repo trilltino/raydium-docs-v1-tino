@@ -1,0 +1,19 @@
+{
+  "generated_at": "2026-11-22T15:50:20.882963+00:00",
+  "page": "https://raydium.io/launchpad/",
+  "bundle": "https://raydium.io/_next/static/chunks/pages/_app-92f61537ff49318b.js",
+  "bundle_bytes": 4336540,
+  "bundle_sha256": "121e32674483d0ded54472e946ea376494800376d2ca9f1363529cea5ce24df7",
+  "launchlab_referral": {
+    "share_fee_rate": 10000,
+    "percent": 1.0,
+    "resolved": "shareFeeRate:l.GH -> module 35675 export GH = j = j=new(u())(1e4)",
+    "handler_snippet": "u())(0);function y(){const e=(0,i.KM)().lreferrer;if(!e)return{wallet:void 0,shareFeeRate:g};try{return{wallet:new o.PublicKey(e),shareFeeRate:l.GH}}catch(t){return{wallet:void 0,shareFeeRate:g}}}},90992:function(e,t,n){\"use str",
+    "constant_snippet": "O=n(48764).Buffer;const L=\"_r_lau_slp_\",j=new(u())(1e4),N=(new l.Z(j.toStri"
+  },
+  "launchlab_default_slippage": {
+    "value": 0.025,
+    "percent": 2.5,
+    "snippet": "\",historyHost:\"https://launch-history-v1-devnet.raydium.io\",mintHost:\"https://launch-mint-v1-devnet.raydium.io\"}:N,slippage:.025,configInfo:new Map},B=(0,i.Z)(((e,t)=>({"
+  }
+}

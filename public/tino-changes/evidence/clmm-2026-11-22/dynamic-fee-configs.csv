@@ -1,0 +1,5 @@
+index,address,filter_period,decay_period,reduction_factor,dynamic_fee_control,max_volatility_accumulator
+0,E9wKBsFAEkmFKXcHUTfXrxTmNw5E8Vw45BtPwKMg8b7z,10,300,5000,99999,500000
+1,ExLe8koAvKNTai1uQQw5NXkpzRNM1mTL3C7s8MGVvYjM,10,600,5000,19723,390000
+2,FCKnHYtNCdfLNaUXpjXc3kj8NevMDD4rjT8aXVZ34p6q,15,600,5000,2055,260000
+3,ApsMd8njzg96cLAKAFTSwjTEpcAuZ6FzB3R16KLbBgvN,30,900,5000,1736,200000

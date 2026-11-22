@@ -1,0 +1,431 @@
+{
+  "generated_at": "2026-11-22T16:00:28.528Z",
+  "typescript": "5.6.3",
+  "sdk": "@raydium-io/raydium-sdk-v2@0.2.85-alpha",
+  "compiler_options": {
+    "strict": "true unless results[].strict is false",
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "esModuleInterop": true,
+    "skipLibCheck": true
+  },
+  "untyped_names": [
+    "program (CLMM close-position Anchor client)"
+  ],
+  "blocks": 27,
+  "passed": 27,
+  "results": [
+    {
+      "page": "docs/en/products/cpmm/code-demos.mdx",
+      "block": 1,
+      "page_line": 19,
+      "sha256": "0ba9e035ff0aa07cf6b36170b1a92b45673cf179d84dae2c79cd3f7a0649e531",
+      "prepended": [],
+      "strict": true,
+      "passed": true,
+      "diagnostics": []
+    },
+    {
+      "page": "docs/en/products/cpmm/code-demos.mdx",
+      "block": 2,
+      "page_line": 44,
+      "sha256": "6f3d0a4d35a352e0376a2154dc3a6f382585f1918e3532539ef969a71585d882",
+      "prepended": [
+        "raydium",
+        "TxVersion"
+      ],
+      "strict": true,
+      "passed": true,
+      "diagnostics": []
+    },
+    {
+      "page": "docs/en/products/cpmm/code-demos.mdx",
+      "block": 3,
+      "page_line": 111,
+      "sha256": "de1d05d95ba74aea7e57683fc7fb79d551fcca3fca59c385ccc30f07f27ffc5e",
+      "prepended": [
+        "raydium",
+        "PublicKey",
+        "extInfo"
+      ],
+      "strict": true,
+      "passed": true,
+      "diagnostics": []
+    },
+    {
+      "page": "docs/en/products/cpmm/code-demos.mdx",
+      "block": 4,
+      "page_line": 122,
+      "sha256": "c58264f1eec01462941f18ee31bc017cc510a16df106bf7d9d227ae964d1228e",
+      "prepended": [
+        "raydium",
+        "BN",
+        "TxVersion"
+      ],
+      "strict": true,
+      "passed": true,
+      "diagnostics": []
+    },
+    {
+      "page": "docs/en/products/cpmm/code-demos.mdx",
+      "block": 5,
+      "page_line": 191,
+      "sha256": "95a24bac8b22f04c9b357437e975cfaee017c46af09f899688e354163415e728",
+      "prepended": [
+        "raydium",
+        "BN",
+        "TxVersion",
+        "FeeOn",
+        "CurveCalculator",
+        "poolInfo",
+        "poolKeys",
+        "rpcData"
+      ],
+      "strict": true,
+      "passed": true,
+      "diagnostics": []
+    },
+    {
+      "page": "docs/en/products/cpmm/code-demos.mdx",
+      "block": 6,
+      "page_line": 235,
+      "sha256": "ef0774b79d92af367e3897bcd04583c3b82bee00fc98f89adbe4edd04551f15c",
+      "prepended": [
+        "raydium",
+        "BN",
+        "TxVersion",
+        "poolInfo",
+        "poolKeys"
+      ],
+      "strict": true,
+      "passed": true,
+      "diagnostics": []
+    },
+    {
+      "page": "docs/en/products/cpmm/code-demos.mdx",
+      "block": 7,
+      "page_line": 264,
+      "sha256": "1e09fd75402cb1e2b103e4e85f7ed7c8d4de4c0afb422788aa66db59b6078ef6",
+      "prepended": [
+        "raydium",
+        "BN",
+        "TxVersion",
+        "poolInfo",
+        "poolKeys"
+      ],
+      "strict": true,
+      "passed": true,
+      "diagnostics": []
+    },
+    {
+      "page": "docs/en/products/cpmm/code-demos.mdx",
+      "block": 8,
+      "page_line": 289,
+      "sha256": "d23358653779cd00cafceb1549526848928738f50e5539da2f832d8228dc8adf",
+      "prepended": [
+        "raydium",
+        "owner",
+        "TxVersion",
+        "poolInfo",
+        "poolKeys"
+      ],
+      "strict": true,
+      "passed": true,
+      "diagnostics": []
+    },
+    {
+      "page": "docs/en/products/cpmm/code-demos.mdx",
+      "block": 9,
+      "page_line": 309,
+      "sha256": "303225b324bac9118d8e82245a3753ae86ec502fb4ba746763e887a3cdf3daf9",
+      "prepended": [
+        "raydium",
+        "connection",
+        "owner",
+        "POOL_ID"
+      ],
+      "strict": true,
+      "passed": true,
+      "diagnostics": []
+    },
+    {
+      "page": "docs/en/products/cpmm/code-demos.mdx",
+      "block": 10,
+      "page_line": 372,
+      "sha256": "6e9d0af044fa4a599222a714cd06498916b5c19302334ecf966c7232e1c18b5b",
+      "prepended": [
+        "raydium",
+        "POOL_ID"
+      ],
+      "strict": true,
+      "passed": true,
+      "diagnostics": []
+    },
+    {
+      "page": "docs/en/products/cpmm/fees.mdx",
+      "block": 1,
+      "page_line": 255,
+      "sha256": "4fd77f74c8dd2b959795f2f8b537dd9b6ff91dec73eb3a28483ce99795502111",
+      "prepended": [
+        "raydium",
+        "connection",
+        "owner",
+        "poolStatePda"
+      ],
+      "strict": true,
+      "passed": true,
+      "diagnostics": []
+    },
+    {
+      "page": "docs/en/products/clmm/code-demos.mdx",
+      "block": 1,
+      "page_line": 19,
+      "sha256": "1b87d74927aab56d3ece160db8fe3228fa221882f7694da52d1005cf59e6fc43",
+      "prepended": [],
+      "strict": true,
+      "passed": true,
+      "diagnostics": []
+    },
+    {
+      "page": "docs/en/products/clmm/code-demos.mdx",
+      "block": 2,
+      "page_line": 42,
+      "sha256": "0a87cc35cc2af5874e581a6b60712ed3311ec516b17788fa4bdaa29397bcf5db",
+      "prepended": [
+        "raydium",
+        "TxVersion"
+      ],
+      "strict": true,
+      "passed": true,
+      "diagnostics": []
+    },
+    {
+      "page": "docs/en/products/clmm/code-demos.mdx",
+      "block": 3,
+      "page_line": 87,
+      "sha256": "9ec905d619dd36577d5bc99dfa3c342c1540b07cbb03f9231a6365d5cbaf5bfa",
+      "prepended": [
+        "raydium",
+        "BN",
+        "Decimal",
+        "TxVersion",
+        "mintA",
+        "mintB"
+      ],
+      "strict": true,
+      "passed": true,
+      "diagnostics": []
+    },
+    {
+      "page": "docs/en/products/clmm/code-demos.mdx",
+      "block": 4,
+      "page_line": 154,
+      "sha256": "6cdae5900eb144c6ac5a25489666e5aec14f8412b86a63fe927d16e2175cf253",
+      "prepended": [
+        "raydium",
+        "BN",
+        "Decimal",
+        "PublicKey",
+        "TxVersion",
+        "PoolUtils",
+        "poolInfo",
+        "poolKeys"
+      ],
+      "strict": true,
+      "passed": true,
+      "diagnostics": []
+    },
+    {
+      "page": "docs/en/products/clmm/code-demos.mdx",
+      "block": 5,
+      "page_line": 200,
+      "sha256": "43fbf461abd81f9e3fa6ace2be13b406db20d8a510110bf5c0a37204340e5856",
+      "prepended": [
+        "raydium",
+        "BN",
+        "TxVersion",
+        "poolInfo",
+        "poolKeys",
+        "positionAccount"
+      ],
+      "strict": true,
+      "passed": true,
+      "diagnostics": []
+    },
+    {
+      "page": "docs/en/products/clmm/code-demos.mdx",
+      "block": 6,
+      "page_line": 230,
+      "sha256": "65e3e01eaa387273c85f846607650ac8c2ed1e67140252955828195ea87fa3c7",
+      "prepended": [
+        "SystemProgram",
+        "positionNftMint",
+        "program",
+        "nftOwner",
+        "positionNftAccount",
+        "personalPosition",
+        "positionNftTokenProgram",
+        "poolId"
+      ],
+      "strict": true,
+      "passed": true,
+      "diagnostics": []
+    },
+    {
+      "page": "docs/en/products/clmm/code-demos.mdx",
+      "block": 7,
+      "page_line": 253,
+      "sha256": "4912e50eae45f3240af21d11ce133913f2896683992e603aaf419b83ae5a590f",
+      "prepended": [
+        "raydium",
+        "TxVersion",
+        "poolInfo",
+        "positionAccount"
+      ],
+      "strict": true,
+      "passed": true,
+      "diagnostics": []
+    },
+    {
+      "page": "docs/en/products/clmm/code-demos.mdx",
+      "block": 8,
+      "page_line": 278,
+      "sha256": "ccc5913bbbd8824c620fde8e51d5c455f9a1537dc3694191a4ac86295edfe9a0",
+      "prepended": [
+        "raydium",
+        "connection",
+        "BN",
+        "PublicKey",
+        "TxVersion",
+        "poolInfo",
+        "poolKeys",
+        "mintA",
+        "poolId"
+      ],
+      "strict": true,
+      "passed": true,
+      "diagnostics": []
+    },
+    {
+      "page": "docs/en/products/clmm/code-demos.mdx",
+      "block": 9,
+      "page_line": 343,
+      "sha256": "474a2a737af34daccb1b0d562458ff8b4269ff9f66236577ff9d11d3a06f57b7",
+      "prepended": [
+        "raydium",
+        "PublicKey",
+        "TxVersion",
+        "mintA",
+        "mintB",
+        "ammConfig",
+        "initialPrice"
+      ],
+      "strict": true,
+      "passed": true,
+      "diagnostics": []
+    },
+    {
+      "page": "docs/en/products/clmm/code-demos.mdx",
+      "block": 10,
+      "page_line": 378,
+      "sha256": "4909bca66b163e6a9ca0b096a192d0ba5ce3770fb8cfe5a60c9cd3e1169c2a30",
+      "prepended": [
+        "raydium",
+        "customizablePoolParams"
+      ],
+      "strict": true,
+      "passed": true,
+      "diagnostics": []
+    },
+    {
+      "page": "docs/en/products/clmm/code-demos.mdx",
+      "block": 11,
+      "page_line": 400,
+      "sha256": "1de3620091a086d5039dc1201fcac9361c1bb16f6a42ea1ee81251bf0a2a1f51",
+      "prepended": [
+        "raydium",
+        "POOL_ID",
+        "BN",
+        "Decimal",
+        "PublicKey",
+        "TxVersion",
+        "mintA",
+        "mintB",
+        "limitOrder"
+      ],
+      "strict": true,
+      "passed": true,
+      "diagnostics": []
+    },
+    {
+      "page": "docs/en/products/clmm/code-demos.mdx",
+      "block": 12,
+      "page_line": 443,
+      "sha256": "8341c901e12ae4167dfa8dfa16a47950d1ce2d1340bffad13e0a31902cca9c8d",
+      "prepended": [
+        "raydium",
+        "BN",
+        "PublicKey",
+        "TxVersion",
+        "poolInfo"
+      ],
+      "strict": true,
+      "passed": true,
+      "diagnostics": []
+    },
+    {
+      "page": "docs/en/products/clmm/code-demos.mdx",
+      "block": 13,
+      "page_line": 466,
+      "sha256": "6b8d5ba3793e28bec6e390e5f2e7a79c4365c28c7bcd9137d99f321060558d8f",
+      "prepended": [
+        "raydium",
+        "TxVersion",
+        "poolInfo",
+        "poolKeys",
+        "limitOrder"
+      ],
+      "strict": true,
+      "passed": true,
+      "diagnostics": []
+    },
+    {
+      "page": "docs/en/products/clmm/code-demos.mdx",
+      "block": 14,
+      "page_line": 480,
+      "sha256": "4857dbbd50110ac5c1de9ad4903751f8eff6854c8bbf83261056b98e85c81229",
+      "prepended": [
+        "raydium"
+      ],
+      "strict": true,
+      "passed": true,
+      "diagnostics": []
+    },
+    {
+      "page": "docs/en/products/clmm/fees.mdx",
+      "block": 1,
+      "page_line": 247,
+      "sha256": "d1eb085a3c4c9f4c890817383e9df232d8395018f826eaa145e0e72921d2a82a",
+      "prepended": [
+        "raydium",
+        "owner",
+        "POOL_ID",
+        "poolInfo"
+      ],
+      "strict": true,
+      "passed": true,
+      "diagnostics": []
+    },
+    {
+      "page": "docs/en/quick-start/swap-from-cli.mdx",
+      "block": 1,
+      "page_line": 19,
+      "sha256": "0454ab6806691e1e79ecea8e800baef409cea8f1d7a10a8e9957ae4d91fcf0c8",
+      "prepended": [],
+      "strict": false,
+      "passed": true,
+      "diagnostics": []
+    }
+  ]
+}

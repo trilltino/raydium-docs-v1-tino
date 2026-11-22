@@ -1,0 +1,167 @@
+---
+title: "CLMM docs updates"
+description: "Every correction to the CLMM chapter, grouped by why it was needed, with the old and new wording and links to the changed section and to the source behind it."
+---
+
+- 2026-11-22 · **[CLMM chapter](/docs/en/products/clmm):** Corrects seven of the eight CLMM pages against the program source, the published SDK and mainnet. No upstream PR has been opened. The changes are in this checkout.
+
+**In short.** The CLMM pages described the program's overall structure largely accurately, but several behavior claims and some account-table details did not match the source. The fee-tier table had indexes 0–2 wrong. The math and fees pages said fees always come off the input, but nearly half the busiest pools take them from one fixed token. They said limit-order fills are fee-free and happen after the tick is crossed; both are wrong. Several pages said swaps and increase-liquidity create tick arrays, that a decrease closes a filled limit order, and that out-of-range positions can earn rewards. The code demos had one example that does not type-check against the SDK.
+
+## Pages edited
+
+- [Overview](/docs/en/products/clmm/overview): corrects the opening cost, the limit-order and OpenBook statements, and when fees are paid.
+- [Accounts](/docs/en/products/clmm/accounts): corrects the fee-tier table, tick-array creation, the bitmap extension, NFT ownership and the lifecycle table.
+- [Ticks and positions](/docs/en/products/clmm/ticks-and-positions): corrects tick-array creation and cost, NFT authority and metadata, and out-of-range rewards.
+- [Math](/docs/en/products/clmm/math): corrects the step fee, limit-order matching and settlement, the dynamic-fee decay rule and the price-limit behavior.
+- [Instructions](/docs/en/products/clmm/instructions): corrects `CreatePool` preconditions, `SwapRouterBaseIn`, reward and fee-collection rules, the limit-order effects and the state-change matrix.
+- [Fees and rewards](/docs/en/products/clmm/fees): replaces the fee tiers and dynamic-fee ranges with live values, and corrects the fee side, reward settlement and collection.
+- [Code demos](/docs/en/products/clmm/code-demos): fixes the increase-liquidity example, the pool-creation and limit-order notes, and the close-position warning.
+
+The [CLMM landing page](/docs/en/products/clmm) checked out and is unchanged.
+
+**How to read this page.** Each change links to the affected section and supporting source. **Was** records the previous wording. **Now** records the replacement. Quotation marks indicate exact wording; "…" marks omitted text.
+
+**How it was checked.**
+
+- **Verified** against `raydium-clmm` at [`6d7a0f82`](https://github.com/raydium-io/raydium-clmm/tree/6d7a0f82d2f293c553c69aaf943377367c6c4cc6), the head of `master` on 2026-11-22 and the commit the docs already cite, on Anchor `1.0.2`. The TypeScript SDK source at [`32a184e`](https://github.com/raydium-io/raydium-sdk-V2/tree/32a184eb0aea15ddbb485e24a1a73d3723fd94d6) and the published `0.2.85-alpha` package were inspected. `scripts/check-sdk-source-identity.py` found the commit's 129 `src/` files byte-identical to the package's; the hashes are in `public/tino-changes/evidence/sdk-source-identity-2026-11-22/`. The demo repo at [`679e0c6`](https://github.com/raydium-io/raydium-sdk-V2-demo/tree/679e0c6cfae44ce5cc9e5eefc36c39025b7c7783) was used for comparison only.
+- **On-chain:** the collection run completed near slot 472,532,811 on 2026-11-22 through the Triton One mainnet RPC with `scripts/measure-clmm.py`: all 21 `AmmConfig` accounts, all 4 `DynamicFeeConfig` accounts, the count of `LimitOrderState` accounts (787), and the `PoolState` of the 2,000 highest-TVL CLMM pools listed by `api-v3` (lowest about $5,100). These were multiple RPC and API reads, not an atomic common-slot snapshot. The evidence is in `public/tino-changes/evidence/clmm-2026-11-22/`. Router usage comes from the samples in `stable-routing-2026-11-22/` and `compute-2026-11-22/`.
+- **Tested:** `scripts/typecheck-code-demos.mjs` compiles every TypeScript block on Code demos (14) and Fees (1) with `strict` against the published `0.2.85-alpha` and TypeScript 5.6.3. Each block is its own module, and names that earlier blocks define are declared with the SDK's own types. The one exception is the Anchor `program` in the close-position example, which has no SDK type and is declared `any`. All 15 pass. The result, with each block's hash and page line, is in `public/tino-changes/evidence/code-demo-typecheck-2026-11-22/`.
+- **Not verified:** the raydium.io web app, Devnet, and the SDK's swap simulator numerically; it was read against the program, not run. No transaction was signed or submitted.
+
+## The live fee tiers
+
+Three pages and a code comment gave index 0 as 0.01% at spacing 1, index 1 as 0.05% and index 2 as 0.25%. On mainnet index 0 is 0.01% at spacing 10, index 1 is 0.25% and index 2 is 0.05%. There are 21 tiers, and the API leaves out three. Source: `amm-configs.csv` and `pools.csv` in the 2026-11-22 evidence
+
+- **[Accounts, `AmmConfig`](/docs/en/products/clmm/accounts#ammconfig) and [Fees, Fee tiers](/docs/en/products/clmm/fees#fee-tiers):**
+  - **Was:** "| 0 | `100` (0.01%) | 1 | Stable pairs …" … "| 1 | `500` (0.05%) | 10 | Correlated blue-chips |" … "| 2 | `2_500` (0.25%) | 60 | Standard pairs |"
+  - **Now:** "On 2026-11-22 mainnet had 21 CLMM `AmmConfig` accounts, indexes 0–20. Every one sends 12% of the trade fee to protocol … and 4% to the fund" with a table of indexes 0–4 and 19 and their pool counts, and "Index is not ordered by fee." … the API "listed 18 of the 21 and left out indexes 0, 2 and 20."
+- **[Ticks and positions, Tick spacing](/docs/en/products/clmm/ticks-and-positions#tick-spacing):**
+  - **Was:** "Common published spacings: | 0.01% | `100` | 1 | 0.01% |" … "| 0.05% | `500` | 10 | 0.10% |"
+  - **Now:** "Spacing belongs to the fee tier, not to the fee rate: on 2026-11-22 the 0.01% and 0.05% rates each existed at spacings 1 and 10", and a table of price step per spacing.
+- **[Code demos, Create a CLMM pool](/docs/en/products/clmm/code-demos#create-a-clmm-pool):**
+  - **Was:** `const picked = clmmConfigs.find((c) => c.index === 1)!;        // 0.05% tier`
+  - **Now:** `const picked = clmmConfigs.find((c) => c.index === 1)!;        // 0.25% tier, tick spacing 60`
+
+## Which side pays the fee, and how much
+
+The pages said every fee comes off the swap input, "same convention as CPMM". A pool's `fee_on` decides: `Token0Only` and `Token1Only` pools take the fee from the output in one direction. On 2026-11-22, 978 of the 2,000 highest-TVL pools were single-sided. Source: [pool_fee.rs L258–276](https://github.com/raydium-io/raydium-clmm/blob/6d7a0f82d2f293c553c69aaf943377367c6c4cc6/programs/amm/src/states/pool_fee.rs#L258-L276) · [swap_math.rs L133–160](https://github.com/raydium-io/raydium-clmm/blob/6d7a0f82d2f293c553c69aaf943377367c6c4cc6/programs/amm/src/libraries/swap_math.rs#L133-L160) · [swap.rs L235–292](https://github.com/raydium-io/raydium-clmm/blob/6d7a0f82d2f293c553c69aaf943377367c6c4cc6/programs/amm/src/instructions/swap.rs#L235-L292)
+
+- **[Math, Fees on each step](/docs/en/products/clmm/math#fees-on-each-step):** the formula, the side, and where the LP share goes with no liquidity in range.
+  - **Was:** "Trade fees are taken off the **input** amount in each step, same convention as CPMM: `step_fee_amount  = ceil(step_input * trade_fee_rate / 1_000_000)`"
+  - **Now:** "if the step stops short of the next tick: fee = amount_remaining − amount_in; else: fee = ceil(amount_in * fee_rate / (1_000_000 − fee_rate))" … "fee on output … fee = ceil(gross_out * fee_rate / 1_000_000)" … "If no liquidity is in range when a fee is charged … the LP portion is added to the protocol counter instead". The worked example's fee step uses the same rule.
+- **[Fees, Why fees are per-side](/docs/en/products/clmm/fees#why-fees-are-per-side) and [Per-swap fee split](/docs/en/products/clmm/fees#per-swap-fee-split):**
+  - **Was:** "in CLMM the same rule applies at each step: **fees accrue in whichever token is the input for that step**." … "`step_lp` flows into `fee_growth_global_{input_side}_x64`"
+  - **Now:** "**`Token0Only` / `Token1Only` pools** always charge the configured token, taking it from the input in one direction and from the output in the other." … "707 of the 2,000 highest-TVL CLMM pools were `Token0Only` and 271 `Token1Only`" … "`step_lp` flows into `fee_growth_global_{fee_side}_x64`"
+- **[Math, Single-tick swap step](/docs/en/products/clmm/math#single-tick-swap-step):** a direction slip, and the Uniswap comparison.
+  - **Was:** "For the opposite direction (`token1 → token0`, price going down)" … "The logic there matches Uniswap v3's `SwapMath.computeSwapStep` one-for-one."
+  - **Now:** "(`token1 → token0`, price going up)" … "It follows Uniswap v3's `SwapMath.computeSwapStep` for input-side fees and adds an output-side fee mode for single-sided-fee pools."
+
+## Limit orders
+
+The math page said fills are fee-free and come after the tick is crossed. The program fills orders at the tick before crossing it, and charges the swapper the pool's fee on that portion, which LPs, protocol and fund share as usual. Source: [swap.rs L672–730](https://github.com/raydium-io/raydium-clmm/blob/6d7a0f82d2f293c553c69aaf943377367c6c4cc6/programs/amm/src/instructions/swap.rs#L672-L730) · [tick_array.rs L18–25](https://github.com/raydium-io/raydium-clmm/blob/6d7a0f82d2f293c553c69aaf943377367c6c4cc6/programs/amm/src/states/tick_array.rs#L18-L25) · [limit_order.rs L78–232](https://github.com/raydium-io/raydium-clmm/blob/6d7a0f82d2f293c553c69aaf943377367c6c4cc6/programs/amm/src/states/limit_order.rs#L78-L232) · [close_limit_order.rs L18–31](https://github.com/raydium-io/raydium-clmm/blob/6d7a0f82d2f293c553c69aaf943377367c6c4cc6/programs/amm/src/instructions/limit_order/close_limit_order.rs#L18-L31)
+
+- **[Math, Interaction with the LP curve](/docs/en/products/clmm/math#interaction-with-the-lp-curve):**
+  - **Was:** "1. Cross tick `t_cross` (apply LP `liquidity_net` change first…). 2. Fill any limit orders sitting at `t_cross`." … "the limit-order portion of the trade is fee-free for the swapper"
+  - **Now:** "1. Move along the LP curve to the tick `t`. 2. Fill the limit orders sitting at `t`. … 3. Only then cross `t`" … "The fill is **not** fee-free: the swapper pays the pool's current fee rate … on the limit-order portion too (`amm_fee_amount`)."
+- **[Math, Matching step](/docs/en/products/clmm/math#matching-step):** the settlement formula, rewritten from `settle_filled_order`.
+  - **Was:** "filled_amount  = total_amount × (1 − tick_now.unfilled_ratio_x64 / order.unfilled_ratio_x64) if tick_now.order_phase > order.order_phase else 0"
+  - **Now:** three cases on `order_phase`: not reached, partly filled from `settle_base` with a 1-unit dust deduction, and fully filled; payout is the output at the tick minus `settled_output`.
+- **[Instructions, `DecreaseLimitOrder`](/docs/en/products/clmm/instructions#decreaselimitorder) and [Accounts, Lifecycle](/docs/en/products/clmm/accounts#lifecycle-quick-reference):** a decrease never closes the order.
+  - **Was:** "If the new unfilled remainder is zero, the program closes the account and refunds rent to `owner`." … "| `DecreaseLimitOrder` | — | Closes `limitOrderState` if order is fully consumed |"
+  - **Now:** "It never closes the account, even when nothing is left; call `CloseLimitOrder` for that."
+- **[Accounts, `LimitOrderState`](/docs/en/products/clmm/accounts#limitorderstate):** what `filled_amount` gates.
+  - **Was:** "`filled_amount: u64, // informational; computed precisely on settle`" … "**Close** — once `unfilled_amount == 0`, the account is closeable."
+  - **Now:** "updated by settle and decrease; close needs it == total_amount" … "A filled order must be settled first, because only settle and decrease update `filled_amount`."
+- **[Code demos, Increase / decrease an open order](/docs/en/products/clmm/code-demos#increase-/-decrease-an-open-order) and Common pitfalls:**
+  - **Was:** "Both instructions revert with `InvalidOrderPhase` if the order has already been fully filled." … "**Calling `decreaseLimitOrder` on a fully-filled order** → `InvalidOrderPhase`."
+  - **Now:** "On a fully filled order it just pays out the output and removes nothing. `increaseLimitOrder` reverts with `InvalidOrderPhase` as soon as the order's cohort has started filling." The example's tick check is now `<=`, because the program rejects an order at the current tick ([open_limit_order.rs L271–291](https://github.com/raydium-io/raydium-clmm/blob/6d7a0f82d2f293c553c69aaf943377367c6c4cc6/programs/amm/src/instructions/limit_order/open_limit_order.rs#L271-L291)).
+
+## Dynamic fee
+
+Source: [pool_fee.rs L75–160](https://github.com/raydium-io/raydium-clmm/blob/6d7a0f82d2f293c553c69aaf943377367c6c4cc6/programs/amm/src/states/pool_fee.rs#L75-L160) · [swap.rs L456–497](https://github.com/raydium-io/raydium-clmm/blob/6d7a0f82d2f293c553c69aaf943377367c6c4cc6/programs/amm/src/instructions/swap.rs#L456-L497) · `dynamic-fee-configs.csv` in the 2026-11-22 evidence
+
+- **[Math, Accumulator update](/docs/en/products/clmm/math#accumulator-update):** the boundaries were off by one, and the reference reset was missing.
+  - **Was:** "0 if Δt > decay_period" … "vol_acc_prev · reduction_factor / 10,000 if filter_period < Δt ≤ decay_period" … "vol_ref_prev if Δt ≤ filter_period" … "Two rules are applied each swap"
+  - **Now:** "if Δt < filter_period" … "if filter_period ≤ Δt < decay_period" … "if Δt ≥ decay_period" … "In the last two cases the program also resets t_ref … and sets `last_update_timestamp` to now" … "The reference is updated once per swap, before the first step". The surcharge is also noted as rounded up.
+- **[Fees, Choosing parameters](/docs/en/products/clmm/fees#choosing-parameters):** the "pilot pool" ranges did not describe any live config.
+  - **Was:** "Default ranges that have worked in pilot pools: | `filter_period` | 30 – 60 s |" … "| `dynamic_fee_control` | 1_000 – 50_000 |"
+  - **Now:** the four live on-chain configs (filter periods 10–30 s, `dynamic_fee_control` 1,736–99,999) and "213 of the 2,000 highest-TVL CLMM pools used a dynamic fee". The page uses the on-chain values because the API lists different ones; see [Follow-ups](#follow-ups-outside-the-clmm-chapter).
+- **[Instructions, `CreateDynamicFeeConfig`](/docs/en/products/clmm/instructions#createdynamicfeeconfig-admin):** the valid ranges are open at the top.
+  - **Was:** "`reduction_factor: u16 // 1..10_000`" … "`dynamic_fee_control: u32 // 1..100_000`"
+  - **Now:** "1..9_999 (of 10_000)" … "1..99_999 (of 100_000)", and that `max_volatility_accumulator × tick_spacing` must fit in a `u32`.
+
+## Tick arrays and positions
+
+Only opening a position or a limit order creates a tick array; every pool gets its bitmap extension at creation. Source: [open_position.rs](https://github.com/raydium-io/raydium-clmm/blob/6d7a0f82d2f293c553c69aaf943377367c6c4cc6/programs/amm/src/instructions/open_position.rs) · [increase_liquidity_v2.rs L31–36](https://github.com/raydium-io/raydium-clmm/blob/6d7a0f82d2f293c553c69aaf943377367c6c4cc6/programs/amm/src/instructions/increase_liquidity_v2.rs#L31-L36) · [create_pool.rs L84–93](https://github.com/raydium-io/raydium-clmm/blob/6d7a0f82d2f293c553c69aaf943377367c6c4cc6/programs/amm/src/instructions/create_pool.rs#L84-L93)
+
+- **[Accounts](/docs/en/products/clmm/accounts#tickarraystate), [Ticks and positions, When an array is created](/docs/en/products/clmm/ticks-and-positions#when-an-array-is-created) and [Instructions](/docs/en/products/clmm/instructions#instruction-inventory):**
+  - **Was:** "the first position or swap that touches an uninitialized array creates it" … "`OpenPosition*` and `IncreaseLiquidity*` call `TickArrayState::get_or_create_tick_array`" … "| `SwapV2` | Possibly new `tickArrayState` |"
+  - **Now:** "`OpenPosition*` and `OpenLimitOrder` call `TickArrayState::get_or_create_tick_array`" … "`IncreaseLiquidity*` cannot create one" … "| `SwapV2` | — |"
+- **[Accounts, Account inventory and `TickArrayBitmapExtension`](/docs/en/products/clmm/accounts#tickarraybitmapextension):**
+  - **Was:** "| `TickArrayBitmapExtension` | … | 0 or 1 |" … "Full-range positions (e.g., `(MIN_TICK, MAX_TICK)`) require it"
+  - **Now:** "Created by every pool-creation instruction. | 1 |" … "512 arrays of 60 ticks reach `MAX_TICK = 443636` at a spacing of 15 or more, so smaller spacings need the extension."
+- **[Overview, What CLMM is not](/docs/en/products/clmm/overview#what-clmm-is-not) and [Ticks and positions, Tick spacing](/docs/en/products/clmm/ticks-and-positions#tick-spacing):** width does not change the cost.
+  - **Was:** "Each new tick-array the position crosses must be initialized, costing rent. Wide ranges are cheaper; narrow ones are not." … "the cheaper to open a wide position"
+  - **Now:** "That is at most two tick arrays, whatever the range's width." … "A position never pays for more than the two arrays holding its endpoints, whatever its width."
+- **[Ticks and positions, Positions as NFTs](/docs/en/products/clmm/ticks-and-positions#positions-as-nfts) and [Accounts, Position NFT mint](/docs/en/products/clmm/accounts#position-nft-mint):** authority and metadata. Source: [open_position.rs L785–806](https://github.com/raydium-io/raydium-clmm/blob/6d7a0f82d2f293c553c69aaf943377367c6c4cc6/programs/amm/src/instructions/open_position.rs#L785-L806) · [decrease_liquidity_v2.rs L13–18](https://github.com/raydium-io/raydium-clmm/blob/6d7a0f82d2f293c553c69aaf943377367c6c4cc6/programs/amm/src/instructions/decrease_liquidity_v2.rs#L13-L18)
+  - **Was:** "the mint's authority is the CLMM program. The program keys position ownership to **whoever holds a balance in an ATA of that mint**" … "The SDK sets a reasonable `name`/`symbol` on the mint metadata."
+  - **Now:** "mints its single token to the owner, and then removes the mint authority. The pool PDA stays as freeze authority" … "**whoever signs as the authority of a token account holding that NFT**, ATA or not" … "the program itself writes the metadata: name `Raydium Concentrated Liquidity`, symbol `RCL`"
+- **[Ticks and positions, "In-range" vs "out-of-range"](/docs/en/products/clmm/ticks-and-positions#%E2%80%9Din-range%E2%80%9D-vs-%E2%80%9Cout-of-range%E2%80%9D):** Source: [pool.rs L346–412](https://github.com/raydium-io/raydium-clmm/blob/6d7a0f82d2f293c553c69aaf943377367c6c4cc6/programs/amm/src/states/pool.rs#L346-L412)
+  - **Was:** "**Does** continue to accrue rewards if the pool's reward streams emit to out-of-range liquidity — but Raydium's default behavior is 'emit only to in-range'"
+  - **Now:** "Does **not** earn rewards either. … there is no setting that pays out-of-range positions."
+
+## Pool creation, swaps and the router
+
+- **[Instructions, `CreatePool`](/docs/en/products/clmm/instructions#createpool):** a CPMM precondition, and what `open_time` does. Source: [config.rs L13–32](https://github.com/raydium-io/raydium-clmm/blob/6d7a0f82d2f293c553c69aaf943377367c6c4cc6/programs/amm/src/states/config.rs#L13-L32) · [create_pool.rs L123–138](https://github.com/raydium-io/raydium-clmm/blob/6d7a0f82d2f293c553c69aaf943377367c6c4cc6/programs/amm/src/instructions/create_pool.rs#L123-L138) · [swap_v2.rs L116](https://github.com/raydium-io/raydium-clmm/blob/6d7a0f82d2f293c553c69aaf943377367c6c4cc6/programs/amm/src/instructions/swap_v2.rs#L116)
+  - **Was:** "`open_time: u64 // swaps rejected before this time`" … "`amm_config.disable_create_pool == false`." … "`now >= open_time`."
+  - **Now:** "must be earlier than now, so it never delays swaps" … "CLMM's `AmmConfig` has no `disable_create_pool` switch; that is CPMM's." … "`now > open_time` (always true; see `CreatePool`)." The accounts page's `open_time` and `owner` comments are corrected the same way; `owner` is the pool creator, not "admin (multisig)".
+- **[Math, Numerical robustness](/docs/en/products/clmm/math#numerical-robustness) and [Instructions, `SwapV2`](/docs/en/products/clmm/instructions#swapv2):** a swap that reaches its limit stops. Source: [swap.rs L512–526](https://github.com/raydium-io/raydium-clmm/blob/6d7a0f82d2f293c553c69aaf943377367c6c4cc6/programs/amm/src/instructions/swap.rs#L512-L526)
+  - **Was:** "A swap that would push past either bound reverts with `SqrtPriceLimitOverflow`."
+  - **Now:** "the swap loop runs until the amount is used up or the price reaches `sqrt_price_limit_x64`, and stops there, filling partly." … "`SqrtPriceLimitOverflow` rejects a limit on the wrong side of the current price or outside those bounds".
+- **[Instructions, Instruction inventory](/docs/en/products/clmm/instructions#instruction-inventory):** no `SwapRouterBaseIn` call appeared in the retained router sample: 660 of 661 CLMM hops used `SwapV2`, and one used `Swap`. This finite sample does not prove the router never uses it. Source: router hops in `stable-routing-2026-11-22/` and `compute-2026-11-22/`
+  - **Was:** "| Swap | `SwapRouterBaseIn` | Multi-hop, used by the router. |"
+  - **Now:** "Exact-input multi-hop across several CLMM pools in one instruction. Raydium's AMM Routing program does not use it: in samples on 2026-11-22 it called `SwapV2` for 660 of 661 CLMM hops and `Swap` once."
+- **[Instructions, `SwapV2`](/docs/en/products/clmm/instructions#swapv2) and [Code demos, Rust CPI skeleton](/docs/en/products/clmm/code-demos#rust-cpi-skeleton):** the account table merged two accounts into one row, and the bitmap extension's position is not fixed. Source: [swap_v2.rs L132–137](https://github.com/raydium-io/raydium-clmm/blob/6d7a0f82d2f293c553c69aaf943377367c6c4cc6/programs/amm/src/instructions/swap_v2.rs#L132-L137)
+  - **Was:** "| 12 | `input_vault_mint`, `output_vault_mint` |" … "If the swap never needs the extension, omit it; otherwise it is the first remaining account."
+  - **Now:** separate rows 12 and 13, with the extension and tick arrays marked as remaining accounts, and "The program classifies recognized remaining accounts by data length, so the extension may sit anywhere. It preserves tick-array encounter order."
+
+## Rewards and fee collection
+
+- **[Instructions, admin gating](/docs/en/products/clmm/instructions#instruction-inventory):** Source: [transfer_reward_owner.rs L8](https://github.com/raydium-io/raydium-clmm/blob/6d7a0f82d2f293c553c69aaf943377367c6c4cc6/programs/amm/src/instructions/admin/transfer_reward_owner.rs#L8) · [initialize_reward.rs L105–157](https://github.com/raydium-io/raydium-clmm/blob/6d7a0f82d2f293c553c69aaf943377367c6c4cc6/programs/amm/src/instructions/initialize_reward.rs#L105-L157) · [set_reward_params.rs L48–80](https://github.com/raydium-io/raydium-clmm/blob/6d7a0f82d2f293c553c69aaf943377367c6c4cc6/programs/amm/src/instructions/set_reward_params.rs#L48-L80)
+  - **Was:** "Reward-stream admin instructions (`TransferRewardOwner`, `CollectRemainingRewards`) are gated by the reward funder, not the program admin." … "Whitelisted reward mint per `operation_state`."
+  - **Now:** "`TransferRewardOwner` is admin-only too. `CollectRemainingRewards` is gated by the stream's own `authority`." … `InitializeReward` accepts "the program admin, the pool's recorded `owner`, or an `operation_state` owner" … "There is no separate reward-mint whitelist." `SetRewardParams` instead accepts the stream's current `authority`, an operation-account owner, or the admin.
+- **[Instructions, `CollectProtocolFee` / `CollectFundFee`](/docs/en/products/clmm/instructions#collectprotocolfee-/-collectfundfee) and [Fees, Admin collection](/docs/en/products/clmm/fees#admin-collection):** Source: [collect_protocol_fee.rs L11, L75–80](https://github.com/raydium-io/raydium-clmm/blob/6d7a0f82d2f293c553c69aaf943377367c6c4cc6/programs/amm/src/instructions/admin/collect_protocol_fee.rs#L75-L80)
+  - **Was:** "zeroing the corresponding `PoolState.protocol_fees_*` / `fund_fees_*` fields." … "| `amm_config.owner` | `CollectProtocolFee` | Sweep `protocol_fees_token_{0,1}` to a recipient. |"
+  - **Now:** "Each side moves `min(amount_requested, accrued)` and lowers the … counter by that amount" … "| `amm_config.owner` or the program admin | `CollectProtocolFee` | Move up to the requested amounts …"
+- **[Fees, Reward streams](/docs/en/products/clmm/fees#reward-streams) and [Math, Rewards](/docs/en/products/clmm/math#rewards):** a field name, and what happens to emissions with no liquidity in range.
+  - **Was:** "`pub reward_total_emissioned: u64,`" … "`Uninitialized | Initialized | Open | Ended`" … "Protocols that mint and forget can top up or end the stream via `SetRewardParams`."
+  - **Now:** "`pub reward_total_emitted: u64,`" … "`Uninitialized | Initialized | Opening | Ended`" … "after `end_time` the stream's `authority` can recover it with `CollectRemainingRewards`."
+- **[Instructions, State-change matrix](/docs/en/products/clmm/instructions#state-change-matrix):** swaps and openings also settle reward growth.
+  - **Was:** "| `SwapV2` | ± on crossings | + | — |" … "| `OpenPosition` | + if in range | — | — |"
+  - **Now:** "| `SwapV2` | ± on crossings | + | + (settled to now) |" … "| `OpenPosition` | + if in range | — | + (settled to now) |"
+
+## Code examples
+
+- **[Code demos, Increase liquidity](/docs/en/products/clmm/code-demos#increase-liquidity-on-an-existing-position):** the example did not type-check. `increasePositionFromBase` wants a `ClmmPoolPersonalPosition`; `getOwnerPositionInfo()` returns the raw layout. Source: [SDK type.ts L344–372](https://github.com/raydium-io/raydium-sdk-V2/blob/32a184eb0aea15ddbb485e24a1a73d3723fd94d6/src/raydium/clmm/type.ts#L344-L372) · [demo increaseLiquidity.ts](https://github.com/raydium-io/raydium-sdk-V2-demo/blob/679e0c6cfae44ce5cc9e5eefc36c39025b7c7783/src/clmm/increaseLiquidity.ts)
+  - **Was:** `const { execute } = await raydium.clmm.increasePositionFromBase({ poolInfo, ownerPosition: positionAccount, …`
+  - **Now:** a `PoolUtils.getLiquidityAmountOutFromAmountIn` quote, then `raydium.clmm.increasePositionFromLiquidity({ poolInfo, poolKeys, ownerPosition: positionAccount, … liquidity, amountMaxA, amountMaxB, … })`, as the demo repo does.
+- **[Code demos, Create a CLMM pool](/docs/en/products/clmm/code-demos#create-a-clmm-pool):**
+  - **Was:** "Pays the pool-creation fee defined by `ammConfig`."
+  - **Now:** "CLMM charges no pool-creation fee; unlike CPMM, its `AmmConfig` has no such field."
+- **[Code demos, Decrease liquidity](/docs/en/products/clmm/code-demos#decrease-liquidity-and-collect-fees-at-the-same-time):** the SDK already supports frozen positions. Source: [SDK instrument.ts L1555–1590](https://github.com/raydium-io/raydium-sdk-V2/blob/32a184eb0aea15ddbb485e24a1a73d3723fd94d6/src/raydium/clmm/instrument.ts#L1555-L1590)
+  - **Was:** "The program-source branch does not include an SDK change. Confirm that your SDK release explicitly supports the frozen close path" … "last verified against CLMM source `ecb1577` on 2026-08-13."
+  - **Now:** "SDK `0.2.85-alpha` does this on every close: `closePositionInstructions` passes `poolInfo.id` as that account." … "checked against CLMM source `6d7a0f82` on 2026-11-22."
+
+## Wording
+
+- **[Overview](/docs/en/products/clmm/overview):** "LPs can now park a single-tick order" is now "Any wallet can park a single-tick order"; limit orders are not opt-in at creation, including on classic `CreatePool` pools unless status disables them. "Unlike AMM v4, CLMM has no OpenBook dependency" and "Prefer AMM v4 when: You specifically need the hybrid-CLOB depth AMM v4 places on OpenBook" are gone, because AMM v4 no longer uses OpenBook. "collect accumulated fees at the same time" now says only a decrease pays them out. AMM v4's fee tier is "0.25% by default; admin-settable per pool" rather than "Fixed 0.25%".
+- **Unverifiable claims removed:** "The web UI and routers surface whichever tier has the most liquidity" and "the web UI clamps the range to something much narrower".
+- **[Accounts](/docs/en/products/clmm/accounts):** `TICK_ARRAY_SIZE` is 60, not "typically 60 or 88 depending on program version"; the `DynamicFeeConfig` block now names its source file, `dynamic_fee_config.rs`.
+
+## Follow-ups outside the CLMM chapter
+
+- **Translations:** all 13 locales carry the old content of these pages.
+- **CLMM compute figures** in CPI integration, fee comparison, Rust CPI and the priority-fee guide are reported upstream in [issue #36](https://github.com/raydium-io/raydium-docs-v1/issues/36) and not changed here.
+- **The Raydium API** omitted CLMM tiers 0, 2 and 20 from `/main/clmm-config` in the retained check. Its `/main/clmm-dynamic-config` also disagrees with the on-chain accounts on 14 of the 20 calibration fields. For index 3 it gives a 180 s filter period and a `dynamic_fee_control` of 25,000; on-chain they are 30 s and 1,736. A quote built from the API values would use the wrong calibration. `scripts/check-clmm-dynamic-config-api.py` read both in one run on 22 November; the run completed near slot 472,598,884. The evidence is in `public/tino-changes/evidence/clmm-dynamic-config-2026-11-22/`.
+- **SDK:** `createCustomizablePoolV2` checks seed indexes 1–100 and, if all are taken, falls back to index 1, which then fails ([SDK clmm.ts L440–452](https://github.com/raydium-io/raydium-sdk-V2/blob/32a184eb0aea15ddbb485e24a1a73d3723fd94d6/src/raydium/clmm/clmm.ts#L440-L452)).
+- **Not reviewed in this pass:** the CLMM rows of [error codes](/docs/en/reference/error-codes) and the shared [`algorithms/clmm-math`](/docs/en/algorithms/clmm-math) page.

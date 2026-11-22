@@ -14,7 +14,7 @@ Each pool's `AmmInfo` stores the `market` key supplied at creation. Since the Op
 | Category | Account | Owner | Role |
 |----------|---------|-------|------|
 | Program | `AmmConfig` | AMM v4 program | Program-wide config: `pnl_owner` and `create_pool_fee`. One per program. See [`AmmConfig`](#ammconfig). |
-| Program | `amm_authority` | — (never allocated) | PDA `["amm authority"]` that the program signs with. No account exists at this address; it is a derived signer shared by every pool. |
+| Program | `amm_authority` | — (never allocated by AMM v4) | PDA `["amm authority"]` that the program signs with. The program uses the derived address as a shared signer authority; it does not initialize account data there. |
 | Pool | `AmmInfo` | AMM v4 program | Pool state: fees accrued, status, references to vaults (and, as legacy fields, the market). |
 | Pool | `amm_target_orders` | AMM v4 program | Holds `calc_pnl_x` / `calc_pnl_y`, the baseline the protocol fee is measured from. `Deposit`, `Withdraw` and `WithdrawPnl` read and rewrite it. Its order-grid fields are legacy. See [`TargetOrders`](#targetorders). |
 | Pool | `pool_coin_token_account` | SPL Token | Pool's coin-side vault: a PDA token account owned by `amm_authority`, not an ATA. See [Vaults](#vaults). |
