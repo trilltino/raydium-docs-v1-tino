@@ -1,0 +1,781 @@
+{
+  "generated_at": "2026-11-22T11:23:15.134307+00:00",
+  "sampled_before": "2026-09-09T12:00:00+00:00",
+  "rpc_provider": "Triton One mainnet RPC",
+  "slot": 472523717,
+  "token_kind_note": "mint state read when the script ran, not at the time of each transaction",
+  "measure": "each program's own 'consumed' log line, including the programs it calls; own_cu subtracts the callees. Not the transaction total or the requested limit.",
+  "samples": {
+    "amm-v4": {
+      "transactions": 2000,
+      "skipped": {
+        "program listed but not called": 1021
+      },
+      "block_time_range": [
+        "2026-09-09T11:58:03+00:00",
+        "2026-09-09T11:59:59+00:00"
+      ],
+      "instructions": {
+        "SwapBaseInV2": {
+          "n": 765,
+          "median": 25213,
+          "p10": 25063,
+          "p90": 25241,
+          "min": 24535,
+          "max": 25375,
+          "accounts": {
+            "8": 765
+          },
+          "callers": {
+            "FLASHX8DrLbgeR8FcfNV1F5krxYcYMUdBkrP1EPBtxB9": 558,
+            "term9YPb9mzAsABaqN71A4xdbxHmpBNZavpBiQKZzN3": 71,
+            "proVF4pMXVaYqmy4NjniPh4pqKNfMmsihgd4wdkCX3u": 35,
+            "T1TANpTeScyeqVzzgNViGDNrkQ6qHz9KrSBS4aNXvGT": 32,
+            "Jupiter v6": 28
+          },
+          "by_token_kind": {
+            "SPL Token": {
+              "n": 765,
+              "median": 25213,
+              "p10": 25063,
+              "p90": 25241,
+              "min": 24535,
+              "max": 25375
+            }
+          },
+          "top_pools": {
+            "58oQChx4yWmvKdwLLZzBi4ChoCc2fqCUWBkwMihLYQo2": {
+              "n": 621,
+              "median": 25213,
+              "p10": 25207,
+              "p90": 25241,
+              "min": 25012,
+              "max": 25372
+            },
+            "Bzc9NZfMqkXR6fz1DBph7BDf9BroyEf6pnzESP7v5iiw": {
+              "n": 15,
+              "median": 25208,
+              "p10": 25208,
+              "p90": 25241,
+              "min": 25208,
+              "max": 25241
+            },
+            "7s2pco2iYjNPKeN7QYaHD8ZSRb8jZgypspwg7DNkZhZJ": {
+              "n": 12,
+              "median": 25063,
+              "p10": 25063,
+              "p90": 25063,
+              "min": 25063,
+              "max": 25063
+            },
+            "EUvnsWhMnhY3S5EnV3tLATNRvTM2xBMWZQQguzpFNwYT": {
+              "n": 9,
+              "median": 24535,
+              "p10": 24535,
+              "p90": 24535,
+              "min": 24535,
+              "max": 24535
+            },
+            "EzLBvtY6gwdz5BGJnKDZGgYrMzm1PLKcxdViqRx5fSL1": {
+              "n": 7,
+              "median": 25047,
+              "p10": 25035,
+              "p90": 25047,
+              "min": 25035,
+              "max": 25047
+            }
+          }
+        },
+        "SwapBaseIn (v1)": {
+          "n": 215,
+          "median": 26025,
+          "p10": 26000,
+          "p90": 26140,
+          "min": 25278,
+          "max": 28028,
+          "accounts": {
+            "17": 181,
+            "18": 34
+          },
+          "callers": {
+            "6Vo3245eszAb5wuqEMw8mGdbfRUdKbHhDHP5LcaGuTAB": 101,
+            "BoobsBSMpFRBA91sNwKLYShRRQPH5GjoCH4NhLUt4yRo": 47,
+            "top-level": 18,
+            "AMM Routing": 17,
+            "AveaiuA1emN71q9mS2QQ9BEWNAAHmp8sHSvwLFHQjufM": 11
+          },
+          "by_token_kind": {
+            "SPL Token": {
+              "n": 215,
+              "median": 26025,
+              "p10": 26000,
+              "p90": 26140,
+              "min": 25278,
+              "max": 28028
+            }
+          },
+          "top_pools": {
+            "58oQChx4yWmvKdwLLZzBi4ChoCc2fqCUWBkwMihLYQo2": {
+              "n": 120,
+              "median": 26013,
+              "p10": 26002,
+              "p90": 26078,
+              "min": 25806,
+              "max": 27932
+            },
+            "GjvW8JQSpKG5ogjyD3zozfaeJSShTajS5ZFrexT8L12k": {
+              "n": 19,
+              "median": 26002,
+              "p10": 26002,
+              "p90": 26114,
+              "min": 26000,
+              "max": 26134
+            },
+            "8WwcNqdZjCY5Pt7AkhupAFknV2txca9sq6YBkGzLbvdt": {
+              "n": 19,
+              "median": 26030,
+              "p10": 26029,
+              "p90": 26030,
+              "min": 26029,
+              "max": 26030
+            },
+            "7XawhbbxtsRcQA8KTkHT9f9nc6d69UwqCDh6U5EEbEmX": {
+              "n": 7,
+              "median": 26083,
+              "p10": 25804,
+              "p90": 26111,
+              "min": 25804,
+              "max": 26111
+            },
+            "FDGTcewAmNmW5ZnhjJ8yCnYgbnZudqSUZ8EH9ufr2BFY": {
+              "n": 6,
+              "median": 28027,
+              "p10": 27923,
+              "p90": 28028,
+              "min": 27923,
+              "max": 28028
+            }
+          }
+        },
+        "SwapBaseOut (v1)": {
+          "n": 7,
+          "median": 28493,
+          "p10": 26814,
+          "p90": 28498,
+          "min": 26814,
+          "max": 28498,
+          "accounts": {
+            "17": 2,
+            "18": 5
+          },
+          "callers": {
+            "top-level": 5,
+            "3URuDiCXFYJ95YVeDW8MP3b7CKTnuqArY5GTZA2JnPWQ": 2
+          },
+          "by_token_kind": {
+            "SPL Token": {
+              "n": 7,
+              "median": 28493,
+              "p10": 26814,
+              "p90": 28498,
+              "min": 26814,
+              "max": 28498
+            }
+          },
+          "top_pools": {
+            "AVs9TA4nWDzfPJE9gGVNJMVhcQy3V9PGazuz33BfG2RA": {
+              "n": 3,
+              "median": 28498,
+              "p10": 28498,
+              "p90": 28498,
+              "min": 28498,
+              "max": 28498
+            },
+            "3bC2e2RxcfvF9oP22LvbaNsVwoS2T98q6ErCRoayQYdq": {
+              "n": 2,
+              "median": 26814,
+              "p10": 26814,
+              "p90": 26814,
+              "min": 26814,
+              "max": 26814
+            },
+            "6UmmUiYoBjSrhakAobJw8BvkmJtDVxaeBtbt7rxWo1mg": {
+              "n": 1,
+              "median": 28493,
+              "p10": 28493,
+              "p90": 28493,
+              "min": 28493,
+              "max": 28493
+            },
+            "DVa7Qmb5ct9RCpaU7UTpSaf3GVMYz17vNVU67XpdCRut": {
+              "n": 1,
+              "median": 28101,
+              "p10": 28101,
+              "p90": 28101,
+              "min": 28101,
+              "max": 28101
+            }
+          }
+        },
+        "SwapBaseOutV2": {
+          "n": 5,
+          "median": 25781,
+          "p10": 25389,
+          "p90": 25808,
+          "min": 25389,
+          "max": 25808,
+          "accounts": {
+            "8": 5
+          },
+          "callers": {
+            "term9YPb9mzAsABaqN71A4xdbxHmpBNZavpBiQKZzN3": 3,
+            "top-level": 2
+          },
+          "by_token_kind": {
+            "SPL Token": {
+              "n": 5,
+              "median": 25781,
+              "p10": 25389,
+              "p90": 25808,
+              "min": 25389,
+              "max": 25808
+            }
+          },
+          "top_pools": {
+            "58oQChx4yWmvKdwLLZzBi4ChoCc2fqCUWBkwMihLYQo2": {
+              "n": 2,
+              "median": 25598,
+              "p10": 25389,
+              "p90": 25808,
+              "min": 25389,
+              "max": 25808
+            },
+            "9frEnxkurDtvW1eshy116LrwgTtA8kDJyUZ1kengR92t": {
+              "n": 2,
+              "median": 25781,
+              "p10": 25781,
+              "p90": 25781,
+              "min": 25781,
+              "max": 25781
+            },
+            "7XawhbbxtsRcQA8KTkHT9f9nc6d69UwqCDh6U5EEbEmX": {
+              "n": 1,
+              "median": 25781,
+              "p10": 25781,
+              "p90": 25781,
+              "min": 25781,
+              "max": 25781
+            }
+          }
+        },
+        "Deposit": {
+          "n": 1,
+          "median": 62094,
+          "p10": 62094,
+          "p90": 62094,
+          "min": 62094,
+          "max": 62094,
+          "accounts": {
+            "14": 1
+          },
+          "callers": {
+            "top-level": 1
+          },
+          "by_token_kind": {},
+          "top_pools": {}
+        }
+      }
+    },
+    "cpmm": {
+      "transactions": 2000,
+      "skipped": {
+        "program listed but not called": 736
+      },
+      "block_time_range": [
+        "2026-09-09T11:58:37+00:00",
+        "2026-09-09T11:59:59+00:00"
+      ],
+      "instructions": {
+        "swap_base_input": {
+          "n": 1239,
+          "median": 31726,
+          "p10": 25517,
+          "p90": 32055,
+          "min": 21986,
+          "max": 32433,
+          "accounts": {
+            "13": 1239
+          },
+          "callers": {
+            "FLASHX8DrLbgeR8FcfNV1F5krxYcYMUdBkrP1EPBtxB9": 347,
+            "Jupiter v6": 265,
+            "DF1ow4tspfHX9JwWJsAb9epbkA8hmpSEAtxXy1V27QBH": 181,
+            "GMGNreQcJFufBiCTLDBgKhYEfEe9B454UjpDr5CaSLA1": 120,
+            "proVF4pMXVaYqmy4NjniPh4pqKNfMmsihgd4wdkCX3u": 78
+          },
+          "by_token_kind": {
+            "SPL Token": {
+              "n": 120,
+              "median": 22880,
+              "p10": 22347,
+              "p90": 23182,
+              "min": 21986,
+              "max": 23216
+            },
+            "Token-2022": {
+              "n": 22,
+              "median": 30538,
+              "p10": 25496,
+              "p90": 30767,
+              "min": 24634,
+              "max": 30787
+            },
+            "Token-2022 with transfer fee": {
+              "n": 1097,
+              "median": 31728,
+              "p10": 27639,
+              "p90": 32071,
+              "min": 26898,
+              "max": 32433
+            }
+          },
+          "top_pools": {
+            "9qCx7JnXyrY2oQ72EYez4y9i6xcSo7GpjCy6T25v1gyH": {
+              "n": 664,
+              "median": 31853,
+              "p10": 31629,
+              "p90": 32055,
+              "min": 31395,
+              "max": 32341
+            },
+            "6hHpQs1d52deqGb1qeNd6k1xN52my8hSVZZmeMi9BD45": {
+              "n": 59,
+              "median": 32161,
+              "p10": 31834,
+              "p90": 32336,
+              "min": 31728,
+              "max": 32349
+            },
+            "85aGuq5zEUUU6n16FbRLHBA8Y2GpN1rXnr5RZLgnsZmq": {
+              "n": 58,
+              "median": 27628,
+              "p10": 27320,
+              "p90": 27835,
+              "min": 27296,
+              "max": 27841
+            },
+            "7mhVbA9B9AeZ8ufH14FJ7RjkPxpVpbtqScBN24P1fhvH": {
+              "n": 49,
+              "median": 27606,
+              "p10": 27478,
+              "p90": 27902,
+              "min": 27397,
+              "max": 27927
+            },
+            "Cu7Rg8zeoNL7twiEYMsHWQCdXRtqLcWiVW8Ns1XvsBKW": {
+              "n": 29,
+              "median": 27812,
+              "p10": 27662,
+              "p90": 27814,
+              "min": 27486,
+              "max": 27818
+            }
+          }
+        },
+        "collect_creator_fee": {
+          "n": 28,
+          "median": 24685,
+          "p10": 22567,
+          "p90": 32077,
+          "min": 21067,
+          "max": 32446,
+          "accounts": {
+            "14": 28
+          },
+          "callers": {
+            "top-level": 28
+          },
+          "by_token_kind": {},
+          "top_pools": {}
+        },
+        "swap_base_output": {
+          "n": 11,
+          "median": 23197,
+          "p10": 22862,
+          "p90": 28441,
+          "min": 22861,
+          "max": 32650,
+          "accounts": {
+            "13": 11
+          },
+          "callers": {
+            "top-level": 10,
+            "81EUhaSVy8edRdyZ2TSrZSYa72U2tKY8zTDURsUAtRT6": 1
+          },
+          "by_token_kind": {
+            "SPL Token": {
+              "n": 8,
+              "median": 23030,
+              "p10": 22861,
+              "p90": 23199,
+              "min": 22861,
+              "max": 23199
+            },
+            "Token-2022 with transfer fee": {
+              "n": 3,
+              "median": 28441,
+              "p10": 28285,
+              "p90": 32650,
+              "min": 28285,
+              "max": 32650
+            }
+          },
+          "top_pools": {
+            "G4snEiNRvzKkWqTX1iijFvgotfsW63YWqRn78oh3xU8W": {
+              "n": 8,
+              "median": 23030,
+              "p10": 22861,
+              "p90": 23199,
+              "min": 22861,
+              "max": 23199
+            },
+            "9qCx7JnXyrY2oQ72EYez4y9i6xcSo7GpjCy6T25v1gyH": {
+              "n": 1,
+              "median": 32650,
+              "p10": 32650,
+              "p90": 32650,
+              "min": 32650,
+              "max": 32650
+            },
+            "CsjcF4mEmJsXZDWzBtuviVEV7JiKTY4NAJ1rdcHhVxi3": {
+              "n": 1,
+              "median": 28441,
+              "p10": 28441,
+              "p90": 28441,
+              "min": 28441,
+              "max": 28441
+            },
+            "A3URwhZE2YyVNKL9CmSvU9VG1oJoZS78kX4AdK5faDud": {
+              "n": 1,
+              "median": 28285,
+              "p10": 28285,
+              "p90": 28285,
+              "min": 28285,
+              "max": 28285
+            }
+          }
+        },
+        "collect_protocol_fee": {
+          "n": 6,
+          "median": 21084,
+          "p10": 17605,
+          "p90": 24858,
+          "min": 17605,
+          "max": 24858,
+          "accounts": {
+            "12": 6
+          },
+          "callers": {
+            "top-level": 6
+          },
+          "by_token_kind": {},
+          "top_pools": {}
+        }
+      }
+    },
+    "clmm": {
+      "transactions": 2000,
+      "skipped": {
+        "program listed but not called": 1134
+      },
+      "block_time_range": [
+        "2026-09-09T11:58:53+00:00",
+        "2026-09-09T11:59:59+00:00"
+      ],
+      "instructions": {
+        "swap_v2": {
+          "n": 700,
+          "median": 49724,
+          "p10": 44874,
+          "p90": 57635,
+          "min": 37082,
+          "max": 153626,
+          "accounts": {
+            "14": 3,
+            "15": 194,
+            "16": 217,
+            "17": 214,
+            "18": 19,
+            "19": 14,
+            "20": 9,
+            "21": 22,
+            "24": 8
+          },
+          "callers": {
+            "Jupiter v6": 195,
+            "DF1ow4tspfHX9JwWJsAb9epbkA8hmpSEAtxXy1V27QBH": 76,
+            "proVF4pMXVaYqmy4NjniPh4pqKNfMmsihgd4wdkCX3u": 67,
+            "top-level": 65,
+            "FLASHX8DrLbgeR8FcfNV1F5krxYcYMUdBkrP1EPBtxB9": 57
+          },
+          "by_token_kind": {
+            "SPL Token": {
+              "n": 226,
+              "median": 47248,
+              "p10": 42675,
+              "p90": 52267,
+              "min": 37082,
+              "max": 69539
+            },
+            "Token-2022": {
+              "n": 334,
+              "median": 51773,
+              "p10": 47458,
+              "p90": 56921,
+              "min": 43807,
+              "max": 153626
+            },
+            "Token-2022 with transfer fee": {
+              "n": 140,
+              "median": 53215,
+              "p10": 49382,
+              "p90": 58489,
+              "min": 47475,
+              "max": 67581
+            }
+          },
+          "top_pools": {
+            "1jAkn9tRpK9R72iW7MHYx6cF9nEkYnD4FYSxMYEDePL": {
+              "n": 134,
+              "median": 51405,
+              "p10": 47452,
+              "p90": 52203,
+              "min": 47027,
+              "max": 52509
+            },
+            "2AXXcN6oN9bBT5owwmTH53C7QHUXvhLeu718Kqt8rvY2": {
+              "n": 24,
+              "median": 45217,
+              "p10": 40572,
+              "p90": 49680,
+              "min": 39153,
+              "max": 57001
+            },
+            "3nMFwZXwY1s1M5s8vYAHqd4wGs4iSxXE4LRoUMMYqEgF": {
+              "n": 21,
+              "median": 44325,
+              "p10": 37448,
+              "p90": 49394,
+              "min": 37082,
+              "max": 50308
+            },
+            "3CYoy8LsiHpvLoMchTkX1HMita9ng5vR2maRoQbeYgsW": {
+              "n": 21,
+              "median": 64660,
+              "p10": 63246,
+              "p90": 69630,
+              "min": 63217,
+              "max": 69763
+            },
+            "45ssPkUQs1ssbeDqxD2mZrMdJYAXF7GyQyhS5xDXuWC5": {
+              "n": 21,
+              "median": 47101,
+              "p10": 43875,
+              "p90": 55027,
+              "min": 43807,
+              "max": 58935
+            }
+          }
+        },
+        "swap": {
+          "n": 256,
+          "median": 42695,
+          "p10": 36990,
+          "p90": 48461,
+          "min": 34868,
+          "max": 125258,
+          "accounts": {
+            "11": 52,
+            "12": 26,
+            "13": 111,
+            "14": 36,
+            "15": 4,
+            "16": 27
+          },
+          "callers": {
+            "Jupiter v6": 100,
+            "BoobsBSMpFRBA91sNwKLYShRRQPH5GjoCH4NhLUt4yRo": 58,
+            "DF1ow4tspfHX9JwWJsAb9epbkA8hmpSEAtxXy1V27QBH": 40,
+            "top-level": 16,
+            "E52MR3wWQJG7mdBxLbw5tLcpF7DNzBWFKfacQ1HFSVrv": 13
+          },
+          "by_token_kind": {
+            "SPL Token": {
+              "n": 256,
+              "median": 42695,
+              "p10": 36990,
+              "p90": 48461,
+              "min": 34868,
+              "max": 125258
+            }
+          },
+          "top_pools": {
+            "FBCgqn8boU5fSFaScUsbfAkbovyKSAvA6G3TQVsw68bW": {
+              "n": 36,
+              "median": 44359,
+              "p10": 42206,
+              "p90": 46215,
+              "min": 41386,
+              "max": 46302
+            },
+            "2AXXcN6oN9bBT5owwmTH53C7QHUXvhLeu718Kqt8rvY2": {
+              "n": 28,
+              "median": 40515,
+              "p10": 36266,
+              "p90": 42194,
+              "min": 36015,
+              "max": 46136
+            },
+            "GUWFT7bbLphGrcpAPnnEnBbe1uErv9e6LLC2qPx2wZy1": {
+              "n": 27,
+              "median": 38108,
+              "p10": 36990,
+              "p90": 38327,
+              "min": 36675,
+              "max": 38565
+            },
+            "8sLbNZoA1cfnvMJLPfp98ZLAnFSYCFApfJKMbiXNLwxj": {
+              "n": 26,
+              "median": 47876,
+              "p10": 40681,
+              "p90": 48297,
+              "min": 34868,
+              "max": 48348
+            },
+            "JAe55Dx5TRR1oXBEs8ergXGCsP6MpuDLQwwBF5dveVsZ": {
+              "n": 11,
+              "median": 44467,
+              "p10": 43004,
+              "p90": 44933,
+              "min": 42989,
+              "max": 45937
+            }
+          }
+        },
+        "decrease_liquidity_v2": {
+          "n": 9,
+          "median": 32954,
+          "p10": 29477,
+          "p90": 46307,
+          "min": 29477,
+          "max": 46307,
+          "accounts": {
+            "16": 8,
+            "19": 1
+          },
+          "callers": {
+            "top-level": 9
+          },
+          "by_token_kind": {},
+          "top_pools": {}
+        },
+        "collect_protocol_fee": {
+          "n": 3,
+          "median": 16821,
+          "p10": 13183,
+          "p90": 17116,
+          "min": 13183,
+          "max": 17116,
+          "accounts": {
+            "11": 3
+          },
+          "callers": {
+            "top-level": 3
+          },
+          "by_token_kind": {},
+          "top_pools": {}
+        },
+        "collect_fund_fee": {
+          "n": 3,
+          "median": 16770,
+          "p10": 16084,
+          "p90": 16824,
+          "min": 16084,
+          "max": 16824,
+          "accounts": {
+            "11": 3
+          },
+          "callers": {
+            "top-level": 3
+          },
+          "by_token_kind": {},
+          "top_pools": {}
+        },
+        "increase_liquidity_v2": {
+          "n": 2,
+          "median": 42364,
+          "p10": 39326,
+          "p90": 45403,
+          "min": 39326,
+          "max": 45403,
+          "accounts": {
+            "15": 2
+          },
+          "callers": {
+            "top-level": 2
+          },
+          "by_token_kind": {},
+          "top_pools": {}
+        },
+        "open_position_with_token22_nft": {
+          "n": 1,
+          "median": 128034,
+          "p10": 128034,
+          "p90": 128034,
+          "min": 128034,
+          "max": 128034,
+          "accounts": {
+            "20": 1
+          },
+          "callers": {
+            "top-level": 1
+          },
+          "by_token_kind": {},
+          "top_pools": {}
+        },
+        "create_customizable_pool": {
+          "n": 1,
+          "median": 66902,
+          "p10": 66902,
+          "p90": 66902,
+          "min": 66902,
+          "max": 66902,
+          "accounts": {
+            "16": 1
+          },
+          "callers": {
+            "top-level": 1
+          },
+          "by_token_kind": {},
+          "top_pools": {}
+        },
+        "close_position": {
+          "n": 1,
+          "median": 17438,
+          "p10": 17438,
+          "p90": 17438,
+          "min": 17438,
+          "max": 17438,
+          "accounts": {
+            "7": 1
+          },
+          "callers": {
+            "top-level": 1
+          },
+          "by_token_kind": {},
+          "top_pools": {}
+        }
+      }
+    }
+  }
+}
