@@ -117,7 +117,7 @@ This is the value the curve math treats as effective reserves (the accrued-but-u
 
 The lookup table + interpolation design is **efficient and flexible**:
 
-- **Efficiency:** Binary search is O(log 50,000) ≈ 16 iterations, each ~ 300–500 CU. Interpolation is a few multiplies/divides. Total quoting cost is ~5k–15k CU, much cheaper than recomputing a formula on every swap.
+- **Efficiency:** Binary search over the table takes about 16 steps (log₂ 50,000), and interpolation is a few multiplies and divides. The swap as a whole is not cheap, though. In a mainnet sample of 398 swaps from 2026-11-03 to 2026-11-05, a Stable `SwapBaseIn` consumed a median of 94,487 CU, several times a CPMM or AMM v4 swap.
 - **Flexibility:** The admin can encode any piecewise-linear curve. Stablecoin pairs get high density around 1:1; collateralized pairs get custom curves.
 - **Self-contained liquidity:** All funds live in the pool vaults and pricing reads them directly — no crank, no external order book, fewer accounts per transaction.
 

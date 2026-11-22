@@ -45,17 +45,29 @@ See the respective pool's fee documentation for exact splits:
 
 ## Compute cost
 
-The router's compute cost is **linear in the number of hops**:
+The router's compute cost grows with the number of hops. Each hop adds the pool's swap and the router's own work. In a mainnet sample of 400 AMM Routing transactions, taken over ten minutes on 2026-11-22, the router call consumed:
 
-- **Fixed overhead:** ~5k CU for the router's dispatch logic and account validation.
-- **Per-hop cost:** ~10k–50k CU depending on the pool type and complexity:
-  - CPMM: ~20k–30k CU
-  - AMM v4: ~40k–60k CU (includes OpenBook validation)
-  - CLMM: ~50k–100k CU (tick-math heavy)
-  - Stable: ~30k–40k CU
-- **Total transaction budget:** 1.4M CU on mainnet. A route with 10 CPMM hops would cost ~305k CU, leaving room for other operations.
+| Route | Median CU | 10th–90th percentile | Transactions |
+|-------|-----------|----------------------|--------------|
+| 1 hop | 71,698 | 66,624–101,411 | 327 |
+| 2 hops | 133,687 | 107,940–160,805 | 67 |
+| 3 hops | 181,963 | 148,208–185,916 | 6 |
 
-See the individual pool's documentation for exact CU costs.
+That total splits into two parts:
+
+- **Router overhead:** about 20,000 CU per hop, not a fixed amount. After subtracting the programs it calls, the router itself consumed a median of 22,713 CU on 1-hop routes, 42,467 on 2-hop routes and 58,944 on 3-hop routes. This includes the cost of making each call.
+- **Pool swaps:** each pool program's own consumption when the router called it:
+
+| Pool program and instruction | Median CU | 10th–90th percentile | Hops sampled |
+|------------------------------|-----------|----------------------|--------------|
+| CLMM `swap_v2` | 47,017 | 44,110–50,959 | 430 |
+| CPMM `swap_base_input` | 28,798 | 25,070–29,946 | 33 |
+| AMM v4 `SwapBaseIn` (v1) | 16,279 | 16,086–16,279 | 15 |
+| Stable AMM `SwapBaseIn` | 94,487 | 85,252–101,539 | 398 |
+
+The router sample made no Stable AMM hops, so the Stable row comes from the program's last 400 successful transactions, on 2026-11-03 to 2026-11-05. It covers swaps the router made (162) and swaps other programs made. CLMM cost rises with each tick array a swap crosses.
+
+A transaction can use at most 1.4M CU. The figures above cover the router call only: ATA creation, wSOL wrapping and compute-budget instructions add to the transaction. Simulate the whole route before you set a compute limit. Each figure is the program's own `Program <id> consumed N of M compute units` log line; the evidence is in `public/tino-changes/evidence/stable-routing-2026-11-22/`.
 
 ## Account initialization overhead
 

@@ -1,0 +1,160 @@
+{
+  "generated_at": "2026-11-22T10:02:47.906738+00:00",
+  "rpc_provider": "Triton One mainnet RPC",
+  "slot": 472501227,
+  "transactions_per_sample": 400,
+  "block_time_range": {
+    "stable-program": [
+      "2026-11-03T17:01:18+00:00",
+      "2026-11-05T16:35:34+00:00"
+    ],
+    "amm-routing-program": [
+      "2026-11-22T09:54:21+00:00",
+      "2026-11-22T10:04:52+00:00"
+    ]
+  },
+  "measure": "each program's own 'consumed' log line, including the programs it calls; own_cu subtracts the callees. Not the transaction total or the requested limit.",
+  "stable_amm": {
+    "instructions_seen": {
+      "SwapBaseIn": 398,
+      "SwapBaseOut": 1,
+      "tag 6": 3
+    },
+    "SwapBaseIn": {
+      "n": 398,
+      "median": 94487,
+      "p10": 85252,
+      "p90": 101539,
+      "min": 70993,
+      "max": 107097
+    },
+    "SwapBaseOut": {
+      "n": 1,
+      "median": 101337,
+      "p10": 101337,
+      "p90": 101337,
+      "min": 101337,
+      "max": 101337
+    },
+    "SwapBaseIn_by_accounts": {
+      "9": {
+        "n": 231,
+        "median": 94084,
+        "p10": 89520,
+        "p90": 100834,
+        "min": 81146,
+        "max": 104372
+      },
+      "18": {
+        "n": 167,
+        "median": 94863,
+        "p10": 82048,
+        "p90": 102656,
+        "min": 70993,
+        "max": 107097
+      }
+    },
+    "swaps_by_caller": {
+      "AMM Routing": 162,
+      "MtvwNH8eijJV3Pxcak9ZzsXeX7rWiAB2QGaPz1XDpd2": 5,
+      "proVF4pMXVaYqmy4NjniPh4pqKNfMmsihgd4wdkCX3u": 231,
+      "top-level": 1
+    }
+  },
+  "router_hops": {
+    "AMM v4 SwapBaseIn (v1)": {
+      "n": 15,
+      "median": 16279,
+      "p10": 16086,
+      "p90": 16279,
+      "min": 16078,
+      "max": 16359
+    },
+    "CLMM swap": {
+      "n": 1,
+      "median": 58961,
+      "p10": 58961,
+      "p90": 58961,
+      "min": 58961,
+      "max": 58961
+    },
+    "CLMM swap_v2": {
+      "n": 430,
+      "median": 47017,
+      "p10": 44110,
+      "p90": 50959,
+      "min": 41230,
+      "max": 141217
+    },
+    "CPMM swap_base_input": {
+      "n": 33,
+      "median": 28798,
+      "p10": 25070,
+      "p90": 29946,
+      "min": 24449,
+      "max": 33163
+    }
+  },
+  "router_own_cu": {
+    "all": {
+      "n": 400,
+      "median": 24672,
+      "p10": 20612,
+      "p90": 55767,
+      "min": 11469,
+      "max": 70112
+    },
+    "by_pool_hops": {
+      "1": {
+        "n": 327,
+        "median": 22713,
+        "p10": 20548,
+        "p90": 55817,
+        "min": 11469,
+        "max": 70112
+      },
+      "2": {
+        "n": 67,
+        "median": 42467,
+        "p10": 37999,
+        "p90": 50577,
+        "min": 35350,
+        "max": 57111
+      },
+      "3": {
+        "n": 6,
+        "median": 58944,
+        "p10": 55377,
+        "p90": 59764,
+        "min": 55377,
+        "max": 59764
+      }
+    }
+  },
+  "router_total_cu_by_pool_hops": {
+    "1": {
+      "n": 327,
+      "median": 71698,
+      "p10": 66624,
+      "p90": 101411,
+      "min": 33016,
+      "max": 130504
+    },
+    "2": {
+      "n": 67,
+      "median": 133687,
+      "p10": 107940,
+      "p90": 160805,
+      "min": 94408,
+      "max": 210476
+    },
+    "3": {
+      "n": 6,
+      "median": 181963,
+      "p10": 148208,
+      "p90": 185916,
+      "min": 148208,
+      "max": 185916
+    }
+  }
+}

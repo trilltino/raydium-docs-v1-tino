@@ -157,7 +157,7 @@ The 2026-11-20 SDK and fee-accounting pass resolved two fee-related follow-ups. 
 - **Resolved:** the [constant-product algorithm](/docs/en/algorithms/constant-product#amm-v4-convention) now applies `pnl_numerator / pnl_denominator` to the growth calculated by `calc_take_pnl`, not directly to each swap's fee. It also documents configurable PnL parameters.
 - **Resolved:** [fee comparison](/docs/en/reference/fee-comparison) now describes AMM v4's 0.03% as a default economic equivalent and notes that the admin can change pool fees. Its pre-rebuild compute figures were replaced on 2026-11-22; see [CPMM docs updates](/docs/en/resources/devrel-edits/cpmm-docs-updates#compute-figures-on-other-pages).
 - **[CLMM fees](/docs/en/products/clmm/fees)** labels the 0.25% tier as index 2. The live API lists it as index 1.
-- The **[routing](/docs/en/products/routing)** pages carry old compute figures and still describe OpenBook pricing. The [CPI integration](/docs/en/integration-guides/cpi-integration) and [Rust CPI](/docs/en/sdk-api/rust-cpi) figures were replaced on 2026-11-22.
+- The **[routing](/docs/en/products/routing)** pages still describe OpenBook pricing. Their compute figures, and those in [CPI integration](/docs/en/integration-guides/cpi-integration) and [Rust CPI](/docs/en/sdk-api/rust-cpi), were replaced on 2026-11-22 with measured ones; see [CPMM docs updates](/docs/en/resources/devrel-edits/cpmm-docs-updates#stable-amm-and-routing-compute).
 - **Resolved:** the CPMM compute figures no longer disagree. Fee comparison, CPI integration and Rust CPI now use the 2026-11-20 sample, like the AMM v4 overview. See [CPMM docs updates](/docs/en/resources/devrel-edits/cpmm-docs-updates#compute-figures-on-other-pages).
 
 ## What the SDK and router send
