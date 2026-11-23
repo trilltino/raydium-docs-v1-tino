@@ -1,0 +1,87 @@
+{
+  "generated": "2026-11-23T10:33:21.613Z",
+  "sdk": "@raydium-io/raydium-sdk-v2@0.2.85-alpha",
+  "node": "v22.18.0",
+  "sdkSelectionLine": {
+    "file": "src/raydium/clmm/clmm.ts",
+    "line": 452,
+    "text": "const seedIndex = Math.max(forerunCreate ? 1 : data.findIndex((d) => d === null) + 1, 1);"
+  },
+  "program": "raydium-clmm create_customizable_pool_v2 requires only seed_index > 0 (require_gt!(seed_index, 0)) and inits pool_state at the seed_index PDA",
+  "method": "Real createCustomizablePoolV2 from the installed package; stubbed connection whose getMultipleAccountsInfo reports the listed indexes as existing accounts; seed_index decoded from the built instruction data.",
+  "scenarios": [
+    {
+      "name": "no seed-indexed pools",
+      "forerunCreate": false,
+      "takenSeedIndexes": "none",
+      "rpcCalls": 1,
+      "accountsQueried": 100,
+      "seedIndexInInstruction": 1,
+      "poolId": "9wQEiEjrhXti1jhZfFEwhD1qgE2UctVvrjNDLpwUf6sg",
+      "poolIdMatchesPdaForThatIndex": true,
+      "targetsExistingPool": false,
+      "expected": "index 1"
+    },
+    {
+      "name": "indexes 1-3 taken",
+      "forerunCreate": false,
+      "takenSeedIndexes": "1-3",
+      "rpcCalls": 1,
+      "accountsQueried": 100,
+      "seedIndexInInstruction": 4,
+      "poolId": "5uhEK91UBAyoeAGvSZAUmFYBWGN4LpkNNCCYv7yE55ar",
+      "poolIdMatchesPdaForThatIndex": true,
+      "targetsExistingPool": false,
+      "expected": "index 4"
+    },
+    {
+      "name": "indexes 1-99 taken",
+      "forerunCreate": false,
+      "takenSeedIndexes": "1-99",
+      "rpcCalls": 1,
+      "accountsQueried": 100,
+      "seedIndexInInstruction": 100,
+      "poolId": "B9gyiQS5oYpsNBmhTCow8pT5Q5axV1pP2SDDN8UofUmf",
+      "poolIdMatchesPdaForThatIndex": true,
+      "targetsExistingPool": false,
+      "expected": "index 100"
+    },
+    {
+      "name": "indexes 1-100 taken",
+      "forerunCreate": false,
+      "takenSeedIndexes": "1-100",
+      "rpcCalls": 1,
+      "accountsQueried": 100,
+      "seedIndexInInstruction": 1,
+      "poolId": "9wQEiEjrhXti1jhZfFEwhD1qgE2UctVvrjNDLpwUf6sg",
+      "poolIdMatchesPdaForThatIndex": true,
+      "targetsExistingPool": true,
+      "expected": "an error, or an index above 100 (the program accepts 1-65535)"
+    },
+    {
+      "name": "forerunCreate with index 1 taken",
+      "forerunCreate": true,
+      "takenSeedIndexes": "1-1",
+      "rpcCalls": 0,
+      "accountsQueried": 0,
+      "seedIndexInInstruction": 1,
+      "poolId": "9wQEiEjrhXti1jhZfFEwhD1qgE2UctVvrjNDLpwUf6sg",
+      "poolIdMatchesPdaForThatIndex": true,
+      "targetsExistingPool": true,
+      "expected": "a caller-chosen index; the builder takes none"
+    }
+  ],
+  "mainnetSample": {
+    "source": "public/tino-changes/evidence/clmm-2026-11-22/pools.csv (2,000 highest-TVL CLMM pools listed by api-v3)",
+    "pools": 2000,
+    "poolsWithNonzeroSeedIndex": 170,
+    "poolsBySeedIndex": {
+      "0": 1830,
+      "1": 165,
+      "2": 3,
+      "3": 1,
+      "4": 1
+    },
+    "highestSeedIndex": 4
+  }
+}
