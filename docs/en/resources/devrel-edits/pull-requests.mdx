@@ -1,9 +1,55 @@
 ---
-title: "Pull requests"
-description: "Upstream pull requests opened from this checkout, with their status and what each one changes."
+title: "DevRel edits"
+sidebarTitle: "Pull requests"
+description: "Every change this checkout makes to the Raydium docs and everything it reported upstream, with the pull requests opened so far."
 ---
 
-## Open
+Pick a record to see what changed. Each one lists the pages it changed, quotes the old and new wording, and links to the source, script or mainnet evidence that confirms the change.
+
+## Reported upstream
+
+<CardGroup cols={2}>
+  <Card title="Pull requests" icon="code-pull-request" href="#pull-requests">
+    Pull requests opened against `raydium-docs-v1`, with each one's status and what it changes. Listed below.
+  </Card>
+  <Card title="Issues" icon="circle-exclamation" href="/docs/en/resources/devrel-edits/issues">
+    Issues reported on the docs and the TypeScript SDK, with each one's status and what it covers.
+  </Card>
+</CardGroup>
+
+## Documentation edits
+
+<CardGroup cols={2}>
+  <Card title="AMM v4" icon="arrows-rotate" href="/docs/en/resources/devrel-edits/amm-v4-docs-updates">
+    **20 Nov 2026** · Corrects all seven AMM v4 pages after the OpenBook removal and the Solana 3.0 rebuild: fees, accounts, SDK calls and compute.
+  </Card>
+  <Card title="CPMM" icon="arrows-left-right" href="/docs/en/resources/devrel-edits/cpmm-docs-updates">
+    **21–22 Nov 2026** · Corrects all seven CPMM pages and 16 pages that repeated them: creator fees, compute figures and tested code examples.
+  </Card>
+  <Card title="CLMM" icon="chart-line" href="/docs/en/resources/devrel-edits/clmm-docs-updates">
+    **22 Nov 2026** · Corrects seven of the eight CLMM pages: fee tiers, which token pays the fee, limit orders and tick arrays.
+  </Card>
+  <Card title="User flows" icon="list-check" href="/docs/en/resources/devrel-edits/user-flow-docs-updates">
+    **21–22 Nov 2026** · Corrects the 11 liquidity-provider and LaunchLab user-flow pages, including migration, vesting and farm claims.
+  </Card>
+  <Card title="Transfer hooks" icon="link" href="/docs/en/resources/devrel-edits/transfer-hooks">
+    **28 Oct and 22 Nov 2026** · Adds the Transfer hooks page to Solana fundamentals, then explains how a hook built with the kit is structured.
+  </Card>
+</CardGroup>
+
+## SDK edits
+
+<CardGroup cols={2}>
+  <Card title="createPool.ts" icon="code" href="/docs/en/resources/devrel-edits/sdk-edits/create-pool">
+    **16 Nov 2026 demo** · The CPMM creator-fee option and the CLMM V2 pool builder, and every docs correction they led to.
+  </Card>
+</CardGroup>
+
+## Pull requests
+
+Upstream pull requests opened from this checkout, with their status and what each one changes.
+
+### Open
 
 - **11.03.26** · **[PR #32](https://github.com/raydium-io/raydium-docs-v1/pull/32), [brand kit design source files](/docs/en/resources/brand-kit):** Opened 3 November and still open. Replaces the brand kit's table of SVG files, which are not in the repository, with the PNG files that are. Adds the Illustrator and EPS source files with a download section. The change remains in this checkout.
 - **11.19.26** · **[PR #35](https://github.com/raydium-io/raydium-docs-v1/pull/35), [architecture diagram suggestion](/docs/en/protocol-overview/architecture):** Opened 19 November and still open. Suggests a more readable architecture diagram by adding an example layout. It does not change the page. This checkout uses the example layout in place of the Mermaid diagram.
