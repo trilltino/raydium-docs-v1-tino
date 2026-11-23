@@ -384,6 +384,11 @@ console.log("Seed-indexed pool:", extInfoV2.address.id);   // base58 string
 
 <Warning>
   **V2 changes pool-address derivation, not just the fee parameter.** In SDK `0.2.85-alpha`, the V2 builder checks the first 100 nonzero seed indexes and selects the first available one. This is SDK behavior, not a permanent CLMM program rule. Do not use V2 when you intend to create the canonical pool.
+
+  The builder takes no seed-index parameter. In two cases it builds a transaction that fails, because a pool already exists at the index it picks ([SDK issue #235](https://github.com/raydium-io/raydium-sdk-V2/issues/235)):
+
+  - If indexes 1 to 100 are all taken, it falls back to index 1. The program would accept 101 or higher.
+  - With `forerunCreate: true`, it skips the check and always uses index 1. Don't use that option for a configuration and mint pair that already has a seed-indexed pool.
 </Warning>
 
 Ordinary `createPool` continues to work for default-fee pools. See [`products/clmm/instructions`](/docs/en/products/clmm/instructions) for the distinct on-chain `CreateCustomizablePool` and `CreateCustomizablePoolV2` account lists.
