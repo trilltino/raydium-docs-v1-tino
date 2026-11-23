@@ -7,6 +7,11 @@ The VPS serves the docs with `mint dev` in the `docs-preview` container, which m
 XFChess website deploy: build locally, upload over SSH with the VPS key, fix permissions
 on the server, then restart.
 
+The nginx site (/etc/nginx/sites-available/docs-preview) also maps `<page>.md` to
+`/_markdown/<page>`. `mint dev` serves Markdown only at the second path, and the
+**Copy page** and **View as Markdown** buttons request the first. Keep that `location`
+block if the server is rebuilt.
+
 Steps:
 1. `git archive` the site files of the chosen commit (default HEAD) into a tarball.
 2. Upload it to /srv/docs-preview/releases/main-<sha>/ and unpack it into `staged/`.

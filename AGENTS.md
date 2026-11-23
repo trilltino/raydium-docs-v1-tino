@@ -6,7 +6,7 @@
 - Pages are MDX files with YAML frontmatter; navigation lives in `docs.json`.
 - The information architecture, audience model, and chapter map are defined in `ARCHITECTURE.mdx` — consult that before authoring any new page.
 - The English tree under `docs/en` is the source of truth. Thirteen locales under `docs/i18n` (`zh`, `zh-Hant`, `ja`, `ko`, `ru`, `es`, `de`, `fr`, `pt`, `tr`, `vi`, `id`, `ar`) mirror it; locale pages that don't exist on disk are auto-redirected to English by rules generated in `docs.json` — see "Multi-language hygiene" below.
-- Run `mint dev` to preview locally, `mint broken-links` to check links.
+- Run `node scripts/dev.mjs` to preview locally (it wraps `mint dev` so **Copy page** works), `mint broken-links` to check links.
 
 ## Terminology
 

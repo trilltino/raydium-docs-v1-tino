@@ -34,10 +34,12 @@ npm i -g mint
 Then, from the repo root (where `docs.json` lives):
 
 ```bash
-mint dev
+node scripts/dev.mjs
 ```
 
-The site renders at `http://localhost:3000`. Edits hot-reload.
+The site renders at `http://localhost:3000`. Edits hot-reload. Pass `--port <n>` to use another port; other `mint dev` flags are passed through.
+
+The script runs `mint dev` behind a small local proxy. Plain `mint dev` also works, but its **Copy page** and **View as Markdown** buttons copy nothing, because it doesn't serve the `<page>.md` URLs they request.
 
 To check for broken internal links before committing:
 
