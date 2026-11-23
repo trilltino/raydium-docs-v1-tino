@@ -1,7 +1,7 @@
 {
   "upstream_repository": "raydium-io/raydium-docs-v1",
   "upstream_commit": "7023f95844fb79abd1c36f1650278d024de5e175",
-  "local_base_commit": "d6526b64f69bec02cca8393a708d9ba5e6c989b4",
+  "local_base_commit": "0554289286a928a1e7a00a377f843ccc27ca719f",
   "includes_tracked_working_tree": true,
   "normalization": "docs/en/ becomes the upstream root; docs/i18n/<locale>/ becomes <locale>/. These prefixes are also removed from text. LF line endings and a final newline are used.",
   "excluded": [
@@ -16,9 +16,9 @@
   ],
   "counts": {
     "unchanged": 22,
-    "moved_or_path_only": 2509,
-    "modified": 357,
-    "added": 10,
+    "moved_or_path_only": 2463,
+    "modified": 403,
+    "added": 29,
     "removed": 0
   },
   "files": [
@@ -80,7 +80,7 @@
     {
       "upstream_path": "algorithms/clmm-math.mdx",
       "local_path": "docs/en/algorithms/clmm-math.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "algorithms/constant-product.mdx",
@@ -100,7 +100,7 @@
     {
       "upstream_path": "algorithms/slippage-and-price-impact.mdx",
       "local_path": "docs/en/algorithms/slippage-and-price-impact.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "algorithms/token-2022-transfer-fees.mdx",
@@ -5380,12 +5380,12 @@
     {
       "upstream_path": "integration-guides/aggregator.mdx",
       "local_path": "docs/en/integration-guides/aggregator.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "integration-guides/cpi-integration.mdx",
       "local_path": "docs/en/integration-guides/cpi-integration.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "integration-guides/index.mdx",
@@ -5425,7 +5425,7 @@
     {
       "upstream_path": "introduction/what-is-raydium.mdx",
       "local_path": "docs/en/introduction/what-is-raydium.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "ja/ARCHITECTURE.mdx",
@@ -7525,32 +7525,32 @@
     {
       "upstream_path": "products/clmm/fees.mdx",
       "local_path": "docs/en/products/clmm/fees.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "products/clmm/index.mdx",
       "local_path": "docs/en/products/clmm/index.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "products/clmm/instructions.mdx",
       "local_path": "docs/en/products/clmm/instructions.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "products/clmm/math.mdx",
       "local_path": "docs/en/products/clmm/math.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "products/clmm/overview.mdx",
       "local_path": "docs/en/products/clmm/overview.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "products/clmm/ticks-and-positions.mdx",
       "local_path": "docs/en/products/clmm/ticks-and-positions.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "products/cpmm/accounts.mdx",
@@ -7575,17 +7575,17 @@
     {
       "upstream_path": "products/cpmm/instructions.mdx",
       "local_path": "docs/en/products/cpmm/instructions.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "products/cpmm/math.mdx",
       "local_path": "docs/en/products/cpmm/math.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "products/cpmm/overview.mdx",
       "local_path": "docs/en/products/cpmm/overview.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "products/farm-staking/accounts.mdx",
@@ -7600,17 +7600,17 @@
     {
       "upstream_path": "products/farm-staking/index.mdx",
       "local_path": "docs/en/products/farm-staking/index.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "products/farm-staking/instructions.mdx",
       "local_path": "docs/en/products/farm-staking/instructions.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "products/farm-staking/overview.mdx",
       "local_path": "docs/en/products/farm-staking/overview.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "products/index.mdx",
@@ -7650,17 +7650,17 @@
     {
       "upstream_path": "products/launchlab/index.mdx",
       "local_path": "docs/en/products/launchlab/index.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "products/launchlab/instructions.mdx",
       "local_path": "docs/en/products/launchlab/instructions.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "products/launchlab/overview.mdx",
       "local_path": "docs/en/products/launchlab/overview.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "products/launchlab/platform-config.mdx",
@@ -7670,7 +7670,7 @@
     {
       "upstream_path": "products/launchlab/platforms.mdx",
       "local_path": "docs/en/products/launchlab/platforms.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "products/launchlab/tips-and-gotchas/index.mdx",
@@ -7740,7 +7740,7 @@
     {
       "upstream_path": "products/routing/fees.mdx",
       "local_path": "docs/en/products/routing/fees.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "products/routing/index.mdx",
@@ -7780,22 +7780,22 @@
     {
       "upstream_path": "products/stable/index.mdx",
       "local_path": "docs/en/products/stable/index.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "products/stable/instructions.mdx",
       "local_path": "docs/en/products/stable/instructions.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "products/stable/math.mdx",
       "local_path": "docs/en/products/stable/math.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "products/stable/overview.mdx",
       "local_path": "docs/en/products/stable/overview.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": null,
@@ -8865,7 +8865,7 @@
     {
       "upstream_path": "quick-start/swap-from-cli.mdx",
       "local_path": "docs/en/quick-start/swap-from-cli.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "ray/index.mdx",
@@ -9005,12 +9005,12 @@
     {
       "upstream_path": "reference/changelog/2026-10-30-cpmm-initialize-v2.mdx",
       "local_path": "docs/en/reference/changelog/2026-10-30-cpmm-initialize-v2.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "reference/error-codes.mdx",
       "local_path": "docs/en/reference/error-codes.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "reference/fee-comparison.mdx",
@@ -9020,7 +9020,7 @@
     {
       "upstream_path": "reference/glossary.mdx",
       "local_path": "docs/en/reference/glossary.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "reference/index.mdx",
@@ -9030,12 +9030,12 @@
     {
       "upstream_path": "reference/program-addresses.mdx",
       "local_path": "docs/en/reference/program-addresses.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "reference/token-2022-support.mdx",
       "local_path": "docs/en/reference/token-2022-support.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "resources/brand-kit.mdx",
@@ -9046,6 +9046,21 @@
       "upstream_path": "resources/community-tools.mdx",
       "local_path": "docs/en/resources/community-tools.mdx",
       "status": "moved_or_path_only"
+    },
+    {
+      "upstream_path": null,
+      "local_path": "docs/en/resources/devrel-edits/clmm-docs-updates.mdx",
+      "status": "added"
+    },
+    {
+      "upstream_path": null,
+      "local_path": "docs/en/resources/devrel-edits/cpmm-docs-updates.mdx",
+      "status": "added"
+    },
+    {
+      "upstream_path": null,
+      "local_path": "docs/en/resources/devrel-edits/user-flow-docs-updates.mdx",
+      "status": "added"
     },
     {
       "upstream_path": "resources/index.mdx",
@@ -10083,6 +10098,81 @@
       "status": "modified"
     },
     {
+      "upstream_path": null,
+      "local_path": "scripts/check-clmm-dynamic-config-api.py",
+      "status": "added"
+    },
+    {
+      "upstream_path": null,
+      "local_path": "scripts/check-clmm-seed-index.mjs",
+      "status": "added"
+    },
+    {
+      "upstream_path": null,
+      "local_path": "scripts/check-farm-claims.py",
+      "status": "added"
+    },
+    {
+      "upstream_path": null,
+      "local_path": "scripts/check-launchlab-vesting.py",
+      "status": "added"
+    },
+    {
+      "upstream_path": null,
+      "local_path": "scripts/check-sdk-source-identity.py",
+      "status": "added"
+    },
+    {
+      "upstream_path": null,
+      "local_path": "scripts/check-user-flow-live-values.py",
+      "status": "added"
+    },
+    {
+      "upstream_path": null,
+      "local_path": "scripts/compare-cpmm-quotes.mjs",
+      "status": "added"
+    },
+    {
+      "upstream_path": null,
+      "local_path": "scripts/deploy-vps.py",
+      "status": "added"
+    },
+    {
+      "upstream_path": null,
+      "local_path": "scripts/dev.mjs",
+      "status": "added"
+    },
+    {
+      "upstream_path": null,
+      "local_path": "scripts/measure-amm-v4.py",
+      "status": "added"
+    },
+    {
+      "upstream_path": null,
+      "local_path": "scripts/measure-clmm.py",
+      "status": "added"
+    },
+    {
+      "upstream_path": null,
+      "local_path": "scripts/measure-compute.py",
+      "status": "added"
+    },
+    {
+      "upstream_path": null,
+      "local_path": "scripts/measure-cpmm.py",
+      "status": "added"
+    },
+    {
+      "upstream_path": null,
+      "local_path": "scripts/measure-stable-routing.py",
+      "status": "added"
+    },
+    {
+      "upstream_path": null,
+      "local_path": "scripts/measure-tx-totals.py",
+      "status": "added"
+    },
+    {
       "upstream_path": "scripts/sync-locales.py",
       "local_path": "scripts/sync-locales.py",
       "status": "modified"
@@ -10091,6 +10181,11 @@
       "upstream_path": "scripts/translate.py",
       "local_path": "scripts/translate.py",
       "status": "modified"
+    },
+    {
+      "upstream_path": null,
+      "local_path": "scripts/typecheck-code-demos.mjs",
+      "status": "added"
     },
     {
       "upstream_path": "sdk-api/ai-integration.mdx",
@@ -10120,7 +10215,7 @@
     {
       "upstream_path": "sdk-api/rust-cpi.mdx",
       "local_path": "docs/en/sdk-api/rust-cpi.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "sdk-api/trade-api.mdx",
@@ -11230,7 +11325,7 @@
     {
       "upstream_path": "user-flows/add-remove-liquidity.mdx",
       "local_path": "docs/en/user-flows/add-remove-liquidity.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "user-flows/burn-and-earn.mdx",
@@ -11240,17 +11335,17 @@
     {
       "upstream_path": "user-flows/buying-a-launchlab-token.mdx",
       "local_path": "docs/en/user-flows/buying-a-launchlab-token.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "user-flows/choosing-a-pool-type.mdx",
       "local_path": "docs/en/user-flows/choosing-a-pool-type.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "user-flows/claim-rewards.mdx",
       "local_path": "docs/en/user-flows/claim-rewards.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "user-flows/create-clmm-pool.mdx",
@@ -11270,42 +11365,42 @@
     {
       "upstream_path": "user-flows/creating-a-launchlab-token.mdx",
       "local_path": "docs/en/user-flows/creating-a-launchlab-token.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "user-flows/earn-referral-fees-launchlab.mdx",
       "local_path": "docs/en/user-flows/earn-referral-fees-launchlab.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "user-flows/how-creator-fees-work.mdx",
       "local_path": "docs/en/user-flows/how-creator-fees-work.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "user-flows/index.mdx",
       "local_path": "docs/en/user-flows/index.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "user-flows/launch-token-launchlab.mdx",
       "local_path": "docs/en/user-flows/launch-token-launchlab.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "user-flows/launchlab-overview.mdx",
       "local_path": "docs/en/user-flows/launchlab-overview.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "user-flows/launchlab-platforms.mdx",
       "local_path": "docs/en/user-flows/launchlab-platforms.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "user-flows/migrate-amm-v4-to-cpmm.mdx",
       "local_path": "docs/en/user-flows/migrate-amm-v4-to-cpmm.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "user-flows/perpetuals-multi-collateral-deposit.mdx",
@@ -11335,7 +11430,7 @@
     {
       "upstream_path": "user-flows/referrals-and-blinks.mdx",
       "local_path": "docs/en/user-flows/referrals-and-blinks.mdx",
-      "status": "moved_or_path_only"
+      "status": "modified"
     },
     {
       "upstream_path": "user-flows/swap.mdx",
