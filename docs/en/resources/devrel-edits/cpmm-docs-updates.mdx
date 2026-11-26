@@ -29,12 +29,13 @@ The [follow-up pass on 22 November](#follow-up-pass-on-22-november) edited Code 
 
 **How it was checked.**
 
-- **Verified** against public source pinned to a commit: `raydium-cp-swap` at [`3d69122`](https://github.com/raydium-io/raydium-cp-swap/tree/3d69122790e97cd6aff24e8ba95940793773f58c), the TypeScript SDK at [`32a184e`](https://github.com/raydium-io/raydium-sdk-V2/tree/32a184eb0aea15ddbb485e24a1a73d3723fd94d6) and the published `0.2.85-alpha` package, the docs' current pin, and Anchor's error codes at [`v1.0.2`](https://github.com/solana-foundation/anchor/blob/v1.0.2/lang/src/error.rs), the version the program pins. The source tree and unpacked package were inspected, but no hashes or comparison log were retained to prove byte identity. The demo repo at [`679e0c6`](https://github.com/raydium-io/raydium-sdk-V2-demo/tree/679e0c6cfae44ce5cc9e5eefc36c39025b7c7783) was read to compare the examples; it is not the source of truth for any change.
+- **Verified** against public source pinned to a commit: `raydium-cp-swap` at [`3d69122`](https://github.com/raydium-io/raydium-cp-swap/tree/3d69122790e97cd6aff24e8ba95940793773f58c), the TypeScript SDK at [`32a184e`](https://github.com/raydium-io/raydium-sdk-V2/tree/32a184eb0aea15ddbb485e24a1a73d3723fd94d6) and the published `0.2.85-alpha` package, the docs' pin at the time of this review, and Anchor's error codes at [`v1.0.2`](https://github.com/solana-foundation/anchor/blob/v1.0.2/lang/src/error.rs), the version the program pins. The source tree and unpacked package were inspected, but no hashes or comparison log were retained to prove byte identity. The demo repo at [`679e0c6`](https://github.com/raydium-io/raydium-sdk-V2-demo/tree/679e0c6cfae44ce5cc9e5eefc36c39025b7c7783) was read to compare the examples; it is not the source of truth for any change.
 - **On-chain:** the collection run completed near slot 472,266,260 on 21 November 2026 through the public mainnet RPC with `scripts/measure-cpmm.py`. It read all 25 `AmmConfig` accounts, all 25 `CreatorFeeShare` accounts, and the `PoolState` and LP mint of the 615 CPMM pools among the 2,000 highest-TVL standard pools listed by `api-v3`. These were multiple RPC and API reads, not an atomic common-slot snapshot. The lowest-TVL pool in that set held about $15,900. The evidence is in `public/tino-changes/evidence/cpmm-2026-11-21/`.
 - **Measured:** compute figures reuse the CPMM part of the 20 November 2026 Triton sample from the [AMM v4 pass](/docs/en/resources/devrel-edits/amm-v4-docs-updates#compute-costs-after-the-rebuild): 384 `swap_base_input` and 9 `swap_base_output` calls made in recent transactions of the CPMM program. The evidence is in `public/tino-changes/evidence/amm-v4-2026-11-20/`. On 22 November every median quoted here was recomputed from that folder's `compute-units.csv`, which lists each transaction's signature and the CU from the program's own "consumed" log line. The results match: 25,152 CU for CPMM `swap_base_input` (384 calls), 24,935 CU for `swap_base_output` (9) and 15,397 CU for AMM v4 `SwapBaseInV2` (98).
 - **Measured on 22 November:** Stable AMM and AMM Routing compute, through the Triton One mainnet RPC with `scripts/measure-stable-routing.py`; the run completed near slot 472,501,227. It read the 400 most recent successful transactions of each program and took each program's CU from its own "consumed" log line. The evidence is in `public/tino-changes/evidence/stable-routing-2026-11-22/`. See [Stable AMM and routing compute](#stable-amm-and-routing-compute).
 - **Docs base:** both passes started from commit `68f5fdaf` of this repository.
 - **Tested on 22 November:** every TypeScript example on the Code demos and Fees pages, and the Swap from CLI script, type-checks against the published `0.2.85-alpha` package. The documented quote logic was compared with a port of the program's swap math across all 25 live fee tiers. The fee-reading example and the quote ran read-only against mainnet. See [How the examples were tested](#how-the-examples-were-tested).
+- **Engineering review:** the swap, deposit, withdrawal and observation formulas, the worked examples and the live fee-split values change mathematics and fee distribution. They follow the cited source and mainnet reads, but Raydium's smart-contract engineers have not reviewed them. Treat them as pending that review.
 - **Not verified:** the raydium.io web app, LaunchLab's use of `InitializeWithPermission` (LaunchLab's source is not public), and Devnet. No transaction was signed or submitted. The create, deposit, withdraw, swap-submission and collection examples were not run.
 
 ## The live fee settings
@@ -81,7 +82,7 @@ The docs said `CollectProtocolFee` and `CollectFundFee` take no arguments, empty
 
 - **[Instructions, `CollectProtocolFee`](/docs/en/products/cpmm/instructions#collectprotocolfee):** the arguments, the effect and the recipients. Source: [lib.rs L160–166](https://github.com/raydium-io/raydium-cp-swap/blob/3d69122790e97cd6aff24e8ba95940793773f58c/programs/cp-swap/src/lib.rs#L160-L166) · [collect_protocol_fee.rs L59–65](https://github.com/raydium-io/raydium-cp-swap/blob/3d69122790e97cd6aff24e8ba95940793773f58c/programs/cp-swap/src/instructions/admin/collect_protocol_fee.rs#L59-L65) · [L74–131](https://github.com/raydium-io/raydium-cp-swap/blob/3d69122790e97cd6aff24e8ba95940793773f58c/programs/cp-swap/src/instructions/admin/collect_protocol_fee.rs#L74-L131)
   - **Was:** "**Arguments** — none." … `pool_state.protocol_fees_token0 = 0`
-  - **Now:** `amount_0_requested: u64   // most token_0 to send; 0 collects none` … `amount_0 = min(amount_0_requested, pool_state.protocol_fees_token_0)` … "Pass `u64::MAX` for both amounts to collect everything." The recipient rows now say "The program doesn't constrain the recipient; the signer chooses it."
+  - **Now:** `amount_0_requested: u64   // most token_0 to send; 0 collects none` … `amount_0 = min(amount_0_requested, pool_state.protocol_fees_token_0)` … "Pass `u64::MAX` for both amounts to collect everything." The recipient rows now say "Any token account for `vault_0_mint`, chosen by the signer."
 - **[Instructions, `CollectFundFee`](/docs/en/products/cpmm/instructions#collectfundfee):** the same arguments. Source: [lib.rs L176–182](https://github.com/raydium-io/raydium-cp-swap/blob/3d69122790e97cd6aff24e8ba95940793773f58c/programs/cp-swap/src/lib.rs#L176-L182)
   - **Was:** "zeroing the `fund_fees_*` counters"
   - **Now:** "Same shape and arguments as `CollectProtocolFee` (`amount_0_requested`, `amount_1_requested`)" … "drawing down the `fund_fees_*` counters"
@@ -172,7 +173,7 @@ Several descriptions of the `0.2.85-alpha` builders didn't match their source. T
   - **Now:** "The SDK's CPMM builders do not check it, so a paused operation fails on-chain with `NotApproved`. Read it yourself before you build a transaction."
 - **[Code demos, Prerequisites](/docs/en/products/cpmm/code-demos#prerequisites):** what the SDK fetches. Source: [SDK api.ts L129–132](https://github.com/raydium-io/raydium-sdk-V2/blob/32a184eb0aea15ddbb485e24a1a73d3723fd94d6/src/api/api.ts#L129-L132) · [account.ts L84–98](https://github.com/raydium-io/raydium-sdk-V2/blob/32a184eb0aea15ddbb485e24a1a73d3723fd94d6/src/raydium/account/account.ts#L84-L98)
   - **Was:** "Fee configs are fetched lazily on first use via `raydium.api.getCpmmConfigs()`."
-  - **Now:** "The SDK doesn't prefetch fee configs; `raydium.api.getCpmmConfigs()` calls the API each time you use it. Builders fetch the owner's token accounts on demand and reuse the result for up to three minutes."
+  - **Now:** "`raydium.api.getCpmmConfigs()` calls the API each time you use it. Builders fetch the owner's token accounts on demand and reuse the result for up to three minutes."
 - **[Accounts, Account lifecycle](/docs/en/products/cpmm/accounts#account-lifecycle):** which accounts the program creates, and which the SDK adds. Source: [collect_creator_fee.rs L58–76](https://github.com/raydium-io/raydium-cp-swap/blob/3d69122790e97cd6aff24e8ba95940793773f58c/programs/cp-swap/src/instructions/collect_creator_fee.rs#L58-L76)
   - **Was:** "— (may create user LP ATA)" … "— (may create user destination ATA)" … "— (permissionless path may create the creator's ATAs)"
   - **Now:** "and the signer's LP ATA" for the creation instructions; "The creator's ATAs for both mints, if missing. The creator pays on `CollectCreatorFee`; the payer pays on the permissionless path."; and "The SDK adds the ATA-creation instructions to the transaction when one is missing." The table also gains the four registry instructions.
@@ -183,7 +184,7 @@ The docs said a pool's LP mint supply is always exactly 100 units below `PoolSta
 
 - **[Accounts, `PoolState`](/docs/en/products/cpmm/accounts#poolstate):** the gap between `lp_supply` and the mint's supply. Source: [pool.rs L105–106](https://github.com/raydium-io/raydium-cp-swap/blob/3d69122790e97cd6aff24e8ba95940793773f58c/programs/cp-swap/src/states/pool.rs#L105-L106) · `pool-lp-supply.csv`
   - **Was:** `pub lp_supply: u64,                   // mirrors lp_mint supply` and "it is exactly 100 base units higher, because the 100 locked units are counted here but never minted."
-  - **Now:** `// the program's LP total; >= lp_mint supply + 100` and "At creation it is exactly 100 base units higher" … "The gap grows whenever a holder burns LP tokens directly through the token program" … "found a gap of exactly 100 in 389 pools and a larger gap in 226." The section also gives `PoolState::LEN == 637 bytes`.
+  - **Now:** `// the program's LP total; >= lp_mint supply + 100` and "At creation it is exactly 100 base units higher" … "The gap grows whenever a holder burns LP tokens directly through the token program" … "on 2026-11-21, 226 of 615 sampled mainnet pools had a gap larger than 100." The section also gives `PoolState::LEN == 637 bytes`.
 - **[Instructions, `Initialize`](/docs/en/products/cpmm/instructions#initialize):** the LP formula uses the vault balances, after any transfer fee. Source: [initialize.rs L352–395](https://github.com/raydium-io/raydium-cp-swap/blob/3d69122790e97cd6aff24e8ba95940793773f58c/programs/cp-swap/src/instructions/initialize.rs#L352-L395)
   - **Was:** "`pool_state.lp_supply = sqrt(init_amount_0 * init_amount_1)`" … "So `lp_mint.supply == pool_state.lp_supply − 100` for the life of the pool."
   - **Now:** "`pool_state.lp_supply = floor(sqrt(vault_0 * vault_1))`, using the vault balances after the deposit." … "So at creation `lp_mint.supply == pool_state.lp_supply − 100`. The gap grows if anyone later burns LP tokens"
@@ -204,7 +205,7 @@ The docs said a pool's LP mint supply is always exactly 100 units below `PoolSta
   - **Now:** "if a `SupportMintAssociated` PDA exists at seed `[b"support_mint", mint]` **and** the creator passes it in the creation instruction's remaining accounts" … "The SDK appends existing PDAs when you pass `addSupportMintExt: true` to `createPool`."
 - **[Accounts, The six accounts of a CPMM pool](/docs/en/products/cpmm/accounts#the-six-accounts-of-a-cpmm-pool):** the keypair path, stated from the code rather than as an assumed motive. Solana has no public mempool to watch. Source: [initialize.rs L443–487](https://github.com/raydium-io/raydium-cp-swap/blob/3d69122790e97cd6aff24e8ba95940793773f58c/programs/cp-swap/src/instructions/initialize.rs#L443-L487)
   - **Was:** "The pool's state struct — mint pair, vault balances" … "The random-keypair path exists to defeat a front-running attack where an adversary watches mempool and races to occupy the canonical PDA before the legitimate creator."
-  - **Now:** "The pool's state struct: mint pair, vault addresses" … "Only one pool can sit at the canonical address for a mint pair and fee tier, so the keypair path also lets further pools exist for the same pair and tier."
+  - **Now:** "The pool's state struct: mint pair, vault addresses" … "A creator can use this path when someone else already created the canonical pool for that pair and tier."
 - **Same page, the sorting tip:**
   - **Was:** "Two pools with `(A, B)` and `(B, A)` would collide on-chain — sorting is how the program makes the mapping canonical."
   - **Now:** "The creation instructions reject unsorted mints with Anchor's `ConstraintRaw` (`2003`), so only the sorted order can produce a pool."
@@ -262,7 +263,7 @@ The docs described an observation buffer that appends a new entry per slot from 
 
 - **[Math, Observation update rule](/docs/en/products/cpmm/math#observation-update-rule):** the rule as the program runs it. Source: [oracle.rs L11](https://github.com/raydium-io/raydium-cp-swap/blob/3d69122790e97cd6aff24e8ba95940793773f58c/programs/cp-swap/src/states/oracle.rs#L11) · [L78–141](https://github.com/raydium-io/raydium-cp-swap/blob/3d69122790e97cd6aff24e8ba95940793773f58c/programs/cp-swap/src/states/oracle.rs#L78-L141) · [pool.rs L248–254](https://github.com/raydium-io/raydium-cp-swap/blob/3d69122790e97cd6aff24e8ba95940793773f58c/programs/cp-swap/src/states/pool.rs#L248-L254) · [swap_base_input.rs L203–208](https://github.com/raydium-io/raydium-cp-swap/blob/3d69122790e97cd6aff24e8ba95940793773f58c/programs/cp-swap/src/instructions/swap_base_input.rs#L203-L208)
   - **Was:** `if since_last >= MIN_OBSERVATION_INTERVAL {` … `let price0 = (vault1 << 32) / vault0;            // Q32.32-ish` … "Back-to-back swaps in the same slot may share one observation."
-  - **Now:** `if since_obs < 15:                        // OBSERVATION_UPDATE_DURATION_DEFAULT` … `price0 = y * 2^32 / x                     // token0 priced in token1, Q32.32` … "**Entries are at least 15 seconds apart.**" … "**Time before the first swap is not recorded.**" … "subtracting modulo 2^128"
+  - **Now:** `if since_obs < 15:                        // OBSERVATION_UPDATE_DURATION_DEFAULT` … `price0 = y * 2^32 / x                     // token0 priced in token1, Q32.32` … "**Entries are at least 15 seconds apart.**" … "**Accumulation starts at the first swap.**" … "subtracting modulo 2^128"
 - **[Accounts, Observation](/docs/en/products/cpmm/accounts#observation):** the same rule, with consumer guidance that follows from it.
   - **Was:** "On every swap the program appends a new observation if enough time has passed since the last one." … "**Pick observations at least one block apart.**"
   - **Now:** "It starts a new entry only when at least 15 seconds have passed since the newest entry; otherwise it adds to the newest entry in place." … "**Use windows much longer than 15 seconds.**" … "**Subtract with wrapping arithmetic.**" … "a full buffer spans at least 99 × 15 = 1,485 seconds (about 25 minutes)"
@@ -282,10 +283,10 @@ The overview's comparison table gave pre-measurement estimates about 2.4–4 tim
   - **Now:** "| Accounts per swap | 8 (`SwapBaseInV2`, `SwapBaseOutV2`) | 13 (`SwapBaseInput`, `SwapBaseOutput`) |" … "| Typical compute per swap | ≈15,400 CU (`SwapBaseInV2`, 98 swaps) | ≈25,200 CU (`SwapBaseInput`, 384 swaps) |", with a note on the sample and the 24,935 CU median for 9 `SwapBaseOutput` calls.
 - **[Overview, What CPMM gives you](/docs/en/products/cpmm/overview#what-cpmm-gives-you):**
   - **Was:** "Transactions are cheaper in both compute and account count than AMM v4."
-  - **Now:** "A swap still passes 13 accounts against 8 for an AMM v4 V2 swap, and it uses more compute; see the table below."
+  - **Now:** "Per-swap account and compute figures are in the table below." The table gives 13 accounts and about 25,200 CU for a CPMM swap, against 8 accounts and about 15,400 CU for an AMM v4 V2 swap.
 - **[Landing page, What it is](/docs/en/products/cpmm#what-it-is):**
   - **Was:** "has no OpenBook dependency, lower gas, first-class Token-2022 support"
-  - **Now:** "A CPMM swap uses more compute and more accounts than an AMM v4 V2 swap"
+  - **Now:** "Per-swap compute and account counts are in the Overview", which links to the comparison table.
 
 ## Wording, notation and conventions
 
@@ -299,7 +300,7 @@ Smaller fixes that make the pages accurate and consistent and follow the reposit
   - **Now:** "Multi-hop trades reach CPMM pools through Raydium's [AMM Routing] program and third-party aggregators, not through a CLOB." … "Its authorized migration moves a completed launch into a CPMM pool."
 - **[Overview, What CPMM gives you](/docs/en/products/cpmm/overview#what-cpmm-gives-you):** the Fee Key holder, not the pool creator, claims a locked position's fees.
   - **Was:** "so the pool creator can keep claiming fees without retaining the right to withdraw liquidity."
-  - **Now:** "The holder of the resulting Fee Key can keep claiming the locked position's LP fees but can't withdraw the liquidity." … "This is separate from the CPMM creator fee: collection rights remain with `pool_creator`, less any protocol share applied at collection."
+  - **Now:** "The holder of the resulting Fee Key can keep claiming the locked position's LP fees but can't withdraw the liquidity." … "The CPMM creator fee stays with `pool_creator`, less any protocol share applied at collection."
 - **[Landing page, Chapter contents](/docs/en/products/cpmm#chapter-contents):** notation and instruction names the rest of the chapter uses, and an accurate Code demos card.
   - **Was:** "xy=k invariant, SwapBaseIn vs. SwapBaseOut math" … "Create pool, deposit, withdraw, swap — in TypeScript (raydium-sdk-v2) and Rust CPI."
   - **Now:** "`x · y = k` invariant, SwapBaseInput vs. SwapBaseOutput math" … "TypeScript (raydium-sdk-v2) examples for create pool, swap, deposit, withdraw and creator-fee collection, plus a Rust CPI skeleton for SwapBaseInput."
@@ -345,12 +346,15 @@ The [SDK pool-creation pass](/docs/en/resources/devrel-edits/sdk-edits/create-po
 - **[Swap from CLI, The script](/docs/en/quick-start/swap-from-cli#the-script):** the quote had the same two bugs as the old CPMM demos. Source: [pool.rs L278–286](https://github.com/raydium-io/raydium-cp-swap/blob/3d69122790e97cd6aff24e8ba95940793773f58c/programs/cp-swap/src/states/pool.rs#L278-L286) · [pool.rs L343–349](https://github.com/raydium-io/raydium-cp-swap/blob/3d69122790e97cd6aff24e8ba95940793773f58c/programs/cp-swap/src/states/pool.rs#L343-L349)
   - **Was:** `rpcData.configInfo.creatorFeeRate,` … `rpcData.feeOn === FeeOn.BothToken || rpcData.feeOn === FeeOn.OnlyTokenB,`
   - **Now:** `(rpcData.feeOn === FeeOn.OnlyTokenA && baseIn) ||` … `(rpcData.feeOn === FeeOn.OnlyTokenB && !baseIn);` … `const creatorFeeRate = rpcData.enableCreatorFee ? rpcData.configInfo.creatorFeeRate : new BN(0);`
+  - **Why:** a configured tier rate does not mean a pool enabled creator fees, and single-token fee modes move between the input and output when the swap direction reverses.
 - **[Swap from CLI, What just happened](/docs/en/quick-start/swap-from-cli#what-just-happened):** the method name, and what the quote is.
   - **Was:** "**`CurveCalculator.swap`** computed the constant-product output net of the pool's fee. This is the same math the program runs on-chain, so you can compare quotes off- and on-chain."
   - **Now:** "**`CurveCalculator.swapBaseInput`** computed the constant-product output net of the pool's fees. It is close to the program's math but not identical. It ignores Token-2022 transfer fees, and when the creator fee is on the input it can take one input unit more fee than the program."
+  - **Why:** the old method name does not exist in this call path, and the helper omits or rounds parts of the on-chain calculation, so the docs must not promise identical quotes.
 - **[Swap from CLI, Common errors](/docs/en/quick-start/swap-from-cli#common-errors):** the error name, and a helper the CPMM module doesn't have. `computeSwapAmount` quotes from the pool data you pass it and fetches nothing. Source: [SDK cpmm.ts L1577–1630](https://github.com/raydium-io/raydium-sdk-V2/blob/32a184eb0aea15ddbb485e24a1a73d3723fd94d6/src/raydium/cpmm/cpmm.ts#L1577-L1630)
   - **Was:** "**`Slippage tolerance exceeded`** — … or use the SDK's `computeAmountOut` which always re-fetches reserves."
   - **Now:** "**`ExceededSlippage` (`6005`)** — … Re-run the script, which loads the pool again before it quotes, or raise the `slippage` parameter."
+  - **Why:** readers need the program's real error name and a recovery step that uses an available SDK path instead of a nonexistent refetching helper.
 
 ### Error codes
 
@@ -428,7 +432,7 @@ The Stable AMM figure on two pages and every compute figure on the routing fees 
   - **Now:** "≈94,500 CU (`SwapBaseIn`)" … "The Stable AMM figure comes from its last 398 successful swaps, on 2026-11-03 to 2026-11-05; the 9-account and 18-account layouts cost about the same." The medians were 94,084 CU for 231 swaps in the 9-account layout and 94,863 CU for 167 in the 18-account one.
 - **[Stable AMM math, Summary](/docs/en/products/stable/math#summary-why-this-works):**
   - **Was:** "Binary search is O(log 50,000) ≈ 16 iterations, each ~ 300–500 CU. Interpolation is a few multiplies/divides. Total quoting cost is ~5k–15k CU, much cheaper than recomputing a formula on every swap."
-  - **Now:** "The swap as a whole is not cheap, though. In a mainnet sample of 398 swaps from 2026-11-03 to 2026-11-05, a Stable `SwapBaseIn` consumed a median of 94,487 CU, several times a CPMM or AMM v4 swap."
+  - **Now:** "The whole swap is still compute-heavy: in a mainnet sample of 398 swaps from 2026-11-03 to 2026-11-05, a Stable `SwapBaseIn` consumed a median of 94,487 CU, several times a CPMM or AMM v4 swap."
 
 ### Changelog notes
 
@@ -461,6 +465,20 @@ Nothing was signed or submitted. Both tests are repository scripts with saved re
   - On the creator-fee pool, an `OnlyTokenA` pool: the documented logic took the creator fee from the input and quoted exactly what the program pays. `computeSwapAmount` took it from the output and quoted 198,622 output units more than the program pays.
   - On the pool with the fee off: the documented logic charged no creator fee and matched the program. `computeSwapAmount` charged a 50,531-unit creator fee on the input and quoted 28,519,682 fewer output units.
   - The evidence is in `public/tino-changes/evidence/cpmm-quotes-2026-11-22/`.
+
+## Editorial pass on 23 November
+
+This pass tightens the wording of the corrections above without changing their technical content; the **Now** quotes show the result. It also fixes three pages outside the chapter that the 22 November follow-up missed. They still said the creator-fee rate is zero by default, which the 21 November config reads disproved: all 25 tiers had a non-zero rate. Source: `amm-configs.csv`
+
+- **[Fee comparison](/docs/en/reference/fee-comparison):**
+  - **Was:** "This rate is independent of `trade_fee_rate`; it does not reduce the 84/12/4 trade-fee split. The default creator rate is zero."
+  - **Now:** "accounted for separately from `trade_fee_rate` and its 84/12/4 split. On 2026-11-21 every mainnet tier had a non-zero creator rate, charged only by pools created with the creator fee enabled."
+- **[Protocol fees, Separate CPMM creator fee](/docs/en/ray/protocol-fees#separate-cpmm-creator-fee):**
+  - **Was:** "It does not reduce the 84/12/4 trade-fee split. The default creator rate is zero."
+  - **Now:** "The rate is set per fee tier; on 2026-11-21 every mainnet tier had a non-zero rate, charged only by pools created with the creator fee enabled."
+- **[FAQ, Who receives CPMM creator fees?](/docs/en/getting-started/faq#who-receives-cpmm-creator-fees):**
+  - **Was:** "The creator fee has its own `AmmConfig.creator_fee_rate`, which is zero by default; enabling `creatorFeeOn` alone does not guarantee revenue."
+  - **Now:** "The rate is the fee tier's `AmmConfig.creator_fee_rate`, and only pools created with the creator fee enabled charge it."
 
 ## Follow-ups outside the CPMM chapter
 
