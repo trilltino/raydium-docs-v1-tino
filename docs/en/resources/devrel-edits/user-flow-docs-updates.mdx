@@ -48,13 +48,13 @@ description: "Corrections to the liquidity-provider and LaunchLab user flows, wi
 
 - **[Pool creation, AMM v4 recommendation](/docs/en/user-flows/choosing-a-pool-type):** removes the obsolete recommendation to use AMM v4 for OpenBook connectivity. Current AMM v4 rejects `MonitorStep` and `MigrateToOpenBook`, and new pools store default keys in the legacy fields. Source: [AMM v4 processor](https://github.com/raydium-io/raydium-amm/blob/9c54069c6bd86d52cd6622705b98c274ee33ba4a/program/src/processor.rs#L2999-L3012)
   - **Was:** "Do not open new **AMM v4** positions unless you specifically need OpenBook orderbook connectivity for an existing pair."
-  - **Now:** "Choose **CPMM** for new full-range constant-product liquidity represented by fungible LP tokens." … "**AMM v4** remains operational, but no longer integrates with OpenBook."
+  - **Now:** "Choose **CPMM** for new full-range constant-product liquidity represented by fungible LP tokens." … "**AMM v4**, Raydium's original constant-product pool, remains operational."
 - **[Pool creation, CPMM fee configurations](/docs/en/user-flows/choosing-a-pool-type#3-which-fee-configuration-does-the-pool-use):** replaces the obsolete fixed tier list with the configurations currently exposed in the Raydium UI and distinguishes them from other possible on-chain configurations. Source: [CPMM config API](https://api-v3.raydium.io/main/cpmm-config)
   - **Was:** "CPMM is a standard `xy=k` constant-product pool … accepts 0.01% / 0.25% / 1% fee tiers."
   - **Now:** "Read the selected `AmmConfig` rather than relying on a generic tier list. The Raydium CPMM UI currently exposes `0.25%`, `0.3%`, `0.5%`, `1%`, `1.5%`, `2%`, `2.5%`, and `4%` configurations. Other configuration accounts can exist, and the live API is the source for currently available values."
 - **[Pool creation, AMM v4 mechanics](/docs/en/user-flows/choosing-a-pool-type#amm-v4):** deposit, fee, and withdrawal text no longer mentions orderbook assets or unwinding.
   - **Was:** "Pool is also registered against an OpenBook market, and pool assets sit partly on the orderbook." … "the program must also unwind orderbook orders before settling."
-  - **Now:** "No OpenBook orders are unwound." … "The `market` key used by current pool creation is an address seed, not a live orderbook connection."
+  - **Now:** "No OpenBook orders are unwound." … "The `market` key that pool creation takes is now only an address seed."
 - **[Pool creation, CPMM and CLMM mechanics](/docs/en/user-flows/choosing-a-pool-type#cpmm-vs-clmm-in-practice):** names the correct swap and collection instructions and removes the claim that out-of-range positions lose asset exposure. Sources: [CLMM decrease/collection](https://github.com/raydium-io/raydium-clmm/blob/6d7a0f82d2f293c553c69aaf943377367c6c4cc6/programs/amm/src/instructions/decrease_liquidity.rs#L178-L266) · [CLMM close requirements](https://github.com/raydium-io/raydium-clmm/blob/6d7a0f82d2f293c553c69aaf943377367c6c4cc6/programs/amm/src/instructions/close_position.rs#L54-L77)
   - **Was:** "CPMM handles them natively via `SwapV2`" … "claimed explicitly (`collectFee`)" … "you also stop being exposed if price leaves the range."
   - **Now:** "the program exposes `SwapBaseInput` and `SwapBaseOutput`" … "A zero-liquidity decrease collects without reducing position liquidity" … "You remain exposed to the asset it holds."
@@ -67,13 +67,13 @@ description: "Corrections to the liquidity-provider and LaunchLab user flows, wi
 - **Same page:** removes the universal `4–40×` CLMM return multiplier and the uncited "top-100 … April 2026" empirical source. It adds a mechanics matrix and selection flow instead of unsupported strategy guarantees.
 - **[Migrate AMM v4 to CPMM](/docs/en/user-flows/migrate-amm-v4-to-cpmm):** makes migration optional, non-atomic, and independent of OpenBook.
   - **Was:** "CPMM offers a better LP fee split by default, lower creation costs, Token-2022 support, and no OpenBook dependency." … "The migration is two actions: remove liquidity from AMM v4, then add liquidity to CPMM."
-  - **Now:** "CPMM supports Token-2022 and configurable fee accounts. Neither current AMM v4 nor CPMM depends on OpenBook." … "They are not one atomic migration instruction and do not necessarily equal two transactions."
+  - **Now:** "AMM v4 is fully operational and has no announced sunset, so migration is optional. CPMM supports Token-2022 and configurable fee accounts." … "The two steps are not atomic. Unstaking, destination-pool creation, ATA creation, and new-farm staking can add transactions."
 - **[Migration, treasury and rollback](/docs/en/user-flows/migrate-amm-v4-to-cpmm#ui-migration-project-treasury):** projects can stop promoting a pool but cannot disable it for everyone. Current AMM v4 creation does not require OpenBook setup.
   - **Was:** "**Deprecate the old pool** only after users had enough time to move." … "AMM v4 pool creation is more expensive and requires OpenBook market setup."
   - **Now:** "**Delist or stop promoting the old pool** only after users have had enough time to move." … "Current AMM v4 pool creation does not require OpenBook market setup."
 - **[Migration, execution concerns](/docs/en/user-flows/migrate-amm-v4-to-cpmm#common-concerns):** different pool ratios do not necessarily leave dust, and slicing does not guarantee lower total impact.
   - **Was:** "some tokens may remain as dust in your wallet" … "Withdraw and deposit in smaller slices if your position is large relative to pool TVL."
-  - **Now:** "Different pool ratios can leave a meaningful amount of one token in your wallet; it is not necessarily rounding dust." … "Splitting execution into smaller slices does not automatically reduce total price impact and adds transaction costs."
+  - **Now:** "Different pool ratios can leave a meaningful amount of one token in your wallet." … "Splitting execution into smaller slices does not automatically reduce total price impact and adds transaction costs."
 
 ## Claim and lock mechanics
 
@@ -94,7 +94,7 @@ description: "Corrections to the liquidity-provider and LaunchLab user flows, wi
   - **Now:** "No protocol rule requires a particular claim cadence." … "Claiming previously earned rewards still requires available reward-vault funds and a farm state that has not been wound down."
 - **[Burn & Earn, supported pools](/docs/en/user-flows/burn-and-earn#supported-pool-types):** CPMM permits partial locks, and CLMM full range is a recommendation rather than a demonstrated protocol restriction. Source: [official LP-Lock CPI, `lock_cp_liquidity(lp_amount)`](https://github.com/raydium-io/raydium-cpi/blob/115df2779d53bacc7db9d0be2773a4b48a6d372b/programs/locking-cpi/src/lib.rs#L51-L56)
   - **Was:** "There is no partial lock. If you want 50% locked and 50% movable, split the position into two positions first."
-  - **Now:** "You do not need to split a CPMM position merely to lock 50% of its LP balance."
+  - **Now:** "You can lock part of a CPMM LP balance directly. CLMM locks the whole position NFT."
 - **[Burn & Earn, program flow](/docs/en/user-flows/burn-and-earn#how-the-lock-works-at-the-program-level):** uses the actual lock and collection names and documents the separate Fee Key owner and optional metadata.
   - **Was:** "A **Fee Key NFT** is minted to the caller. Its metadata points back to the locked position's PDA." … "Burn & Earn exposes `collectFees`"
   - **Now:** "LP-Lock mints a **Fee Key NFT** to the configured `fee_nft_owner`." … "CPMM uses `collect_cp_fees`. CLMM uses `collect_clmm_fees_and_rewards`."
@@ -113,20 +113,20 @@ description: "Corrections to the liquidity-provider and LaunchLab user flows, wi
   - **Now:** The current modes are "JustSendIt" and "Advanced". "Neither mode lets a creator independently override all global or platform fee settings."
 - **[Buying a LaunchLab token, curve mechanics](/docs/en/user-flows/buying-a-launchlab-token#understand-the-curve-mechanics):** fixed-price launches do not move price on every buy or sell. Source: [SDK fixed-price curve](https://github.com/raydium-io/raydium-sdk-V2/blob/32a184eb0aea15ddbb485e24a1a73d3723fd94d6/src/raydium/launchpad/curve/fixedPriceCurve.ts#L33-L42)
   - **Was:** "Prices on the bonding curve are **not fixed**. Every buy moves the price up; every sell moves it down."
-  - **Now:** "Do not assume every buy raises price or every sell lowers it. That describes price-responsive curves, not fixed-price launches."
+  - **Now:** "On price-responsive curves, buys raise the price and sells lower it, so a large trade can move execution before your transaction lands. Fixed-price launches keep the curve price constant."
 - **[Buying, launch states](/docs/en/user-flows/buying-a-launchlab-token#after-the-funding-threshold):** removes permissionless automatic migration and guaranteed aggregator timing.
   - **Was:** "the token migrates to a Raydium AMM pool automatically" … "You can sell back to the curve at any time before graduation"
-  - **Now:** "The last qualifying trade makes the launch eligible for migration. It does not make any trader an authorized migration caller and does not pay that caller a bounty." Curve selling is now restricted to `Fund`, with `Migrate` and `Trade` explained separately.
+  - **Now:** "The last qualifying trade makes the launch eligible for migration by the authorized migration wallet." Curve selling is now restricted to `Fund`, with `Migrate` and `Trade` explained separately.
 - **[Buying, slippage](/docs/en/user-flows/buying-a-launchlab-token#slippage):** replaces generic trading advice with the observed UI default. Evidence: `public/tino-changes/evidence/user-flows-2026-11-22/ui-bundle.json`
   - **Was:** "A reasonable starting point for most launches is 1–3%; raise it only if needed on very low-liquidity launches nearing graduation."
-  - **Now:** "The Raydium LaunchLab UI's default was **2.5%** when checked on 2026-11-19. This is a UI default, not a universally safe setting or a recommendation for every launch."
+  - **Now:** "The Raydium LaunchLab UI's default was **2.5%** when checked on 2026-11-19. Review the actual minimum-received or maximum-spent bound before signing."
 - **[Buying, verification and risks](/docs/en/user-flows/buying-a-launchlab-token#verify-the-token-and-launch):** adds quote-mint identity, launch state, fee components, Token-2022 authorities, migrated pool identity, and the limits of mint-authority checks. LP risk now distinguishes current platform Fee Keys from historical creator keys.
 
 ## Creation, fees, referrals, and platforms
 
 - **[Creating a LaunchLab token, migration](/docs/en/user-flows/creating-a-launchlab-token#migration):** removes the nonexistent caller bounty.
   - **Was:** "this can be called by any user (the caller earns a small bounty). No action is required from you as creator."
-  - **Now:** "The `migrate_to_cpswap_wallet` recorded on the selected `GlobalConfig` must then sign `MigrateToCpswap`. An arbitrary user cannot execute this step, and there is no permissionless caller bounty."
+  - **Now:** "The `migrate_to_cpswap_wallet` recorded on the selected `GlobalConfig` must then sign `MigrateToCpswap`."
 - **[Creation, modes and parameters](/docs/en/user-flows/creating-a-launchlab-token#configuration-options):** replaces "fully configurable" supply with current UI presets and config validation. Source: [SDK curve validation](https://github.com/raydium-io/raydium-sdk-V2/blob/32a184eb0aea15ddbb485e24a1a73d3723fd94d6/src/raydium/launchpad/curve/curve.ts#L196-L245)
   - **Was:** "Token supply | Fixed default | Fully configurable" … "The minimum graduation threshold is **24 SOL**."
   - **Now:** "Current UI presets: 100M, 1B, or 10B" … "The public SOL configuration's default target was **85 SOL** and its minimum was **24 SOL** when checked on 2026-11-19." A table now separates live config values from UI limits and protocol validation.
@@ -141,10 +141,10 @@ description: "Corrections to the liquidity-provider and LaunchLab user flows, wi
   - **Now:** "Review the exact balance changes before signing. A fixed SOL estimate becomes stale when account requirements, rent, priority fees, or platform configuration change." The sniping strategy row is removed.
 - **[Earn referral fees](/docs/en/user-flows/earn-referral-fees-launchlab):** changes the Raydium UI rate from 0.1% to 1% while preserving the per-integration `shareFeeRate` cap model. Evidence: `public/tino-changes/evidence/user-flows-2026-11-22/ui-bundle.json`
   - **Was:** "anyone who trades via your link generates a **0.1% commission** paid directly to your wallet."
-  - **Now:** "The referral rate is **1%** of the applicable trade amount." … "Payment goes to your quote-token associated token account, not to a pending off-chain balance."
+  - **Now:** "The referral rate is **1%** of the applicable trade amount." … "Payment goes directly to your quote-token associated token account."
 - **[Referral attribution](/docs/en/user-flows/earn-referral-fees-launchlab#link-and-attribution-scope):** replaces the durable-session implication with observed `lreferrer` propagation.
   - **Was:** "if the user who clicked your link then trades *other* LaunchLab tokens within the same browser session, you may also earn commissions on those trades."
-  - **Now:** "If the parameter is removed or replaced, do not assume the referral still applies. This is conditional URL propagation, not a promise of a durable browser-session referral store."
+  - **Now:** "If the parameter is removed or replaced, do not assume the referral still applies."
 - **Same page:** adds the protocol/platform/creator/referral fee model, integer-rounding note, and transaction-settlement flow. The vague Swap comparison "Manual claim or auto depending on integration" is removed.
 - **[How creator fees work, CPMM](/docs/en/user-flows/how-creator-fees-work#phase-2-cpmm-creator-fees):** enablement and fee side now accompany the rate, and collection includes the protocol share. Sources: [creator-signed collection](https://github.com/raydium-io/raydium-cp-swap/blob/3d69122790e97cd6aff24e8ba95940793773f58c/programs/cp-swap/src/instructions/collect_creator_fee.rs#L101-L120) · [permissionless collection](https://github.com/raydium-io/raydium-cp-swap/blob/3d69122790e97cd6aff24e8ba95940793773f58c/programs/cp-swap/src/instructions/collect_creator_fee_permissionless.rs#L108-L134)
   - **Was:** "CPMM creator fees accrue only when the selected `AmmConfig` has a non-zero creator-fee rate."
